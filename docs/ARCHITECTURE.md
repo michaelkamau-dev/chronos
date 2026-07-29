@@ -48,7 +48,7 @@ src/
   apps/          six apps. Know about core. Never about eras.
     files/ editor/ paint/ terminal/ media/ settings/
   skins/         the ONLY place an era exists. One lazy-loaded chunk each.
-    system1/ win31/ macos8/ winxp/ tiger/ aperture/
+    system1/ win31/ macos8/ winxp/ tiger/ ledger/
       metrics.ts             measured chrome geometry
       metrics.provenance.ts  a source for every single number
       chrome.ts              window frame template
@@ -70,7 +70,7 @@ only through `import()`.
 `test/invariants.test.ts` fails the build if:
 
 1. Any file under `core/` or `apps/` contains an era identifier
-   (`system1|win31|macos8|winxp|tiger|aperture`) — catches era conditionals.
+   (`system1|win31|macos8|winxp|tiger|ledger`) — catches era conditionals.
 2. Any file outside `core/fs/` references `idb-keyval` or `indexedDB` — enforces
    "all persistence flows through the FS layer."
 3. Any file under `core/wm/` matches `\.style\.(top|left|width|height)\s*=` in a
@@ -456,7 +456,8 @@ on every interactive element — this makes the compiler enforce it.
 The desktop shell differs more between eras than the windows do — System 1 and
 Mac OS 8 have a global menu bar with the Apple menu at the left, Windows 3.1 has
 Program Manager with MDI child windows and no taskbar at all, XP has the Start
-menu and taskbar, Tiger has a menu bar *and* a Dock, Aperture has a command bar.
+menu and taskbar, Tiger has a menu bar *and* a Dock, Ledger has a persistent
+budget bar.
 
 Rather than six shells, there is one shell driven by a declarative layout in the
 skin manifest:
@@ -465,11 +466,11 @@ skin manifest:
 interface ShellLayout {
   regions: Array<{
     edge: 'top' | 'bottom' | 'left' | 'right'
-    kind: 'menubar' | 'taskbar' | 'dock' | 'commandbar'
+    kind: 'menubar' | 'taskbar' | 'dock' | 'budgetbar'
     thickness: number
     reservesSpace: boolean      // does it shrink the window work area?
   }>
-  launcher: 'apple-menu' | 'start-menu' | 'program-groups' | 'command-palette'
+  launcher: 'apple-menu' | 'start-menu' | 'program-groups' | 'ledger-index'
   desktopIcons: boolean          // Win 3.1: false — Program Manager owned everything
   windowContainment: 'screen' | 'mdi-parent'
 }
@@ -803,35 +804,111 @@ transfer budget in §6.
 
 ---
 
-## 8. The 2035 era — "Aperture"
+## 8. The 2035 era — **Ledger**
 
-Five eras are archaeology; this one is an argument. The other five get measured
-tables; Aperture gets an **authored spec sheet**, which is the one place in
-Chronos where a number is normative because I wrote it rather than uncertain
-because I found it.
+Five eras are archaeology; this one is an argument. It gets an authored spec
+sheet — the one place in Chronos where a number is normative because I wrote it
+rather than uncertain because I found it.
 
-**The thesis.** Every OS in this project spent four decades adding chrome and
-then twenty years taking it away. Aperture finishes the trajectory: chrome does
-not exist at rest, it *materialises on intent*. A window is a surface with a 1px
-edge and no title bar. Point at it, or focus it from the keyboard, and a
-control cluster resolves in over 120ms. Look away and it dissolves.
+### What made it necessary: the joule budget
 
-- **Command-first.** The primary navigation is a command bar, not a launcher
-  grid — the descendant of Spotlight and Raycast. Every semantic command in the
-  system is reachable from it, which is possible precisely because the WM was
-  built on a command vocabulary from phase 1.
-- **Motion is the chrome.** With no bevels to communicate state, transitions
-  carry the meaning: spring-based, 180ms, with focus changes shifting elevation
-  rather than colour.
-- **Content-derived colour.** One accent, extracted from the wallpaper at boot
-  via a canvas histogram, propagated through CSS custom properties. Dark-first.
-- **Path syntax.** `~/documents/letter` — lowercase, tilde-rooted, with a
-  content-addressed `@` form for stored revisions. It is the only era whose
-  codec exposes history.
+Hardware stopped getting faster around 2029 and started getting cheaper to run.
+At the same time on-device inference became the default interaction layer —
+every search, every autocomplete, every "what was I doing" is a model call, and
+model calls are thermally bounded in a way that spreadsheet math never was.
 
-Aperture is also the honesty test for the architecture: if a genuinely
-non-skeuomorphic era drops into the same `Skin` manifest with no core changes,
-the contract is real.
+So the scarce resource stopped being cycles or RAM and became **joules per
+hour**. Ledger is the first consumer OS whose primary job is *allocation* rather
+than abstraction. It does not hide the machine from you. It bills you for it.
+
+That single premise generates everything below. None of it is a style choice.
+
+### What it deleted: background execution
+
+**Nothing runs when you are not looking at it.** Only the focused window
+computes. Everything else is suspended to a bitmap within about 400ms of losing
+focus. No background sync, no notifications, no downloads while you work, no
+autosave in an unfocused editor.
+
+This is the generational deletion, and it is genuinely painful. An entire way of
+working — forty warm tabs, a render going in the background, messages arriving —
+simply stops being possible. The people angriest about it are the ones who grew
+up assuming a computer keeps its promises while you look away. There is a
+jailbreak scene shipping "always-warm" kernel patches, and the community norm is
+that running them makes you a freeloader.
+
+The sharpest consequence, and my favourite: **in Ledger, the media player stops
+when you click away from it.** Not pauses politely — suspends, mid-bar. That is
+not a bug to be worked around in the Ledger skin. It is the entire thesis
+arriving at the one app where you cannot ignore it, and it should be exactly as
+infuriating as it sounds.
+
+The historical rhyme is the point: **Chronos opens and closes on single-tasking
+machines.** 1984 couldn't afford to compute more. 2035 won't.
+
+### What it gets wrong: the cost gutter
+
+Every real OS has a compromise that dates it within five years. Luna had the
+Fisher-Price plastic. Aqua had the pinstripe overgloss. Office had the ribbon.
+
+Ledger's is **the cost gutter**: a permanent 40px itemised strip down the right
+edge of *every window*, showing joules, model calls and elapsed time as running
+ledger lines. It cannot be hidden — it is a regulatory disclosure, not a
+preference. It makes every layout in the OS 40px narrower than it wants to be,
+it wrecks any document view, and by 2045 it will read exactly as embarrassing as
+a beveled gradient toolbar does now.
+
+Title bars carry the same disease: `Letter — 3.1 kJ — 14 min`. Long, ugly,
+constantly rewriting itself. And the OS **rounds every cost up** and tells you it
+did, in the gutter, every time. Petty and bureaucratic in a way that a real
+committee would absolutely have shipped.
+
+Its Clippy is **the Steward** — a budget assistant that interrupts to propose
+closing your work and phrases it as a favour. *"You haven't touched Untitled 3
+in 20 minutes. Shall I settle it?"* It can be deferred but not disabled, and the
+defer control is deliberately the smallest target on screen.
+
+### What it looks like: two-ink thermal
+
+The look is downstream of the premise, and the premise is austerity, so:
+**paper white, carbon black, and one amber ink.** Thermal-receipt palette —
+institutional, cheap, unglamorous. Tone comes from **ordered (Bayer) dither**,
+not from alpha, because low-power display modes quantise. This reuses exactly
+the dither machinery System 1 needs.
+
+- **Type is heavy.** Thin strokes do not survive dithering, so Ledger's face is a
+  chunky grotesque at generous sizes. The physics picks the type, not taste.
+- **Nothing animates.** Transitions cost joules. States *cut*. There is no fade,
+  no spring, no easing curve anywhere in the OS.
+- **Suspended windows fade like thermal paper.** The longer a window sits
+  unfocused, the further it bleaches toward the paper colour and the coarser its
+  dither gets. You can read at a glance how long you have ignored something. This
+  replaces inactive-title-bar styling with something that carries real
+  information.
+- **The screen refreshes at 1Hz while you read**, in a visible horizontal band
+  like e-ink. Typing forces a burst mode that looks and behaves differently — and
+  ticks the gutter. The cursor blinks at 0.5Hz. It is mildly unpleasant. It is
+  supposed to be.
+- Windows still overlap, stack, drag and resize. Rationing did not delete
+  direct manipulation.
+
+**Paths are ledger entries.** Every node carries a stable entry number, so the
+same file the other five eras call `Letter` is `#04412 letter`, and the
+hierarchical form is `you/documents/#04412 letter`. The terminal accepts either.
+
+### What this costs the architecture
+
+Ledger is the honesty test, and it is not free — it needs two additions to core,
+both of which are era-neutral and only *surfaced* by this skin:
+
+1. `AppInstance.suspend()` / `resume()` — suspend to a bitmap, restore on focus.
+   Legitimately useful for every era; only Ledger makes it visible.
+2. A render-budget governor in `core/input` that can throttle the rAF loop to a
+   target rate. Era-neutral; only Ledger sets it below 60.
+
+Neither is an era conditional, so the invariant holds. If a premise this hostile
+to the other five drops into the same `Skin` manifest with only those two
+additions, the contract is real.
 
 ---
 
