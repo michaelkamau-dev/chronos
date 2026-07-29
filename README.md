@@ -12,6 +12,8 @@ Eras: System 1 (1984), Windows 3.1, Mac OS 8, Windows XP, Mac OS X Tiger, and
   tables with per-value provenance — is in
   [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Working rules and the running mistake log are in [`CLAUDE.md`](CLAUDE.md).
+- Every judgement call made without stopping to ask, with its reasoning, is in
+  [`DECISIONS.md`](DECISIONS.md).
 
 ## Running it
 
