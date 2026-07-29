@@ -95,37 +95,42 @@ break it:
    personality. PT Sans carries more — a distinctive `a` and `ж`-influenced
    proportions — which at 11px reads as "not Tahoma" rather than as a near miss.
 
-## The Trebuchet row has no target, and one honest compromise
+## The Trebuchet row: Cabin stands, and no candidate has the right `g`
 
-Wine ships no Trebuchet substitute and no advance-width table for Trebuchet MS
-was reachable from this sandbox, so this row is judged on letterform character and
-plausible width. Trebuchet MS is a moderately narrow humanist sans.
+Wine ships no Trebuchet substitute and no advance-width table for Trebuchet MS was
+reachable, so this row is judged on letterform character and plausible width.
+Trebuchet MS is a moderately narrow humanist sans.
 
-| Candidate | `Add or Remove Programs` @13px bold | Licence |
-|---|---|---|
-| PT Sans | 139.6px | OFL 1.1 |
-| **Cabin** | 142.7px | OFL 1.1 |
-| Source Sans 3 | 144.3px | OFL 1.1 |
-| Fira Sans | 148.8px | OFL 1.1 |
-| Liberation Sans | 160.4px | OFL 1.1 |
-| Open Sans | 164.1px | OFL 1.1 |
+| Candidate | `Add or Remove Programs` @13px | `g` | Licence |
+|---|---|---|---|
+| PT Sans Bold | 139.6px | single-storey | OFL 1.1 |
+| **Cabin** | **142.7px** | single-storey | OFL 1.1 |
+| Source Sans 3 | 144.3px | single-storey | OFL 1.1 |
+| **Fira Sans Medium** | 148.4px | **single-storey** | OFL 1.1 |
+| Fira Sans Bold | 148.8px | single-storey | OFL 1.1 |
+| Liberation Sans Bold | 160.4px | single-storey | OFL 1.1 |
+| Open Sans | 164.1px | single-storey | OFL 1.1 |
 
-**Recommendation: Cabin.** Closest overall humanist character, a plausible caption
-width, and a variable weight axis so one file serves the role.
+**Cabin stands.** Fira Sans Medium was added to test whether it carried Trebuchet's
+double-storey `g`. It does not — it is single-storey, and at 148.4px it is also
+5.7px wider than Cabin. It fails both tests, so the stated rule applies.
 
-**The compromise, stated plainly:** Trebuchet MS has a **double-storey `g`**.
-Cabin's is single-storey. At 13px bold in a title bar that difference is two or
-three pixels of bowl, but it is a real divergence on the single most
-character-bearing glyph in the face.
+**Correcting an earlier claim of mine: Source Sans 3 does not have a double-storey
+`g` either.** I said it did. It does not. Rendered at 150px and inspected —
+[`xp-trebuchet-g-letterform.png`](xp-trebuchet-g-letterform.png) — **every one of
+the candidates is single-storey.** Trebuchet MS's double-storey `g` is unusual for a
+humanist sans, and nothing in the reachable OFL set reproduces it.
 
-If you weight that letterform above width and overall feel, **Source Sans 3** has
-the correct double-storey `g` and sits 1.6px wider than Cabin. It would also mean
-one font file serving both the Tahoma and Trebuchet rows — about 13KB saved.
+So the compromise is real but it is not a choice between candidates: no available
+substitute has the correct glyph. That makes the decision simpler than it looked —
+Cabin wins on width and overall character, and the `g` is a loss taken regardless
+of which candidate is picked.
 
-I did not take that option, because Trebuchet-vs-Tahoma is a visible distinction
-on *every window* in the era: caption text and body text are different faces, and
-collapsing them to one would trade a per-glyph detail for a system-wide one. Say
-the word and I will switch.
+A cautionary note on how that error happened: counting closed contours in the glyph
+outline reports Cabin, Source Sans 3 and Open Sans as having three contours and Fira
+Sans two, which reads as "double-storey versus single-storey" and is wrong. Three
+contours can be a single-storey `g` whose tail terminal closes separately. The
+structural proxy was misleading; only rendering it settled it.
 
 ## Verdana Bold and Franklin Gothic Medium
 

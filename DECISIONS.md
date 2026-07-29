@@ -514,3 +514,80 @@ which reads as "these fonts are very similar" and actually meant none of them ha
 loaded. Canvas `measureText` and `fillText` do not trigger a CSS `@font-face`
 fetch, so everything fell back to one default. The fix is the FontFace API; the
 guard is so that failure mode can never be published as a comparison again.
+
+---
+
+## Phase 3 preparation — figure extraction
+
+### 3.9 Figures are extracted as embedded bitmaps, never rendered from the page
+
+**Call.** `tools/pdf-extract/` pulls image XObjects at native size rather than
+rasterising pages.
+
+**Reasoning.** "Standard window components in actual size" is only 1:1 in the
+embedded bitmap. Rendering the page at any DPI resamples it, which destroys exactly
+the measurement being sought. A corollary that cost some confusion first: the
+page-placement scale is irrelevant — XP's figure is placed at 1.38 px/pt and
+Tiger's at 1.538 and 1.25, none of them 96/72, and none of that changes the bitmap.
+
+### 3.10 Tiger's scale is argued from a documented element, not assumed
+
+**Call.** Tiger's Figure 13-2 measurements are reported as `measured` with the
+calibration argument stated in full, rather than as `documented`.
+
+**Reasoning.** Figure 13-2 contains no element whose size Apple published, so it
+cannot be self-calibrated. What can be shown is that the same document embeds 1:1
+bitmaps: Figure 14-1's three push buttons measure 16/22/19px including their drop
+shadows against documented heights of 15/20/17px "not including the shadow" —
+three independent matches once the shadow is excluded. That is evidence for the
+window figure, not proof, and the difference is recorded rather than smoothed over.
+
+Two things corroborate it anyway: the measured 22px title bar matches the
+independent `NSStatusBar.system.thickness == 22` datum, and 15px matches the classic
+Aqua scroll bar.
+
+### 3.11 The XP caption gradient stays contested even though it is now measured
+
+**Call.** The measured 30-row gradient is recorded in
+`docs/sources/figures/README.md` as structure, and §7 keeps the gradient tagged
+contested.
+
+**Reasoning.** The figure is a JPEG, so every sampled value carries lossy error,
+and the measured values match neither XP.css's endpoints nor Microsoft's published
+palette. What the measurement *does* establish is the shape — two highlights rather
+than a linear ramp, a plateau around `#0055E4`, two dark closing rows — which is
+enough to build a faithful caption. Presenting JPEG-derived hex values as resolving
+a colour question would be a worse error than leaving it open.
+
+**Tiebreaker.** Same rule as 3.7: an unverifiable value is marked unverified rather
+than invented, and that applies to replacing a value as much as to adding one.
+
+### 3.12 Gradients are sampled as a per-row median, not down a column
+
+**Call.** `measure-xp-titlebars.py` takes the median of caption-blue pixels per row.
+
+**Reasoning.** The first version sampled a fixed column and produced `#B18719` —
+orange — in the middle of a blue caption, because the column ran through the folder
+icon. Rows near the title text reported near-white for the same reason. A per-row
+median over pixels that pass a blue test discards both automatically.
+
+### 3.13 Corrected: no candidate has Trebuchet's double-storey `g`
+
+**Call.** Cabin stands for the Trebuchet row, and my earlier claim that Source Sans
+3 has the correct double-storey `g` is withdrawn.
+
+**Reasoning.** Fira Sans Medium was added to the sheet to test the hypothesis that
+it carries a double-storey `g`. It does not, and at 148.4px it is 5.7px wider than
+Cabin, so it fails on both counts. Rendering all candidates at 150px and inspecting
+them showed **every one is single-storey**, including Source Sans 3 — which I had
+previously asserted was double-storey. That was wrong.
+
+The consequence is that the compromise is unavoidable rather than a choice: no
+reachable OFL face reproduces Trebuchet's `g`, so the decision reduces to width and
+overall character, where Cabin wins.
+
+**How the error happened, recorded so it does not repeat:** counting closed contours
+in the glyph outline reports three for Cabin, Source Sans 3 and Open Sans versus two
+for Fira Sans, which looks like a double-versus-single-storey signal. It is not — a
+single-storey `g` can close its tail terminal as a separate contour. The structural
+proxy was misleading and only rendering settled it.

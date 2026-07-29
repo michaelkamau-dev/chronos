@@ -87,7 +87,8 @@ const ROLES = [
     target: null,
     candidates: [
       { name: 'Cabin', file: 'Cabin.ttf', licence: 'SIL OFL 1.1' },
-      { name: 'Fira Sans', file: 'FiraSans-Bold.ttf', licence: 'SIL OFL 1.1', fixedWeight: true },
+      { name: 'Fira Sans Medium', file: 'FiraSans-Medium.ttf', licence: 'SIL OFL 1.1', fixedWeight: true, renderWeight: 500 },
+      { name: 'Fira Sans Bold', file: 'FiraSans-Bold.ttf', licence: 'SIL OFL 1.1', fixedWeight: true },
       { name: 'PT Sans', file: 'PTSans-Bold.ttf', licence: 'SIL OFL 1.1', fixedWeight: true },
       { name: 'Source Sans 3', file: 'SourceSans3.ttf', licence: 'SIL OFL 1.1' },
       { name: 'Open Sans', file: 'OpenSans.ttf', licence: 'SIL OFL 1.1' },
@@ -140,7 +141,7 @@ function buildHtml(role) {
   const fontDecls = role.candidates.map((c, i) => ({
     family: `cand${i}`,
     uri: dataUri(c.file),
-    weight: c.fixedWeight ? String(role.weight) : '100 900',
+    weight: c.fixedWeight ? String(c.renderWeight ?? role.weight) : '100 900',
   }))
 
   const rows = role.candidates
@@ -153,7 +154,7 @@ function buildHtml(role) {
             ${role.samples
               .map(
                 (t) =>
-                  `<canvas class="raster" data-font="cand${i}" data-px="${px}" data-weight="${role.weight}" data-text="${t.replace(/"/g, '&quot;')}"></canvas>`,
+                  `<canvas class="raster" data-font="cand${i}" data-px="${px}" data-weight="${c.renderWeight ?? role.weight}" data-text="${t.replace(/"/g, '&quot;')}"></canvas>`,
               )
               .join('')}
           </td>`

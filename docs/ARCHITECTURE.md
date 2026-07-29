@@ -618,11 +618,11 @@ Wine's `user32/uitools.c`, ReactOS's `sysparams.c`, and the Win32 docs.
 
 | Metric | Value | Level |
 |---|---|---|
-| Caption height | **28px** from the outer top edge | measured |
-| Luna frame | **3px per side**, as three discrete 1px steps | measured |
-| Frame colours top/left | `#0831d9` → `#166aee` → `#0855dd` | measured |
-| Frame colours bottom/right | `#00138c` → `#001ea0` → `#003bda` | measured |
-| Top corner radius | 8px | measured |
+| Caption height | **30px** from the outer top edge | measured — Microsoft's 1:1 figure |
+| Luna frame | **4px per side**, as four discrete 1px steps | measured — Microsoft's 1:1 figure |
+| Frame colours left, outer→inner | `#0019CE` `#0831D9` `#166AEE` `#0955DE` | measured — XP.css missed the outermost |
+| Frame colours bottom | `#0048F2` ×2, `#001EA0` ×2 | measured |
+| Top corner arc | 5 rows, x-insets **5,3,2,1,1,0** — not a radius | measured |
 | Caption buttons | 21×21, `margin-left: 2px`, 5px right inset | measured |
 | Caption font | **Trebuchet MS Bold 10pt** (13.33px @96dpi) | documented |
 | UI / menu / dialog font | Tahoma 8pt | documented |
@@ -721,13 +721,29 @@ which is reachable from here.
 | Dock | 48px icons, 128px magnified; **flat 2D shelf in Tiger** | measured |
 | Menu bar translucency | **Tiger did not have it** — that is 10.5 Leopard | measured |
 
-**Apple never published the window chrome.** There is no Window, Title Bar,
-Scroll Bar or Menu specification section anywhere in the HIG — the entire
-`Specifications` list is controls. So title bar height, corner radius, traffic
-light diameter/spacing/colours, window shadow, title bar gradients, menu bar
-height and scroll bar width are all unverified, and the widely-circulated
-traffic-light numbers (12px, `#FF5F57`…) are **modern macOS values from CSS
-clones, not Tiger**.
+**Apple never published the window chrome in prose** — there is no Window, Title
+Bar, Scroll Bar or Menu specification section anywhere in the HIG, only figures.
+Figure 13-2 has now been extracted and measured, which converts most of that gap:
+
+| Metric | Measured |
+|---|---|
+| Title bar height | **22px** + a 1px separator (23px to the client area) |
+| Traffic light diameter | ~12px |
+| Traffic light spacing | **21px** centre to centre |
+| First light inset from window left | **13px** |
+| Scroll bar width | ~15px |
+| Top corner radius | ~6–8px (JPEG-noisy) |
+
+The scale is argued rather than assumed: Figure 14-1's three push buttons measure
+16/22/19px including shadows against documented heights of 15/20/17px "not
+including the shadow", so this document embeds 1:1 bitmaps. The 22px title bar also
+matches the independent `NSStatusBar.system.thickness == 22` datum. Details and
+caveats in `docs/sources/figures/README.md`; everything stays tagged `measured`.
+
+Still unverified: window shadow parameters, title bar gradient stops, menu item
+height, the Aqua selection highlight, and the lozenge thumb geometry. The
+widely-circulated traffic-light *colours* (`#FF5F57`…) remain **modern macOS values
+from CSS clones, not Tiger**.
 
 **But this gap has a clean fix that works from here.** The HIG PDF embeds its
 figures as 1:1 screenshots — Figure 13-2 "Standard window parts" is a full
@@ -737,9 +753,36 @@ Extracting those XObjects and measuring them yields **Apple's own pixels**, whic
 is a better provenance than any third-party clone. That is a phase-4 task and it
 is fully in scope.
 
-### Two verification gaps I cannot close from here
+### The Apple sources arrived, and they close more than expected
 
-**Mac OS 8 Platinum is unverifiable in this environment.** The Platinum
+`docs/sources/` now carries the Macintosh HIG, the Mac OS 8 Platinum addendum and
+the Tiger HIG as PDFs. Searching their prose promotes several values from
+`unverified` to `documented`:
+
+| Metric | Value | Source |
+|---|---|---|
+| Document window title bar | **19px** | Macintosh HIG p162, **restated in the Platinum addendum p103** |
+| Utility window drag region | **11px** | Macintosh HIG p162 |
+| Utility title bar with text | ≥19px, **25% pattern fill, no racing stripes** | Macintosh HIG p162 |
+| Push button height | **20px** | Macintosh HIG p380 |
+| Push button text padding | **≥8px each side** | Macintosh HIG p380 |
+| Default button ring | **3px black, separated by 1px white** | Macintosh HIG p380 |
+| Bevel button spacing in dialogs | ≥12px | Platinum addendum p74 |
+
+Two of these matter beyond their own row. **The 19px title bar is now documented in
+Apple's prose twice**, corroborating `StandardWDEF.a`'s `minTitleH EQU 19` — and
+because the Platinum addendum restates it, the same value is confirmed for Mac OS 8.
+Platinum kept the geometry and changed only the appearance. And the
+**default-button ring was recorded above as unverified folklore**; it is not
+folklore, it is in Apple's own checklist.
+
+Caveat kept rather than glossed: `macintosh-hig.pdf` is the 1992 edition describing
+System 7. The `documentProc` chrome was visually unchanged from 1984 through System
+6, so 19px carries back to System 1, but the source is System 7-era.
+
+### The remaining Platinum gap
+
+**Platinum's *appearance* is still unverifiable in this environment.** The Platinum
 Appearance chapter of the Mac OS 8 HIG is the authoritative source, and every
 mirror of it — `dev.os9.ca`, `preterhuman.net`, `interface.free.fr` — plus
 `web.archive.org` is blocked by this sandbox's network policy at the proxy, by

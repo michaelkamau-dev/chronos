@@ -98,3 +98,28 @@ Append every correction I make here as a permanent rule. Never delete entries.
   proxy like any non-allowlisted host. `raw.githubusercontent.com` is allowlisted,
   and a `*.github.io` site is served from a repository, so fetch the raw file from
   the backing repo instead.
+
+### Figure extraction and measurement
+- A figure captioned "in actual size" is 1:1 only in its **embedded bitmap**.
+  Rasterising the PDF page resamples it and destroys the measurement. Extract the
+  image XObject, never render the page.
+- A figure's page-placement scale says nothing about its bitmap scale. XP's window
+  figure is placed at 1.38 px/pt and Tiger's at 1.538 and 1.25 — none of them 96/72.
+  Ignore placement; measure the bitmap.
+- Calibrate scale against a documented element in the same document before trusting
+  a figure. Tiger's three push buttons measure 16/22/19px against documented
+  15/20/17px "not including the shadow" — that is what establishes 1:1, and the
+  shadow is why the raw bbox is 1–2px larger than the spec.
+- Source figures are JPEG. Find boundaries by change detection, not exact colour
+  match, and sample colour from the middle of a run. A JPEG-derived hex value is
+  `measured`, never `documented`.
+- Sample a gradient as the **median of qualifying pixels per row**, not down a fixed
+  column: any single column through a caption eventually crosses the window icon or
+  the title text and reports those as gradient.
+- XP.css's Luna frame is **3px because it missed the outermost step**. Microsoft's
+  1:1 figure shows four: `#0019CE` `#0831D9` `#166AEE` `#0955DE`. Caption height is
+  30px, not 28px, and the corner is a 5-row arc (insets 5,3,2,1,1,0), not an 8px
+  radius.
+- Do not infer a glyph's letterform from its contour count. Cabin, Source Sans 3 and
+  Open Sans all report three contours on lowercase `g` and are all **single-storey**
+  — a tail terminal can close as its own contour. Render it and look.
