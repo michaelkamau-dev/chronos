@@ -67,18 +67,33 @@ only through `import()`.
 
 ### Enforcing the invariant
 
-`test/invariants.test.ts` fails the build if:
+`test/invariants.test.js` fails the build if:
 
-1. Any file under `core/` or `apps/` contains an era identifier
+1. Any file under `core/`, `apps/` or `shell/` contains an era identifier
    (`system1|win31|macos8|winxp|tiger|ledger`) — catches era conditionals.
+   Comments are stripped before scanning but string literals are kept, since
+   `=== 'winxp'` is exactly the violation being hunted.
 2. Any file outside `core/fs/` references `idb-keyval` or `indexedDB` — enforces
    "all persistence flows through the FS layer."
-3. Any file under `core/wm/` matches `\.style\.(top|left|width|height)\s*=` in a
-   drag or resize path — enforces transform-only movement.
-4. Any source file contains `TODO|FIXME|XXX|placeholder|in a real implementation`.
+3. Any file under `core/wm/` assigns `.style.top` or `.style.left`, by property or
+   via `setProperty` — enforces transform-only movement. Position lives in the
+   skin's CSS so the window manager never writes either, at creation or in the
+   drag loop.
+4. `core/wm/drag.ts` mentions any layout-reading API (`getBoundingClientRect`,
+   `offsetWidth`, `getComputedStyle`, …) — a forced reflow per frame is the
+   easiest way to lose the frame budget.
+5. Any source file contains `TODO|FIXME|XXX|HACK|placeholder|in a real
+   implementation`.
+6. Any skin is missing `metrics.ts`, a `Provenance<ChromeMetrics>` export, or a
+   `note` on an `unverified` metric.
+7. The dispatcher registers more than one root listener per event type.
+8. Anything outside `skins/` constructs a chrome renderer — a window manager that
+   picks a renderer is picking an era.
 
-These are cheap, they run in under a second, and they make the CLAUDE.md rules
-mechanical rather than aspirational.
+They run in under a second, and they make the CLAUDE.md rules mechanical rather
+than aspirational. `test/browser/a11y.spec.ts` adds the matching keyboard rule:
+every command with a live handler must be reachable from a chord or a menu entry,
+so a mouse-only feature fails the build too.
 
 ---
 
@@ -889,6 +904,13 @@ the dither machinery System 1 needs.
   like e-ink. Typing forces a burst mode that looks and behaves differently — and
   ticks the gutter. The cursor blinks at 0.5Hz. It is mildly unpleasant. It is
   supposed to be.
+
+  The band honours **`prefers-reduced-motion`** — a media query, not a setting.
+  Under reduced motion the refresh band does not sweep; the surface updates
+  without the travelling seam. This is an accessibility obligation and it is the
+  one thing in Ledger the user does not have to argue with. It is deliberately
+  *not* a preference in the OS: **the Steward stays undisableable.** Ledger
+  bullies you about joules; it does not bully you about vestibular disorders.
 - Windows still overlap, stack, drag and resize. Rationing did not delete
   direct manipulation.
 
@@ -989,10 +1011,27 @@ Following the brief's order. Each phase ends with a push to
 |---|---|---|
 | 1 | WM + focus model, one era, unstyled boxes | A Chrome Performance trace over a 10-second drag with 20 windows open showing frame times under 16.7ms and a flat allocation profile. Plus the invariant tests and the size budget check, both green from day one. |
 | 2 | FS layer + persistence | A scripted reload-survival test: create a tree, write files, reload, assert byte-identical. Plus two file manager windows proving live sync through `fs.watch`. |
-| 3 | **Windows XP at full fidelity** — the reference implementation | Side-by-side pixel comparisons against reference screenshots; all five states on every control; the full metrics table with provenance; keyboard-only operation of the entire shell. |
+| 3 | **Windows XP at full fidelity** — the reference implementation | Pixel comparison against the 1:1 references in `docs/sources/`; all five states on every control; the full metrics table with provenance; keyboard-only operation of the entire shell. **Two hard preconditions, both before phase 3 starts** — see below. |
 | 4 | The other five eras against that contract | Same evidence per era. Any core change required by a later era is a contract bug and gets fixed in core, not patched in the skin. |
-| 5 | Apps | Each app exercised end-to-end: Paint writes a PNG that Files shows with the right icon and Media opens; Editor's guard blocks a close; Terminal manipulates the real tree. |
+| 5 | Apps | Each app exercised end-to-end: Paint writes a PNG that Files shows with the right icon and Media opens; Editor's guard blocks a close; Terminal manipulates the real tree. **Plus: every app survives `suspend()`/`resume()` with state intact** — Paint's undo stack, the editor's cursor and selection, the terminal's scrollback. Verified per app, not asserted. |
 | 6 | Sound, failure states, boot sequences | Each chime and each failure path triggered and verified. |
+
+### Phase 3 preconditions
+
+Phase 3 does not start until both are satisfied. XP is the reference every other
+era is measured against; starting it on unresolved inputs would poison all six.
+
+1. **The XP substitute face is named and shown.** Neither Tahoma nor Trebuchet MS
+   is redistributable (§7), so before any XP chrome is built I produce a rendered
+   comparison of the candidate face against the real metrics **at 8pt and 11px** —
+   the two sizes XP's UI actually uses — and get sign-off. No XP work proceeds on
+   an unresolved font.
+2. **The 1:1 references are in `docs/sources/`.** Pixel comparison is the gate,
+   and a gate needs a reference. Expected: the Platinum HIG, a 1:1 Windows 3.1
+   VGA screenshot, and a 1:1 XP Luna screenshot. These also close the two
+   verification gaps in §7 — the Platinum HIG converts Mac OS 8 from
+   mostly-`unverified` to measured, and the Win 3.1 capture does the same for its
+   geometry.
 
 Final acceptance is the brief's own: boot into any era, create files, open apps,
 drag and resize and stack windows, right-click anything, run it entirely from the
@@ -1034,15 +1073,21 @@ have a recommendation for each — none blocks starting phase 1.
 
 ## 13. Verification
 
-Runnable from the repo root, and every one of them runs in CI from phase 1:
+Runnable from the repo root. `npm test` runs everything that exists.
 
 ```
+npm run typecheck         # strict TS, no emit
 npm run test:invariants   # era leakage, persistence leakage, transform-only, no-TODO
-npm run test:fs           # reload survival, atomicity, migration
-npm run test:budget       # per-chunk size budget
-npm run test:a11y         # keyboard-only reachability of every command
-npm run build && npm run preview
+npm run test:budget       # per-chunk gzipped size budget (builds first)
+npm run test:wm           # window manager behaviour, real browser input
+npm run test:a11y         # keyboard reachability of every command, focus, reduced motion
+npm run test:perf         # the 60fps drag gate under 4x CPU throttling
+npm test                  # all of the above
 ```
+
+Phase 2 adds `test:fs` for reload survival, atomicity and migration. Browser
+tests need Chromium; this environment's pre-installed build is wired up in
+`playwright.config.ts` and can be overridden with `CHRONOS_CHROMIUM`.
 
 Manual gates per phase are in the table in §11. I will not report a phase as
 working without having run it.

@@ -1,0 +1,342 @@
+/*
+ * Phase-1 harness styling. Deliberately plain: the brief's phase 1 is
+ * "unstyled boxes", and anything that looks designed here would hide contract
+ * bugs that era skins would then inherit.
+ *
+ * What is NOT skipped is the five-state requirement. Every interactive element
+ * ships rest, hover, active, focus and disabled, because the harness is where
+ * that discipline gets established.
+ */
+
+:root {
+  --plain-bg: #6e7a86;
+  --plain-frame: #d6d3ce;
+  --plain-frame-blur: #e6e4e1;
+  --plain-edge: #4a4a4a;
+  --plain-bar: #3c5a80;
+  --plain-bar-blur: #9aa3ad;
+  --plain-bar-text: #ffffff;
+  --plain-bar-text-blur: #e8e8e8;
+  --plain-content: #ffffff;
+  --plain-focus-ring: #ffd24a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font: 13px/1.4 system-ui, sans-serif;
+  background: #222;
+}
+
+#chronos-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* The scaled desktop surface. Integer-scaled for the bitmap eras; the harness
+ * runs at 1x but goes through the same transform so the path is exercised. */
+.desktop {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  background: var(--plain-bg);
+}
+
+.desktop-surface {
+  position: absolute;
+  inset: 0;
+}
+
+/* ------------------------------------------------------------------ windows */
+
+.win {
+  position: absolute;
+  /* The transform origin. The window manager writes only `transform`, never
+   * `top`/`left`, so these live here rather than inline. */
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--plain-frame);
+  border: 1px solid var(--plain-edge);
+  border-top-width: 0;
+  contain: layout paint;
+}
+
+.win[data-state='blurred'] {
+  background: var(--plain-frame-blur);
+}
+
+.win[data-suspended='true'] .win-content {
+  opacity: 0.45;
+}
+
+.win-titlebar {
+  flex: 0 0 auto;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px 0 6px;
+  background: var(--plain-bar);
+  color: var(--plain-bar-text);
+  cursor: default;
+  user-select: none;
+  touch-action: none;
+}
+
+.win[data-state='blurred'] .win-titlebar {
+  background: var(--plain-bar-blur);
+  color: var(--plain-bar-text-blur);
+}
+
+.win-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.win[data-dirty='true'] .win-title::after {
+  content: ' •';
+}
+
+.win-controls {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 2px;
+}
+
+/* Five states, all distinct. */
+.win-button {
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #7b7b7b;
+  background: #cfcfcf;
+  color: #1a1a1a;
+  font: 12px/1 system-ui, sans-serif;
+  cursor: default;
+}
+
+.win-button:hover:not(:disabled) {
+  background: #e4e4e4;
+}
+
+.win-button:active:not(:disabled) {
+  background: #a8a8a8;
+  /* The harness shifts the glyph 1px, which is classic-Windows behaviour. The
+   * XP skin must NOT do this: Luna swaps the gradient and the label holds still.
+   * Kept here so the contract carries a pressed state that is visibly distinct. */
+  padding: 1px 0 0 1px;
+}
+
+.win-button:focus-visible {
+  outline: 2px solid var(--plain-focus-ring);
+  outline-offset: -1px;
+}
+
+.win-button:disabled {
+  background: #dcdcdc;
+  color: #9a9a9a;
+  border-color: #b4b4b4;
+}
+
+.win-content {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: auto;
+  background: var(--plain-content);
+  min-height: 0;
+}
+
+/* --------------------------------------------------------- resize handles */
+
+.win-resize {
+  position: absolute;
+  touch-action: none;
+}
+
+.win[data-resizable='false'] .win-resize {
+  display: none;
+}
+
+/* 4px grab slop, matching PLAIN_METRICS.resizeGrab, so a 1px visual edge is
+ * still a usable target. Corners sit above edges in DOM order. */
+.win-resize-n { top: -2px; left: 6px; right: 6px; height: 5px; cursor: ns-resize; }
+.win-resize-s { bottom: -2px; left: 6px; right: 6px; height: 5px; cursor: ns-resize; }
+.win-resize-w { left: -2px; top: 6px; bottom: 6px; width: 5px; cursor: ew-resize; }
+.win-resize-e { right: -2px; top: 6px; bottom: 6px; width: 5px; cursor: ew-resize; }
+.win-resize-nw { top: -2px; left: -2px; width: 8px; height: 8px; cursor: nwse-resize; }
+.win-resize-ne { top: -2px; right: -2px; width: 8px; height: 8px; cursor: nesw-resize; }
+.win-resize-sw { bottom: -2px; left: -2px; width: 8px; height: 8px; cursor: nesw-resize; }
+.win-resize-se { bottom: -2px; right: -2px; width: 8px; height: 8px; cursor: nwse-resize; }
+
+/* During a gesture, suppress anything that would cost paint per frame. The era
+ * skins with real shadows and gradients rely on this hook. */
+.win.is-dragging,
+.win.is-resizing {
+  box-shadow: none;
+}
+
+.win.is-dragging .win-content,
+.win.is-resizing .win-content {
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------- switcher */
+
+.switcher {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100000;
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  background: #2b2b2b;
+  border: 1px solid #000;
+  color: #fff;
+  max-width: 90%;
+  overflow: hidden;
+}
+
+.switcher-item {
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.switcher-item[aria-selected='true'] {
+  background: #4a6d99;
+  border-color: #cfe0f4;
+}
+
+/* --------------------------------------------------------- keyboard modes */
+
+.win.is-keyboard-moving .win-titlebar,
+.win.is-keyboard-resizing .win-titlebar {
+  outline: 2px dashed var(--plain-focus-ring);
+  outline-offset: -2px;
+}
+
+/* ------------------------------------------------------------ status strip */
+
+.status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px;
+  background: #1f1f1f;
+  color: #d8d8d8;
+  font: 11px/1 ui-monospace, monospace;
+  z-index: 90000;
+}
+
+.status button {
+  font: 11px/1 ui-monospace, monospace;
+  padding: 3px 6px;
+  border: 1px solid #666;
+  background: #333;
+  color: #eee;
+  cursor: default;
+}
+
+.status button:hover {
+  background: #444;
+}
+
+.status button:active {
+  background: #222;
+}
+
+.status button:focus-visible {
+  outline: 2px solid var(--plain-focus-ring);
+  outline-offset: 1px;
+}
+
+.status button:disabled {
+  color: #777;
+  border-color: #444;
+  background: #2a2a2a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .win {
+    transition: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------- menus */
+
+.menu {
+  position: absolute;
+  z-index: 200000;
+  min-width: 160px;
+  padding: 2px;
+  background: #f0efed;
+  border: 1px solid #6f6f6f;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.28);
+  font-size: 12px;
+  user-select: none;
+}
+
+.menu-item {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 2px;
+  color: #101010;
+  cursor: default;
+}
+
+/* Highlight is driven by the controller, not by :hover, so keyboard and pointer
+ * navigation land on exactly the same visual state. */
+.menu-item[data-highlight='true'] {
+  background: #2f5d99;
+  color: #fff;
+}
+
+.menu-item[aria-disabled='true'] {
+  color: #9b9b9b;
+}
+
+.menu-item[aria-disabled='true'][data-highlight='true'] {
+  background: #c8cdd4;
+  color: #7d7d7d;
+}
+
+.menu-check,
+.menu-trail {
+  font-size: 11px;
+}
+
+.menu-trail {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.menu-separator {
+  height: 0;
+  margin: 3px 2px;
+  border-top: 1px solid #b9b9b9;
+  border-bottom: 1px solid #ffffff;
+}
