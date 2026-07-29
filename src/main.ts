@@ -1,21 +1,31 @@
 /**
- * Phase-1 entry point.
+ * Phase-2 entry point.
  *
- * Boots the shell with the `plain` harness skin and exposes a status strip whose
- * controls exercise every window manager capability the brief's phase 1 asks
- * for. Every control here does its job — there are no inert buttons.
+ * Boots the filesystem, then the shell with the `plain` harness skin, then opens
+ * a directory view. Every status-strip control does its job.
  *
- * `window.__chronos` is the handle the browser tests and the drag perf harness
- * drive. It is a test surface, not an app API: phases 2 onward replace it with
- * the real filesystem and app registry.
+ * `window.__chronos` is the handle the browser tests drive. It is a test surface,
+ * not an app API: phase 5 replaces the directory-view harness with the real Files
+ * app and this shrinks to the app registry.
  */
 
 import { plainSkin } from './skins/plain/index.js'
 import { Shell } from './shell/shell.js'
 import { asAppId, type WindowId } from './core/wm/types.js'
+import { Filesystem } from './core/fs/fs.js'
+import { FsStore, nodeKey } from './core/fs/store.js'
+import { createPlainCodec, plainNameDecorator } from './skins/plain/paths.js'
+import { DirectoryView } from './harness/directory-view.js'
+import type { NodeId, PathCodec } from './core/fs/types.js'
 
 const root = document.getElementById('chronos-root')
 if (!root) throw new Error('Chronos: #chronos-root is missing from the document')
+
+const store = new FsStore()
+const fs = new Filesystem(store)
+await fs.open()
+
+const codec: PathCodec = createPlainCodec(fs)
 
 const shell = new Shell(root, {
   id: plainSkin.id,
@@ -32,6 +42,49 @@ const STATUS_HEIGHT = 24
 shell.display.setReservedEdges({ bottom: STATUS_HEIGHT })
 shell.wm.setWorkArea(shell.display.workArea())
 
+/** Directory views keyed by the window hosting them, so they can be torn down. */
+const views = new Map<WindowId, DirectoryView>()
+
+function openDirectoryWindow(startAt?: NodeId): WindowId {
+  const id = shell.wm.open({
+    appId: asAppId('harness-files'),
+    title: 'Files',
+    minSize: { w: 320, h: 240 },
+  })
+  const handle = shell.wm.handleOf(id)
+  if (!handle) return id
+
+  const view = new DirectoryView({
+    fs,
+    codec,
+    decorate: plainNameDecorator,
+    root: handle.content,
+    ...(startAt !== undefined ? { startAt } : {}),
+    onError: (message) => {
+      lastError = message
+      refresh()
+    },
+  })
+  views.set(id, view)
+  void view.start().then(() => {
+    void fs.chain(view.currentDir()).then((chain) => {
+      shell.wm.setTitle(id, `Files — ${codec.format(chain)}`)
+    })
+  })
+  return id
+}
+
+// A window closing must release its watcher, or a closed view keeps re-rendering
+// into detached DOM every time the folder changes.
+shell.wm.subscribe((e) => {
+  if (e.type !== 'closed') return
+  const view = views.get(e.id)
+  if (view) {
+    view.destroy()
+    views.delete(e.id)
+  }
+})
+
 const status = document.createElement('div')
 status.className = 'status'
 status.dataset['shellRegion'] = 'status'
@@ -39,6 +92,8 @@ root.appendChild(status)
 
 const counter = document.createElement('span')
 status.appendChild(counter)
+
+let lastError = ''
 
 function button(label: string, onClick: () => void): HTMLButtonElement {
   const b = document.createElement('button')
@@ -49,8 +104,8 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
   return b
 }
 
-button('New window', () => {
-  shell.openWindow()
+button('New Files window', () => {
+  openDirectoryWindow()
 })
 
 button('New modal', () => {
@@ -86,6 +141,8 @@ const suspendButton = button('Toggle suspend', () => {
   else shell.wm.suspend(id)
 })
 
+const guarded = new Set<WindowId>()
+
 const guardButton = button('Toggle close guard', () => {
   const id = shell.wm.focusedId()
   if (id === null) return
@@ -104,7 +161,8 @@ const guardButton = button('Toggle close guard', () => {
   refresh()
 })
 
-const guarded = new Set<WindowId>()
+const storageEl = document.createElement('span')
+status.appendChild(storageEl)
 
 function refresh(): void {
   const windows = shell.wm.list()
@@ -112,7 +170,8 @@ function refresh(): void {
   const focused = id !== null ? shell.wm.get(id) : undefined
   counter.textContent =
     `${windows.length} window${windows.length === 1 ? '' : 's'}` +
-    (focused ? ` · focus: ${focused.title}` : ' · no focus')
+    (focused ? ` · focus: ${focused.title}` : ' · no focus') +
+    (lastError ? ` · ${lastError}` : '')
   const has = focused !== undefined
   dirtyButton.disabled = !has
   suspendButton.disabled = !has
@@ -125,22 +184,50 @@ function refresh(): void {
 shell.wm.subscribe(() => refresh())
 refresh()
 
-shell.openWindow('Window 1')
+/** Storage headroom, refreshed on every filesystem change. */
+async function refreshStorage(): Promise<void> {
+  const headroom = await fs.storageHeadroom()
+  storageEl.textContent =
+    headroom === null
+      ? 'storage: unreported'
+      : `storage: ${(headroom.usage / 1024).toFixed(0)}KB used`
+}
+fs.watchAll(() => void refreshStorage())
+void refreshStorage()
 
-// Test surface for the browser suite and the drag perf harness.
+openDirectoryWindow()
+
+// Test surface for the browser suite.
 declare global {
   interface Window {
     __chronos: {
       shell: Shell
+      fs: Filesystem
+      codec: PathCodec
+      openDirectoryWindow(startAt?: NodeId): WindowId
       openWindows(n: number): WindowId[]
-      reset(): Promise<void>
       keymapUnknownKeys(): string[]
+      reset(): Promise<void>
+      wipeStorage(): Promise<void>
+      /**
+       * Low-level pokes at the store, used to reach states the public API
+       * deliberately cannot produce: a store written by a future schema, and
+       * content whose metadata never landed. Both are real failure modes that
+       * would otherwise be untestable, and neither belongs on FsApi.
+       */
+      diag: {
+        setSchemaVersion(v: number): Promise<void>
+        orphanContent(id: NodeId): Promise<void>
+      }
     }
   }
 }
 
 window.__chronos = {
   shell,
+  fs,
+  codec,
+  openDirectoryWindow,
   openWindows(n: number): WindowId[] {
     const ids: WindowId[] = []
     for (let i = 0; i < n; i++) ids.push(shell.openWindow())
@@ -151,5 +238,32 @@ window.__chronos = {
   },
   async reset(): Promise<void> {
     for (const s of [...shell.wm.list()]) await shell.wm.close(s.id, { force: true })
+  },
+  async wipeStorage(): Promise<void> {
+    await fs.wipeAndReseed()
+  },
+  diag: {
+    async setSchemaVersion(v: number): Promise<void> {
+      const meta = await store.readMeta()
+      if (!meta) throw new Error('no filesystem metadata to rewrite')
+      await store.writeMeta({ ...meta, schemaVersion: v })
+    },
+    async orphanContent(id: NodeId): Promise<void> {
+      // Delete the node record but leave its content: exactly the state a crash
+      // between the two writes in createFile would produce.
+      const node = await fs.stat(id)
+      const parent = node.parent
+      if (parent !== null) {
+        const parentNode = await fs.stat(parent)
+        if ('childIds' in parentNode) {
+          await store.writeMany([
+            [nodeKey(parent), { ...parentNode, childIds: parentNode.childIds.filter((c) => c !== id) }],
+          ])
+        }
+      }
+      await store.deleteKey(nodeKey(id))
+      // Assert the premise: the content must still be there for the sweep to find.
+      if (!(await store.readBlob(id))) throw new Error('content vanished with the node')
+    },
   },
 }

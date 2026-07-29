@@ -340,3 +340,150 @@ body {
   border-top: 1px solid #b9b9b9;
   border-bottom: 1px solid #ffffff;
 }
+
+/* ----------------------------------------------------- phase-2 directory view */
+
+.dirview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font: 12px/1.4 system-ui, sans-serif;
+  background: #fff;
+  color: #111;
+}
+
+.dirview-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 4px;
+  border-bottom: 1px solid #c8c8c8;
+  background: #ececec;
+}
+
+.dirview-toolbar button,
+.dirview-editor button {
+  font: 11px/1 system-ui, sans-serif;
+  padding: 4px 7px;
+  border: 1px solid #8a8a8a;
+  background: #dcdcdc;
+  color: #101010;
+  cursor: default;
+}
+
+.dirview-toolbar button:hover:not(:disabled),
+.dirview-editor button:hover:not(:disabled) {
+  background: #ececec;
+}
+
+.dirview-toolbar button:active:not(:disabled),
+.dirview-editor button:active:not(:disabled) {
+  background: #bcbcbc;
+}
+
+.dirview-toolbar button:focus-visible,
+.dirview-editor button:focus-visible {
+  outline: 2px solid var(--plain-focus-ring);
+  outline-offset: 1px;
+}
+
+.dirview-toolbar button:disabled,
+.dirview-editor button:disabled {
+  background: #efefef;
+  border-color: #c4c4c4;
+  color: #a0a0a0;
+}
+
+.dirview-path {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border-bottom: 1px solid #dcdcdc;
+  background: #f7f7f7;
+  font: 11px/1.4 ui-monospace, monospace;
+  color: #333;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dirview-list {
+  flex: 1 1 auto;
+  overflow: auto;
+  min-height: 0;
+}
+
+.dirview-list:focus-visible {
+  outline: 2px solid var(--plain-focus-ring);
+  outline-offset: -2px;
+}
+
+.dirview-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 6px;
+  cursor: default;
+}
+
+.dirview-row:hover {
+  background: #eef3fa;
+}
+
+.dirview-row[aria-selected='true'] {
+  background: #2f5d99;
+  color: #fff;
+}
+
+.dirview-kind,
+.dirview-meta {
+  font: 10px/1 ui-monospace, monospace;
+  opacity: 0.75;
+}
+
+.dirview-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dirview-empty {
+  padding: 8px;
+  color: #888;
+  font-style: italic;
+}
+
+.dirview-editor {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-top: 1px solid #c8c8c8;
+  background: #f2f2f2;
+}
+
+.dirview-editor textarea {
+  flex: 1 1 auto;
+  min-height: 54px;
+  resize: none;
+  font: 11px/1.4 ui-monospace, monospace;
+  border: 1px solid #9a9a9a;
+  padding: 3px;
+}
+
+.dirview-editor textarea:focus-visible {
+  outline: 2px solid var(--plain-focus-ring);
+  outline-offset: -1px;
+}
+
+.dirview-status {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border-top: 1px solid #dcdcdc;
+  background: #f7f7f7;
+  font: 10px/1.4 ui-monospace, monospace;
+  color: #444;
+  min-height: 18px;
+}

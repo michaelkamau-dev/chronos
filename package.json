@@ -14,7 +14,8 @@
     "test:perf": "playwright test --grep @perf",
     "test": "npm run typecheck && npm run test:invariants && npm run test:budget && npm run test:browser",
     "test:a11y": "playwright test test/browser/a11y.spec.ts",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "test:fs": "playwright test test/browser/fs.spec.ts"
   },
   "dependencies": {
     "idb-keyval": "^6.2.2"

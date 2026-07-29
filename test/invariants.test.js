@@ -81,9 +81,9 @@ function rel(file) {
   return relative(ROOT, file).split(sep).join('/')
 }
 
-test('no era identifiers leak into core or apps', () => {
+test('no era identifiers leak into core, apps or the harness', () => {
   const offences = []
-  for (const dir of ['core', 'apps']) {
+  for (const dir of ['core', 'apps', 'harness']) {
     for (const file of sources(dir)) {
       const code = stripComments(readFileSync(file, 'utf8')).toLowerCase()
       for (const era of ERA_IDS) {
@@ -233,11 +233,41 @@ test('exactly one delegated listener per event type on the root', () => {
 test('chrome renderers are not constructed outside the skin layer', () => {
   // A window manager that news up a chrome renderer would be choosing an era.
   const offences = []
-  for (const dir of ['core', 'shell', 'apps']) {
+  for (const dir of ['core', 'shell', 'apps', 'harness']) {
     for (const file of sources(dir)) {
       const code = stripComments(readFileSync(file, 'utf8'))
       if (/new\s+\w*Chrome\s*\(/.test(code)) offences.push(rel(file))
     }
   }
   assert.deepEqual(offences, [], 'Chrome renderers come from the skin manifest:\n' + offences.join('\n'))
+})
+
+test('the filesystem is the only module that can construct storage keys', () => {
+  // A caller that builds `fs:node:<id>` itself has reached around the API and
+  // would not be covered by the batched-write atomicity guarantees.
+  const offences = []
+  for (const file of walk(SRC).filter((f) => f.endsWith('.ts'))) {
+    const relPath = rel(file)
+    if (relPath.startsWith('src/core/fs/')) continue
+    const code = stripComments(readFileSync(file, 'utf8'))
+    if (/['"`]fs:(node|blob|meta):?/.test(code)) {
+      offences.push(`${relPath} builds a raw storage key`)
+    }
+  }
+  assert.deepEqual(offences, [], 'Storage keys belong to src/core/fs:\n' + offences.join('\n'))
+})
+
+test('nothing outside the filesystem reads or writes node records directly', () => {
+  // The harness and the shell must go through FsApi so `watch` stays the single
+  // notification path — an out-of-band write would leave every view stale.
+  const offences = []
+  for (const dir of ['shell', 'harness', 'apps']) {
+    for (const file of sources(dir)) {
+      const code = stripComments(readFileSync(file, 'utf8'))
+      if (/\bFsStore\b/.test(code) && !/type\s+\{[^}]*FsStore/.test(code)) {
+        offences.push(`${rel(file)} uses FsStore directly`)
+      }
+    }
+  }
+  assert.deepEqual(offences, [], 'Use FsApi, not FsStore:\n' + offences.join('\n'))
 })

@@ -1080,14 +1080,14 @@ npm run typecheck         # strict TS, no emit
 npm run test:invariants   # era leakage, persistence leakage, transform-only, no-TODO
 npm run test:budget       # per-chunk gzipped size budget (builds first)
 npm run test:wm           # window manager behaviour, real browser input
+npm run test:fs           # reload survival, atomicity, watch, trash, path codec
 npm run test:a11y         # keyboard reachability of every command, focus, reduced motion
 npm run test:perf         # the 60fps drag gate under 4x CPU throttling
 npm test                  # all of the above
 ```
 
-Phase 2 adds `test:fs` for reload survival, atomicity and migration. Browser
-tests need Chromium; this environment's pre-installed build is wired up in
-`playwright.config.ts` and can be overridden with `CHRONOS_CHROMIUM`.
+Browser tests need Chromium; this environment's pre-installed build is wired up
+in `playwright.config.ts` and can be overridden with `CHRONOS_CHROMIUM`.
 
 Manual gates per phase are in the table in §11. I will not report a phase as
 working without having run it.
