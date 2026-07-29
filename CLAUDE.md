@@ -68,3 +68,33 @@ Append every correction I make here as a permanent rule. Never delete entries.
   is a conversion of Microsoft's actual MS Sans Serif — do not inherit it.
 - The Windows XP startup sound is by Bill Brown and Tom Ozanich. Brian Eno wrote
   the Windows 95 sound.
+
+### Windows XP — primary source overrides recreations (docs/sources/winxp-luna-metrics.md)
+- XP command buttons are 75×23px and their corner is **a 1 pixel indent, not a
+  radius**. Microsoft's exact words: "The curve of a command button is a 1 pixel
+  indent." §7's `radius 3px` came from XP.css and is that project's
+  interpretation. Build to the 1px indent.
+- §7's caption gradient endpoints (`#0997ff`, `#003dd7`, from XP.css) do **not**
+  appear in Microsoft's published window-frame palette (`#0062EA`, `#14A5F4`,
+  `#081BCB`, `#4977B4`). Microsoft calls its list a sample because Luna is
+  gradient-heavy, so this is unresolved either way — it needs `luna.msstyles`.
+  Treat the published set as anchor points and the XP.css stops as unverified.
+- XP uses **four** faces, not one: Tahoma 8/9/11pt (system default, only those
+  three sizes), Trebuchet MS Bold 10pt (window title bars only), Verdana Bold 8pt
+  (floating palette captions only), Franklin Gothic Medium 14pt+ (headers only,
+  21pt in Control Panel titles, never body text).
+- Two disabled grays, separately specified and not to be unified: controls
+  `#A1A192`, menus `#808080`. Disabled fills also differ — text boxes `#EBEBE4`,
+  combo boxes `#C9C7BA`.
+- XP's navigation buttons are semantically coloured: red is high-impact, blue is
+  neutral, green starts an action, yellow is less severe than red. So the caption
+  buttons are **not a uniform set** — close is red by category, minimize and
+  maximize are blue.
+- Point sizes are not pixel sizes. 8pt at 96dpi is 10.667px; Windows rasterised
+  it at 11px. Never write `pt` in a stylesheet — resolve to the integer pixel the
+  era actually rendered (11 / 12 / 15 / 13 / 19 / 28). Only 9pt and 21pt land on
+  whole pixels.
+- `github.io` is **not** reachable from the build sandbox — it is refused at the
+  proxy like any non-allowlisted host. `raw.githubusercontent.com` is allowlisted,
+  and a `*.github.io` site is served from a repository, so fetch the raw file from
+  the backing repo instead.

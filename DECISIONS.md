@@ -395,3 +395,122 @@ can supply. Neither blocks phases 1–2, which are complete.
    redistributable. §11 records the agreed precondition: a rendered comparison at
    8pt and 11px, approved before any XP chrome is built. Not started, because the
    deliverable is a judgement the repo owner asked to make.
+
+---
+
+## Phase 3 preparation — the XP substitute faces
+
+### 3.1 Point sizes are resolved to integer pixels, never written as `pt`
+
+**Call.** Every XP font size ships as an integer pixel value: Tahoma 8/9/11pt
+becomes 11/12/15px, Trebuchet MS Bold 10pt becomes 13px, Verdana Bold 8pt becomes
+11px, Franklin Gothic Medium 14/21pt becomes 19/28px.
+
+**Reasoning.** At 96 DPI `8pt` is 10.667px, and CSS `font-size: 8pt` resolves to
+exactly that — every glyph edge lands on a half-pixel and the whole UI softens.
+Windows rasterised Tahoma 8pt at 11px. Only 9pt and 21pt happen to land on whole
+pixels; the rest are rounding decisions, and writing `pt` would make a different
+one silently.
+
+**Tiebreaker.** §7's pixel-crisp rule: font sizes are integers, never derived
+fractions. It was written for the bitmap eras and applies just as hard here.
+
+### 3.2 Wine's Tahoma is used as a metric target, not shipped
+
+**Call.** Advance widths parsed from `wine/fonts/tahoma.sfd` are the numeric
+target the Tahoma candidates are ranked against. The font itself is not shipped.
+
+**Reasoning.** Wine ships a face named `WineTahoma` whose `FullName` is `Tahoma`,
+a Bitstream Vera derivative whose advances were matched to the real Tahoma so
+Windows applications lay out correctly under Wine. That makes it the closest thing
+to an authoritative Tahoma metric table that is freely available, and it turns
+"which of these looks closest" into a measurable question. `Cancel` at 11px is
+31.90px; the extraction is committed as `docs/fonts/tahoma-metric-target.json`.
+
+Shipping the font itself would be better still, but converting the `.sfd` needs
+FontForge: `sfdLib` parses the outlines and then fails on the file's TrueType
+hinting data, and FontForge is not installed here. Recorded as an escalation
+rather than dropped.
+
+### 3.3 Source Sans 3 for Tahoma, over the marginally closer PT Sans
+
+**Call.** Source Sans 3 (−3.2% from target) rather than PT Sans (−2.6%).
+
+**Reasoning.** The 0.6 percentage point difference is a tie. Two things break it:
+Microsoft also specifies **Tahoma Bold 8pt** for folder task-box headers, so the
+row needs regular and bold — Source Sans 3 is variable and covers both from one
+file where PT Sans needs two, which matters against a 250KB critical path. And
+Tahoma's letterforms are plainly humanist without much personality, where PT Sans
+carries a distinctive `a` and narrower proportions that read as "not Tahoma"
+rather than as a near miss.
+
+**Rejected outright: DejaVu Sans**, at +16.8%. It is a *Verdana* substitute, and
+Verdana is the wider face. Using it as the system default would push every dialog
+label and button caption out of its documented box. Worth recording because DejaVu
+is the obvious reach for a permissive sans and here it is the wrong one — while
+remaining correct for the Verdana Bold row.
+
+### 3.4 Cabin for Trebuchet MS Bold, accepting a wrong `g`
+
+**Call.** Cabin, despite its single-storey `g` where Trebuchet MS has a
+double-storey one.
+
+**Reasoning.** No metric target exists for this row — Wine ships no Trebuchet
+substitute and no advance table was reachable — so it is judged on character and
+plausible width. Cabin has the closest overall humanist feel and a sensible caption
+width (142.7px against Source Sans 3's 144.3px and Open Sans's 164.1px), and its
+variable weight axis means one file.
+
+The `g` is a real divergence on the most character-bearing glyph in the face.
+Source Sans 3 has the correct double-storey form and would additionally serve both
+the Tahoma and Trebuchet rows from one file, saving about 13KB. I did not take that
+because **caption text and body text being different faces is visible on every
+window in the era** — collapsing them trades a two-or-three-pixel glyph detail for
+a system-wide one. Flagged for override rather than decided quietly.
+
+### 3.5 The mirror was fetched from the backing repo, not the site
+
+**Call.** The Controls chapter was fetched from
+`raw.githubusercontent.com/windowsdevops/windowsdevops.github.io/master/docs/controls.htm`.
+
+**Reasoning.** `docs/sources/winxp-luna-metrics.md` states that `github.io` is
+reachable from the build sandbox. It is not — `windowsdevops.github.io` is refused
+at the proxy with a 403 on CONNECT, like every other non-allowlisted host. But
+`raw.githubusercontent.com` is allowlisted and a `*.github.io` site is served from
+a repository, so the same file is reachable by another route. The extraction was
+confirmed verbatim, including both flagged conflicts.
+
+### 3.6 Command button corner: built to the primary source
+
+**Call.** 75×23px with a 1px corner indent, not a 3px radius.
+
+**Reasoning.** Microsoft's exact words are *"The curve of a command button is a 1
+pixel indent."* §7's radius came from XP.css, which is a recreation. Directed by
+the repo owner and independently confirmed against the mirror.
+
+### 3.7 Caption gradient left tagged contested rather than resolved either way
+
+**Call.** §7 now marks the eight XP.css gradient stops `contested` instead of
+replacing them with the published palette.
+
+**Reasoning.** Neither endpoint (`#0997ff`, `#003dd7`) appears in Microsoft's
+window-frame set (`#0062EA`, `#14A5F4`, `#081BCB`, `#4977B4`) — but Microsoft
+explicitly calls its own list a *sample*, because Luna is gradient-heavy and the
+running UI carries the full range. So the published set does not disprove the
+measured stops; it just fails to corroborate them. Swapping one unverified set for
+another would be motion without progress. `luna.msstyles` `[SysMetrics]` resolves
+it.
+
+**Tiebreaker.** CLAUDE.md: an unverifiable value is commented as unverified rather
+than invented — and that applies to *replacing* a value as much as to adding one.
+
+### 3.8 The comparison tool fails loudly when fonts do not load
+
+**Call.** `tools/font-compare/build.mjs` throws if every candidate in a role
+measures identically.
+
+**Reasoning.** The first run reported all six Tahoma candidates at exactly 30.5px,
+which reads as "these fonts are very similar" and actually meant none of them had
+loaded. Canvas `measureText` and `fillText` do not trigger a CSS `@font-face`
+fetch, so everything fell back to one default. The fix is the FontFace API; the
+guard is so that failure mode can never be published as a comparison again.

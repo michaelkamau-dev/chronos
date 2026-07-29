@@ -626,8 +626,9 @@ Wine's `user32/uitools.c`, ReactOS's `sysparams.c`, and the Win32 docs.
 | Caption buttons | 21×21, `margin-left: 2px`, 5px right inset | measured |
 | Caption font | **Trebuchet MS Bold 10pt** (13.33px @96dpi) | documented |
 | UI / menu / dialog font | Tahoma 8pt | documented |
-| Active caption gradient | 8 stops, `#0997ff 0%` → `#003dd7 100%` | measured |
-| Button | `1px solid #003c74`, radius 3px, 11px text | measured |
+| Active caption gradient | 8 stops, `#0997ff 0%` → `#003dd7 100%` | **contested** — see below |
+| Command button | **75×23px**, corner is a **1px indent, not a radius** | documented |
+| Button border / text | `1px solid #003c74`, 11px text | measured |
 | Classic (unthemed) `SM_CYCAPTION` | 19px | documented |
 
 **Three corrections to the brief**, each of which would have shipped as a
@@ -650,6 +651,46 @@ A fourth correction, for Windows 3.1: **the four-colour 3D bevel does not exist
 in 3.1.** `COLOR_3DDKSHADOW` and `COLOR_3DLIGHT` are constants 21 and 22, added
 in Windows 95. Windows 3.1 gets a three-colour bevel — black `COLOR_WINDOWFRAME`
 outline, 1px `#FFFFFF` highlight, 1px `#808080` shadow over `#C0C0C0` face.
+
+### The primary source arrived, and it overrides two XP.css values
+
+`docs/sources/winxp-luna-metrics.md` is an extraction from the *Windows XP Visual
+Guidelines* (Microsoft, August 2001), re-verified against the Controls chapter
+served from `raw.githubusercontent.com/windowsdevops/windowsdevops.github.io`.
+Where it disagrees with a recreation, it wins.
+
+**Resolved — the command button corner is not a radius.** Microsoft: *"A command
+button should typically be 75 pixels wide (50 dialog units) by 23 pixels tall (14
+dialog units)"* and *"The curve of a command button is a 1 pixel indent."* The
+`radius 3px` above came from XP.css and is that project's reading. Chronos builds
+the 1px corner indent.
+
+**Unresolved — the caption gradient.** The eight stops above run `#0997ff` →
+`#003dd7`, measured from XP.css. Neither endpoint appears in Microsoft's published
+window-frame palette: `#0062EA`, `#14A5F4`, `#081BCB`, `#4977B4`. But Microsoft
+explicitly calls its own list a *sample*, because Luna is gradient-heavy and the
+running UI carries the full range — so the published set does not disprove the
+XP.css stops either. Both are now tagged accordingly, and `luna.msstyles`
+`[SysMetrics]` is the one-shot resolution.
+
+**Also documented, and easy to get wrong:**
+
+- **Two disabled grays, separately specified.** Controls use `#A1A192`; menus use
+  `#808080`. Disabled *fills* diverge too — text boxes `#EBEBE4`, combo boxes
+  `#C9C7BA`. Unifying them would be wrong in both directions.
+- **Caption buttons are not a uniform set.** XP's navigation-button colours are
+  semantic: red is high-impact, blue is neutral, green starts an action, yellow is
+  less severe than red. Close is red *by category*; minimize and maximize are
+  blue. That is the actual design rationale rather than a stylistic choice.
+- **Radio buttons and check boxes** ship at 13×13, 16×16 and 25×25, and XP only
+  ever uses **16×16**, chosen from display DPI.
+- **XP needs four faces, not one** — see §7's font table and `docs/fonts/`.
+
+Still missing, and still the reason phase 3's pixel gate needs the figure
+extraction: every window-frame dimension. Microsoft states them only as a figure
+captioned *"Standard window components in actual size"* — explicitly 1:1, so the
+same technique proposed for the Tiger HIG figures applies, on a source that
+states its own scale.
 
 Wine's `DrawEdge` also reveals a trap worth encoding once: there are **two**
 raised-edge colour mappings. Generic raised panels put `#DFDFDF` outer /
@@ -762,7 +803,10 @@ conversion, so it falls outside the licence.
 | Geneva 9 (icon labels) | FindersKeepers | free; **terms unconfirmed** |
 | Win 3.1 System / MS Sans Serif | **W95FA** | **SIL OFL** |
 | DOS/VGA text (Win 3.1 terminal) | Px437 IBM VGA (Oldschool PC Font Pack) | CC BY-SA 4.0 — see below |
-| Tahoma / Trebuchet (XP) | *open* — needs a metric-compatible OFL sans | — |
+| Tahoma 8/9/11pt (XP system default) | **Source Sans 3** | SIL OFL |
+| Trebuchet MS Bold 10pt (XP captions only) | **Cabin** | SIL OFL |
+| Verdana Bold 8pt (XP palette captions only) | DejaVu Sans Bold | Vera derivative |
+| Franklin Gothic Medium 14pt+ (XP headers only) | **Libre Franklin** | SIL OFL |
 | Lucida Grande (Tiger) | DejaVu Sans | permissive (Bitstream Vera derived) |
 | Charcoal (OS 8.5+) | **none exists** | — |
 
@@ -1021,11 +1065,14 @@ Following the brief's order. Each phase ends with a push to
 Phase 3 does not start until both are satisfied. XP is the reference every other
 era is measured against; starting it on unresolved inputs would poison all six.
 
-1. **The XP substitute face is named and shown.** Neither Tahoma nor Trebuchet MS
-   is redistributable (§7), so before any XP chrome is built I produce a rendered
-   comparison of the candidate face against the real metrics **at 8pt and 11px** —
-   the two sizes XP's UI actually uses — and get sign-off. No XP work proceeds on
-   an unresolved font.
+1. **The XP substitute faces are named and shown — done, awaiting sign-off.**
+   XP uses **four** faces and none is redistributable. The rendered comparison is
+   in [`docs/fonts/`](../docs/fonts/README.md) with one sheet per face, drawn at
+   the integer pixel sizes Windows actually rasterised at and magnified 4x from the
+   1x bitmap. Franklin Gothic Medium → Libre Franklin and Verdana Bold → DejaVu
+   Sans Bold are agreed. Tahoma → Source Sans 3 and Trebuchet MS Bold → Cabin need
+   sign-off; the Tahoma row is ranked against an objective target extracted from
+   Wine's Tahoma metric substitute.
 2. **The 1:1 references are in `docs/sources/`.** Pixel comparison is the gate,
    and a gate needs a reference. Expected: the Platinum HIG, a 1:1 Windows 3.1
    VGA screenshot, and a 1:1 XP Luna screenshot. These also close the two

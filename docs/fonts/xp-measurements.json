@@ -1,0 +1,90 @@
+[
+  {
+    "role": "tahoma",
+    "title": "Tahoma — system default",
+    "rows": [
+      {
+        "name": "DejaVu Sans",
+        "metrics": "ADV 37.3px / 59 FITS | vs target +16.8% | cap 8.0px | x-ht 6.0px | ratio 0.750"
+      },
+      {
+        "name": "Liberation Sans",
+        "metrics": "ADV 34.2px / 59 FITS | vs target +7.3% | cap 8.0px | x-ht 6.0px | ratio 0.750"
+      },
+      {
+        "name": "Noto Sans",
+        "metrics": "ADV 34.2px / 59 FITS | vs target +7.3% | cap 8.0px | x-ht 6.0px | ratio 0.750"
+      },
+      {
+        "name": "Open Sans",
+        "metrics": "ADV 34.0px / 59 FITS | vs target +6.6% | cap 8.0px | x-ht 6.0px | ratio 0.750"
+      },
+      {
+        "name": "Source Sans 3",
+        "metrics": "ADV 30.9px / 59 FITS | vs target -3.2% | cap 8.0px | x-ht 6.0px | ratio 0.750"
+      },
+      {
+        "name": "PT Sans",
+        "metrics": "ADV 31.1px / 59 FITS | vs target -2.6% | cap 8.0px | x-ht 6.0px | ratio 0.750"
+      }
+    ]
+  },
+  {
+    "role": "trebuchet",
+    "title": "Trebuchet MS Bold — window title bars only",
+    "rows": [
+      {
+        "name": "Cabin",
+        "metrics": "ADV 142.7px / 320 FITS | cap 10.0px | x-ht 7.0px | ratio 0.700"
+      },
+      {
+        "name": "Fira Sans",
+        "metrics": "ADV 148.8px / 320 FITS | cap 9.0px | x-ht 7.0px | ratio 0.778"
+      },
+      {
+        "name": "PT Sans",
+        "metrics": "ADV 139.6px / 320 FITS | cap 10.0px | x-ht 7.0px | ratio 0.700"
+      },
+      {
+        "name": "Source Sans 3",
+        "metrics": "ADV 144.3px / 320 FITS | cap 9.0px | x-ht 7.0px | ratio 0.778"
+      },
+      {
+        "name": "Open Sans",
+        "metrics": "ADV 164.1px / 320 FITS | cap 9.0px | x-ht 7.0px | ratio 0.778"
+      },
+      {
+        "name": "Liberation Sans",
+        "metrics": "ADV 160.4px / 320 FITS | cap 9.0px | x-ht 7.0px | ratio 0.778"
+      }
+    ]
+  },
+  {
+    "role": "verdana",
+    "title": "Verdana Bold — floating palette title bars only",
+    "rows": [
+      {
+        "name": "DejaVu Sans Bold",
+        "metrics": "ADV 38.9px / 90 FITS | cap 8.0px | x-ht 6.0px | ratio 0.750"
+      },
+      {
+        "name": "Liberation Sans Bold",
+        "metrics": "ADV 34.8px / 90 FITS | cap 8.0px | x-ht 6.0px | ratio 0.750"
+      }
+    ]
+  },
+  {
+    "role": "franklin",
+    "title": "Franklin Gothic Medium — headers only, 14pt and above",
+    "rows": [
+      {
+        "name": "Libre Franklin",
+        "metrics": "ADV 274.3px / 420 FITS | cap 14.0px | x-ht 10.0px | ratio 0.714"
+      },
+      {
+        "name": "Source Sans 3",
+        "metrics": "ADV 245.3px / 420 FITS | cap 13.0px | x-ht 10.0px | ratio 0.769"
+      }
+    ]
+  }
+]

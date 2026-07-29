@@ -15,7 +15,8 @@
     "test": "npm run typecheck && npm run test:invariants && npm run test:budget && npm run test:browser",
     "test:a11y": "playwright test test/browser/a11y.spec.ts",
     "test:browser": "playwright test",
-    "test:fs": "playwright test test/browser/fs.spec.ts"
+    "test:fs": "playwright test test/browser/fs.spec.ts",
+    "fonts:compare": "node tools/font-compare/build.mjs"
   },
   "dependencies": {
     "idb-keyval": "^6.2.2"

@@ -1,0 +1,84 @@
+{
+  "Tahoma": {
+    "unitsPerEm": 2048,
+    "glyphsWithAdvance": 846,
+    "advanceWidthsPx": {
+      "Cancel": {
+        "11": 31.9,
+        "12": 34.8,
+        "15": 43.5
+      },
+      "OK": {
+        "11": 14.25,
+        "12": 15.55,
+        "15": 19.44
+      },
+      "Apply": {
+        "11": 26.77,
+        "12": 29.2,
+        "15": 36.5
+      },
+      "File Edit View Favorites Tools Help": {
+        "11": 166.6,
+        "12": 181.75,
+        "15": 227.18
+      },
+      "Show hidden files and folders": {
+        "11": 142.83,
+        "12": 155.81,
+        "15": 194.77
+      },
+      "Display Properties": {
+        "11": 86.87,
+        "12": 94.77,
+        "15": 118.46
+      }
+    }
+  },
+  "Tahoma Bold": {
+    "unitsPerEm": 2048,
+    "glyphsWithAdvance": 835,
+    "advanceWidthsPx": {
+      "Cancel": {
+        "11": 36.62,
+        "12": 39.95,
+        "15": 49.94
+      },
+      "OK": {
+        "11": 16.13,
+        "12": 17.6,
+        "15": 21.99
+      },
+      "Apply": {
+        "11": 31.03,
+        "12": 33.85,
+        "15": 42.31
+      },
+      "File Edit View Favorites Tools Help": {
+        "11": 189.77,
+        "12": 207.02,
+        "15": 258.78
+      },
+      "Show hidden files and folders": {
+        "11": 163.04,
+        "12": 177.86,
+        "15": 222.33
+      },
+      "Display Properties": {
+        "11": 100.79,
+        "12": 109.95,
+        "15": 137.44
+      }
+    }
+  },
+  "_source": {
+    "font": "WineTahoma (FontName), FullName \"Tahoma\"",
+    "files": [
+      "wine-mirror/wine/fonts/tahoma.sfd",
+      "wine-mirror/wine/fonts/tahomabd.sfd"
+    ],
+    "copyright": "Copyright (c) 2004 Larry Snyder, based on Bitstream Vera Sans (c) 2003 Bitstream, Inc. Renamed per the Vera licence.",
+    "why": "Wine matched these advance widths to the real Tahoma so Windows applications lay out correctly, which makes them a usable metric target for a substitute face.",
+    "note": "Advance sum only \u2014 no kerning applied. Browser measureText includes kerning, so small deviations are expected."
+  }
+}
