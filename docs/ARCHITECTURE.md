@@ -1140,15 +1140,16 @@ dialog closes the offending app and leaves the rest of the session alive.
 
 ## 11. Build order and verification gates
 
-Following the brief's order. Each phase ends with a push to
-`claude/new-session-aej4gm` plus evidence, then stops for your go-ahead.
+Following the brief's order. Each phase ends with evidence and a stop for go-ahead.
+Phases 1–3 landed on `claude/new-session-aej4gm`; from phase 4 the convention is one
+branch per era, `era/<id>`, each merging to `main`. See §13 for what is merged.
 
 | # | Phase | Gate — what I show you |
 |---|---|---|
 | 1 | WM + focus model, one era, unstyled boxes | A Chrome Performance trace over a 10-second drag with 20 windows open showing frame times under 16.7ms and a flat allocation profile. Plus the invariant tests and the size budget check, both green from day one. |
 | 2 | FS layer + persistence | A scripted reload-survival test: create a tree, write files, reload, assert byte-identical. Plus two file manager windows proving live sync through `fs.watch`. |
 | 3 | **Windows XP at full fidelity** — the reference implementation | Pixel comparison against the 1:1 references in `docs/sources/`; all five states on every control; the full metrics table with provenance; keyboard-only operation of the entire shell. **Two hard preconditions, both before phase 3 starts** — see below. |
-| 4 | The other five eras against that contract | Same evidence per era. Any core change required by a later era is a contract bug and gets fixed in core, not patched in the skin. |
+| 4 | The other five eras against that contract | Same evidence per era. Any core change required by a later era is a contract bug and gets fixed in core, not patched in the skin, and is reported rather than absorbed. **Windows 3.1 done and merged**; System 1, Mac OS 8, Tiger and Ledger remain — order and rationale in §13. Four contract additions so far, listed in §13. |
 | 5 | Apps | Each app exercised end-to-end: Paint writes a PNG that Files shows with the right icon and Media opens; Editor's guard blocks a close; Terminal manipulates the real tree. **Plus: every app survives `suspend()`/`resume()` with state intact** — Paint's undo stack, the editor's cursor and selection, the terminal's scrollback. Verified per app, not asserted. |
 | 6 | Sound, failure states, boot sequences | Each chime and each failure path triggered and verified. |
 
@@ -1210,7 +1211,197 @@ have a recommendation for each — none blocks starting phase 1.
 
 ---
 
-## 13. Verification
+## 13. State of play — read this first
+
+Written for a session that has none of the preceding conversation. Everything below
+is fact about the repository as it stands, not plan.
+
+### Where the work is
+
+| Branch | Contents | Status |
+|---|---|---|
+| `main` | phases 1–3 plus Windows 3.1 | the trunk; both era branches are merged into it |
+| `claude/new-session-aej4gm` | phases 1–3 (WM, FS, Windows XP Luna) | **merged to `main`** |
+| `era/win31` | Windows 3.1 | **merged to `main`** via pull request #1 |
+
+Branch the next era off `main`, not off either merged branch. The convention is
+`era/<id>`, one per era, each merging back to `main`: `era/system1`, `era/macos8`,
+`era/tiger`, `era/ledger`.
+
+**Order, and why.** Windows XP first because it is the reference implementation.
+Windows 3.1 second because it had 1:1 captures and is XP's closest structural sibling,
+so it stress-tested the contract cheaply. Remaining: **System 1 and Mac OS 8** next, on
+the Apple prose in §7 — both are substantially sourced. Then **Tiger** on the measured
+figures. Then **Ledger** last, because it is the era most hostile to the contract and it
+is the only one that needs `suspend()`/`resume()` to be visible and the render-budget
+governor to exist.
+
+### Test counts, so a regression is obvious
+
+`npm test` runs all three suites. As of the Windows 3.1 merge: **137 green** — 11
+invariant, 7 budget, 119 browser. The browser suites are `wm`, `a11y`, `fs`, `perf`,
+`xp-fidelity` (28) and `win31-fidelity` (20).
+
+### The contract additions phase 4 has made so far
+
+Four, all era-neutral, all in core. §11 says a core change a later era demands is a
+contract bug to be fixed in core rather than patched in the skin; these are the record
+of that happening.
+
+1. **`ChromeMetrics.cornerTop` is a discriminated union**, not a number.
+   ```ts
+   cornerTop:
+     | { readonly kind: 'radius'; readonly px: number }
+     | { readonly kind: 'steps'; readonly insets: readonly number[] }
+   ```
+   Because XP's top corner is not a radius: Microsoft's 1:1 figure shows a five-row arc
+   with per-row x-insets `5,3,2,1,1,0`, which no `border-radius` reproduces. XP declares
+   `steps` and clips to them; Windows 3.1 declares `radius: 0` because 3.1 frames are
+   rectangles. An era with a genuine radius says so. A test asserts the rendered
+   `border-radius` is literally `0px` alongside the `clip-path`, so a regression to a
+   radius fails rather than looking close.
+
+2. **`src/core/motion.ts`** owns the reduced-motion query. `prefersReducedMotion()` and
+   `onReducedMotionChange()`. The window manager does **not call** a skin's
+   `minimizeTo`/`restoreFrom` at all when the query matches, so honouring the obligation
+   is not something a skin can forget — it was four copies of the same `matchMedia`
+   across two chrome renderers, on the way to twelve. Skins may read it for their own
+   effects; none is required to. Ledger's 1Hz refresh band needs
+   `onReducedMotionChange` rather than the point-in-time read, because a running timer
+   has to stop when the query flips, not merely start suppressed.
+
+3. **`suspend()`/`resume()` exist on the window manager** and set `data-suspended` on the
+   frame. `WindowState.suspended` is in the contract and `Change.Suspended` is in the
+   change mask. Every skin styles it (XP and 3.1 both dim the content); only Ledger will
+   make it load-bearing, bleaching a window further the longer it sits unfocused. The
+   phase-5 gate is that every *app* survives the round trip with state intact — Paint's
+   undo stack, the editor's cursor and selection, the terminal's scrollback — verified
+   per app, not asserted.
+
+4. **The render-budget governor does not exist yet.** It is the one §8 addition still
+   outstanding, and it is Ledger's alone: a way to throttle the rAF loop to a target rate
+   below 60. Era-neutral by construction — it belongs in `core/input`, and only Ledger
+   sets a rate below 60. Build it when Ledger is built, not before.
+
+Also worth knowing, though they are shell rather than core:
+
+- **`src/shell/base.css`** holds every structural rule that must be true in every era —
+  frame positioning and `contain`, the title bar's `touch-action`/`user-select`, resize
+  handle positioning, handle suppression on non-resizable and maximized windows,
+  pointer-event suppression mid-gesture, and the overlay z-index constants
+  `--layer-menu` / `--layer-switcher`. Before writing a rule into a skin, ask whether a
+  skin that omitted it would be wrong. Seven tests in `wm.spec.ts` assert all of it
+  against the contract vocabulary, so they hold for a new era without being rewritten.
+- **Menus carry `data-menu`, `data-menu-item`, `data-menu-separator` and
+  `data-menu-submenu`.** The vocabulary table in `core/wm/types.ts` is the reference. A
+  new skin's menu renderer must emit them; `win31-fidelity.spec.ts` and `wm.spec.ts` both
+  assert the active skin does.
+- **`src/shell/display.ts` exposes `scale()`.** The bitmap eras render in a fixed logical
+  viewport at an integer scale, and a fidelity test that measures a one-pixel pattern has
+  to convert device pixels back to logical ones.
+- **Era selection is `?era=<id>`** in `src/main.ts`, which holds an `ERAS` registry of
+  thunks so Vite emits one chunk per era and the browser fetches exactly one.
+  `main.ts` is the only module that names an era; the invariant test enforces that by
+  grepping `core/`, `apps/` and `shell/` for era identifiers. Adding an era is adding one
+  line to that registry. `window.__chronos.era` is exposed so a fidelity suite can assert
+  it is testing the era it thinks it is — without it, a suite passes vacuously against
+  whichever era is default.
+
+### Fonts are resolved for the two built eras
+
+The scrutiny sheets, the substitution table with its stated losses, and the metric
+targets all live in **[`docs/fonts/`](../docs/fonts/README.md)**. Source faces are
+committed there too, so a subset can be rebuilt without a network fetch.
+
+| Era | Need | Substitute | Licence | Stated loss |
+|---|---|---|---|---|
+| Windows XP | Tahoma 8/9/11pt | Source Sans 3 | OFL | ~3% narrow, the safe direction |
+| Windows XP | Trebuchet MS Bold 10pt, captions only | Cabin Bold | OFL | **single-storey `g`** — the face's signature, permanent |
+| Windows XP | Verdana Bold 8pt, palettes only | DejaVu Sans Bold | Bitstream Vera | deferred; not on the critical path |
+| Windows XP | Franklin Gothic Medium 14pt+, headers only | Libre Franklin | OFL | deferred; direct revival |
+| Windows 3.1 | `SYSTEM.FON` — the whole era | **Pixel Operator Bold @ 16px** | CC0 | advances diverge per glyph; 2px descender against 4px |
+
+Two things about the 3.1 row that a fresh session will otherwise rediscover the hard
+way. **W95FA is not a candidate** — it is an OFL recreation of the *Windows 95* MS Sans
+Serif bitmap, so it is the right licence and the wrong face, one era late; 3.1's chrome
+is `SYSTEM.FON` throughout and MS Sans Serif is a separate face 3.1 shipped that our
+chrome never touches. And **`PixelOperatorSC-Bold` is small caps, not semi-condensed** —
+`Cancel` comes out at 48px rather than 44. Not a candidate.
+
+The gate for a new era's font is unchanged and it is a hard one: name a specific face,
+show a rendered comparison at the sizes the era actually uses, and only then build
+chrome that depends on it. `tools/font-compare/win31-system.mjs` is the pattern — it
+records each candidate's verdict and reason so the rejections stay reviewable. Note the
+structural failure mode it found: a pixel font designed on a different cell steps its
+cap height 8, 10, 12 … and simply has no size that yields 9, which rules out a whole
+class of candidate regardless of width.
+
+### The perf gate measures our code, not the host
+
+This changed, and a fresh session reading the old assertions would draw the wrong
+conclusion from a red gate.
+
+**Asserted** (all held across two container generations):
+
+- `ScriptDuration / frames < 3ms` under 4× CPU throttling. Measured 0.55–0.69ms.
+- `LayoutDuration / frames < 0.5ms`. Measured 0.001ms.
+- One style recalculation per frame, `LayoutCount` bounded, median interval at vsync,
+  `longTasks === 0`, retained heap delta bounded.
+
+**Reported as diagnostics only, never asserted**: `p95`, `p99`, `over50`, frame count.
+
+The reason is in `test/browser/perf.spec.ts` at length. Briefly: the container does not
+guarantee the renderer 60Hz of CPU, and the identical 4×-throttled drag reported p99
+16.80ms on one container generation and 50.00ms on the next from an unchanged bundle,
+with `longTasks=0` and `layouts=1` in both — reproduced on the commit before that day's
+work, which is what established it as the host. Asserting a percentile was measuring the
+scheduler.
+
+One discarded instrument is worth not re-inventing. "Every long frame interval must be a
+whole multiple of the vsync period" looks like the exact discriminator between a frame
+the host skipped and one we delayed. It is useless: the compositor delivers rAF only on
+vsync boundaries, so every interval is a multiple whichever caused it. Verified by
+injecting a deliberate 7ms block per frame and measuring zero off-grid intervals. Test
+that a new instrument *can* fail before trusting it.
+
+### What is still open
+
+Neither blocks an era, and both are recorded with notes rather than guessed at.
+
+1. **`luna.msstyles` `[SysMetrics]`** would settle three XP values in one file: the
+   caption gradient colours, the disabled caption-button artwork, and the real sizing
+   border width. All three are tagged `contested` with the evidence for why, in
+   `src/skins/winxp/metrics.ts`.
+2. **A Windows 3.1 capture with the mouse held down on Cancel** would settle whether a
+   3.1 push button's label shifts 1px on depress, and would confirm or refute the
+   dialog frame's measured 3px-versus-4px top asymmetry. The capture taken to settle the
+   depress question shows a *disabled* OK button — 3.1 greys OK until the Run dialog's
+   command line has content — so it gave the disabled state and left this open. The
+   stylesheet deliberately does not move the label, so the unverified behaviour is
+   absent rather than invented.
+
+### The tools, and what each is for
+
+| Path | Purpose |
+|---|---|
+| `tools/pdf-extract/find-figures.py` | locates figure captions in a source PDF and reports embedded bitmap sizes |
+| `tools/pdf-extract/measure-xp-window.py` | the "actual size" Luna window figure |
+| `tools/pdf-extract/measure-xp-titlebars.py` | the caption gradient, per-row median |
+| `tools/pdf-extract/measure-xp-capbuttons.py` | caption button geometry and the four state faces |
+| `tools/pdf-extract/measure-tiger-window.py` | Tiger Figure 13-2 |
+| `tools/captures/measure-win31.py` | all three Windows 3.1 VGA captures, including the stipple parity proof |
+| `tools/font-compare/build.mjs` | renders candidate faces against a metric target |
+| `tools/font-compare/win31-system.mjs` | the 3.1 System font candidate verdicts |
+
+Extraction rules that cost real time to learn are in `CLAUDE.md` under "Figure
+extraction and measurement" — chiefly: extract the image XObject, never rasterise the
+page; a figure's page-placement scale says nothing about its bitmap scale; calibrate
+against a value already measured elsewhere in the same document; and a JPEG-derived hex
+value is `measured`, never `documented`.
+
+---
+
+## 14. Verification
 
 Runnable from the repo root. `npm test` runs everything that exists.
 
