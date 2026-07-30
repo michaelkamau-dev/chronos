@@ -16,9 +16,21 @@ export function asAppId(s: string): AppId {
   return s as AppId
 }
 
-/** How "maximize" behaves. Windows fills the work area; classic Mac zoom
- *  toggles to the content's natural size, which is a different gesture. */
-export type MaximizeSemantics = 'fill' | 'zoom'
+/**
+ * How "maximize" behaves.
+ *
+ * Windows fills the work area; classic Mac **zoom** toggles to the content's natural
+ * size, which is a different gesture. `none` means the era has no such gesture at
+ * all, and the window manager refuses `toggleMaximize` outright — the same shape of
+ * fact as `MinimizeStyle: 'none'`, and it exists for the same reason.
+ *
+ * System 1 is the era that needed it. Its `documentProc` has no zoom box: zoom
+ * arrives with `zoomDocProc` in 1987. Without a way to say so, a skin can omit the
+ * control and still ship the behaviour — double-clicking the title bar would zoom,
+ * the chrome menu would offer Maximize — and no test would fail. Making it a
+ * declaration puts the refusal somewhere an era cannot forget it.
+ */
+export type MaximizeSemantics = 'fill' | 'zoom' | 'none'
 
 /** What the era does when a window is minimized. `none` means the era has no
  *  minimize at all and the skin does not emit the button (System 1). */

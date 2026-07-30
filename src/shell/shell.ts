@@ -16,7 +16,7 @@ import { WindowManager } from '../core/wm/manager.js'
 import { GestureController } from '../core/wm/drag.js'
 import { Dispatcher, type HitTarget } from '../core/input/dispatcher.js'
 import { CaptureStack } from '../core/input/capture.js'
-import { CommandRegistry } from '../core/input/commands.js'
+import { CommandRegistry, type Command } from '../core/input/commands.js'
 import { Keymap, KeymapStack, type Binding } from '../core/input/keymap.js'
 import { MenuController, type MenuRenderer, type MenuSpec } from '../core/input/menu.js'
 import { asAppId, type ChromeRenderer, type WindowId } from '../core/wm/types.js'
@@ -40,6 +40,16 @@ export interface ShellRegionHost {
    * which `test/browser/a11y.spec.ts` asserts across the whole vocabulary.
    */
   readonly commands: CommandRegistry
+  /**
+   * The chord the active skin binds to a command, for a region's accelerator column.
+   *
+   * `Shell.accelFor` with the same contract, exposed here because a region's menus
+   * are the most visible place an accelerator label can disagree with the keyboard.
+   * Without it a menu bar has to write chords as literals, which is right for the era
+   * that wrote them and wrong for every other — Tiger's bar carries `Meta+N` and
+   * `Meta+W` for exactly that reason.
+   */
+  accelFor(command: Command): string | undefined
   /** Open a menu with its top-left at these client coordinates. */
   openMenu(spec: MenuSpec, clientX: number, clientY: number): boolean
   /** Ask the shell to re-read every region's minimize targets and geometry. */
@@ -88,10 +98,13 @@ export interface SkinManifest {
    */
   regions?: readonly ShellRegion[]
   /**
-   * Custom properties derived from the skin's measured metrics, applied to the
-   * desktop element. This is how a stylesheet reads a measurement without keeping
-   * a second copy of it that could drift — the XP caption gradient and frame steps
-   * are generated from the arrays in its metrics file.
+   * Custom properties derived from the skin's measured metrics, applied to the shell
+   * root. This is how a stylesheet reads a measurement without keeping a second copy
+   * of it that could drift — the XP caption gradient and frame steps are generated
+   * from the arrays in its metrics file.
+   *
+   * The root rather than the desktop, because menus are hosted on the root and
+   * inherit nothing written below it.
    */
   generatedProperties?: () => Record<string, string>
 }
@@ -128,8 +141,9 @@ export class Shell {
     this.display = new Display(root, skin.viewport ?? { mode: 'native' })
     this.teardowns.push(this.display.attach())
 
-    // The skin id lets era CSS scope itself to the desktop, and the generated
-    // properties carry measured values into the stylesheet.
+    // The skin id lets era CSS scope itself to the desktop; the generated properties
+    // carry measured values into the stylesheet from the root, which every surface
+    // inherits from including the menus hosted there.
     this.display.desktop.dataset['skin'] = skin.id
     if (skin.generatedProperties) {
       // Written on the shell root rather than on the desktop, because custom
@@ -219,6 +233,24 @@ export class Shell {
   }
 
   /**
+   * The chord the active skin binds to a command, for a menu's accelerator column.
+   *
+   * The chrome menu used to carry the literal strings `Alt+F7`, `Alt+F4` and friends.
+   * That is era knowledge in `shell/`: it happens to be right for Windows XP and
+   * Windows 3.1 and is flatly wrong for a Macintosh menu, where the same items are
+   * Command chords — so the label would have advertised a chord the active keymap
+   * does not even bind. Reading it back out of the skin's own keymap means the label
+   * and the binding cannot disagree.
+   *
+   * The chord is passed through verbatim. Formatting it is the skin's job, because
+   * `Meta+W` renders as `Alt+F4`-style text on Windows and as a symbol on a Mac.
+   */
+  accelFor(command: Command): string | undefined {
+    for (const b of this.skinKeymap) if (b.command === command) return b.chord
+    return undefined
+  }
+
+  /**
    * The MenuSpec a given target would produce, without opening anything.
    * Providers are consulted most-recently-registered first.
    */
@@ -287,6 +319,7 @@ export class Shell {
       wm: this.wm,
       menus: this.menus,
       commands: this.commands,
+      accelFor: (command) => this.accelFor(command),
       openMenu: (spec, x, y) => this.menus.open(spec, x, y),
       invalidate: () => this.wm.setWorkArea(this.display.workArea()),
     }
@@ -333,6 +366,15 @@ export class Shell {
   }
 
   private applyReservedEdges(): void {
+    /*
+     * Two different quantities, and they are not interchangeable.
+     *
+     * A region is inside the desktop, so its claim is in logical era pixels and only
+     * the work area shrinks. The harness status strip is anchored to the host in CSS
+     * pixels, so on top of shrinking the work area it has to move the desktop clear of
+     * itself — otherwise it paints over a fixed-mode era's bottom rows.
+     */
+    this.display.setHostInsets(this.extraReserved)
     this.display.setReservedEdges({
       top: this.regionReserved.top + this.extraReserved.top,
       right: this.regionReserved.right + this.extraReserved.right,
@@ -396,19 +438,24 @@ export class Shell {
         const s = wm.get(id)
         if (!s) return null
         const hasModal = wm.modalsOwnedBy(id).length > 0
+        // An era that has no maximize gesture must not offer one here either. The WM
+        // already refuses the command; leaving the items enabled would advertise a
+        // control that does nothing, which is the same lie as a resize cursor on an
+        // edge that will not resize.
+        const canZoom = wm.metrics.maximizeSemantics !== 'none'
         return [
           {
             kind: 'item',
             label: 'Restore',
             command: 'window.toggleMaximize',
-            enabled: s.maximized && !hasModal,
+            enabled: canZoom && s.maximized && !hasModal,
             onActivate: () => wm.toggleMaximize(id),
           },
           {
             kind: 'item',
             label: 'Move',
             command: 'window.beginKeyboardMove',
-            accel: 'Alt+F7',
+            ...accel(this, 'window.beginKeyboardMove'),
             enabled: !s.maximized && !hasModal,
             onActivate: () => {
               wm.focus(id)
@@ -419,7 +466,7 @@ export class Shell {
             kind: 'item',
             label: 'Size',
             command: 'window.beginKeyboardResize',
-            accel: 'Alt+F8',
+            ...accel(this, 'window.beginKeyboardResize'),
             enabled: s.resizable && !s.maximized && !hasModal,
             onActivate: () => {
               wm.focus(id)
@@ -430,7 +477,7 @@ export class Shell {
             kind: 'item',
             label: 'Minimize',
             command: 'window.minimize',
-            accel: 'Alt+F9',
+            ...accel(this, 'window.minimize'),
             enabled: wm.metrics.minimizeStyle !== 'none' && !s.minimized && !hasModal,
             onActivate: () => void wm.minimize(id),
           },
@@ -438,8 +485,8 @@ export class Shell {
             kind: 'item',
             label: 'Maximize',
             command: 'window.toggleMaximize',
-            accel: 'Alt+F10',
-            enabled: s.resizable && !s.maximized && !hasModal,
+            ...accel(this, 'window.toggleMaximize'),
+            enabled: canZoom && s.resizable && !s.maximized && !hasModal,
             onActivate: () => wm.toggleMaximize(id),
           },
           { kind: 'separator' },
@@ -469,7 +516,7 @@ export class Shell {
             kind: 'item',
             label: 'Close',
             command: 'window.close',
-            accel: 'Alt+F4',
+            ...accel(this, 'window.close'),
             enabled: s.closable && !hasModal,
             onActivate: () => void wm.close(id),
           },
@@ -482,7 +529,7 @@ export class Shell {
             kind: 'item',
             label: 'New Window',
             command: 'shell.newWindow',
-            accel: 'Ctrl+N',
+            ...accel(this, 'shell.newWindow'),
             enabled: true,
             onActivate: () => {
               this.openWindow()
@@ -557,4 +604,13 @@ export class Shell {
       },
     })
   }
+}
+
+/**
+ * `exactOptionalPropertyTypes` forbids writing `accel: undefined`, so the property is
+ * spread in only when the active skin actually binds the command.
+ */
+function accel(shell: Shell, command: Command): { accel?: string } {
+  const chord = shell.accelFor(command)
+  return chord === undefined ? {} : { accel: chord }
 }

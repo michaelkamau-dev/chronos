@@ -16,9 +16,13 @@
  * ink on exactly one `(x + y)` parity is a checkerboard, ink on both is a solid glyph.
  * That is the same discriminator the measurement script applies to Microsoft's own
  * pixels, so the source and the implementation are being held to one test.
+ *
+ * `measureParity` now lives in `./stipple.ts`, because System 1's `notPatBic` is the
+ * same construction and the two suites must not be able to drift apart on it.
  */
 
 import { test, expect, type Page } from '@playwright/test'
+import { measureParity } from './stipple.js'
 
 async function boot(page: Page): Promise<void> {
   await page.goto('/?era=win31')
@@ -442,50 +446,3 @@ test.describe('the era renders at an integer scale', () => {
     expect(d.h).toBeLessThanOrEqual(480)
   })
 })
-
-/**
- * Ink parity for an element, in logical VGA pixels.
- *
- * Renders the element's own box to a canvas via its screenshot, reduces by the
- * display scale, and counts ink on each `(x + y)` parity. This is deliberately the
- * same test the measurement script runs against Microsoft's pixels, so the source
- * and the implementation are judged by one standard.
- */
-async function measureParity(
-  page: Page,
-  locator: ReturnType<Page['locator']>,
-): Promise<{ ink: number; oneParityShare: number }> {
-  const shot = await locator.screenshot()
-  const scale = await page.evaluate(() => window.__chronos.shell.display.scale())
-  return page.evaluate(
-    async ({ bytes, scale: s }) => {
-      const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' })
-      const bmp = await createImageBitmap(blob)
-      const c = new OffscreenCanvas(bmp.width, bmp.height)
-      const ctx = c.getContext('2d')!
-      ctx.drawImage(bmp, 0, 0)
-      const data = ctx.getImageData(0, 0, bmp.width, bmp.height).data
-      // Sample one device pixel per logical pixel, at the centre of each block so
-      // the phase cannot land on a scaled edge.
-      const off = Math.floor(s / 2)
-      let even = 0
-      let odd = 0
-      for (let ly = 0; ly * s + off < bmp.height; ly++) {
-        for (let lx = 0; lx * s + off < bmp.width; lx++) {
-          const i = ((ly * s + off) * bmp.width + (lx * s + off)) * 4
-          const r = data[i]!
-          const g = data[i + 1]!
-          const b = data[i + 2]!
-          // Ink is anything materially darker than the menu's white background.
-          const dark = r < 160 && g < 160 && b < 200
-          if (!dark) continue
-          if ((lx + ly) % 2 === 0) even++
-          else odd++
-        }
-      }
-      const ink = even + odd
-      return { ink, oneParityShare: ink === 0 ? 0 : Math.max(even, odd) / ink }
-    },
-    { bytes: [...shot], scale },
-  )
-}
