@@ -20,12 +20,14 @@
  *
  * Three findings here contradict what a plausible recreation would produce:
  *
- * - **Platinum kept System 1's drop shadow.** 1px hard, right and bottom only, offset
- *   two rows down at the top-right so the corner is notched. Thirteen years apart and
- *   the same shadow.
- * - **The frame's highlight and shadow swap sides.** Left/top runs black → white →
- *   face → grey → black; bottom/right runs black → grey → face → white → black. One
- *   set of CSS variables for both edges gets two of the four sides wrong.
+ * - **Platinum kept System 1's drop shadow.** 1px hard, right and bottom only, with
+ *   BOTH free ends pulled in 2px so it is notched at the top-right *and* the
+ *   bottom-left. Thirteen years apart and the same shadow. Its colour tracks the frame
+ *   line: black on an active window, `#555555` on an inactive one.
+ * - **The frame is two bevel rings, not four per-side stacks.** An outset ring and an
+ *   inset ring around a 2px face, lit from one top-left source, generate all four
+ *   sides. Enumerating six steps per side describes the same pixels and needs four
+ *   hand-maintained lists that can drift.
  * - **The disabled-text stipple is gone.** System 1 and Windows 3.1 both knock a 50%
  *   checkerboard out of the glyph; Platinum uses a solid `#888888`, proven by parity
  *   rather than by eye. A skin that inherited System 1's stipple would read as four
@@ -60,23 +62,31 @@ const PROSE = 'Mac OS 8 HIG prose; see docs/sources/macos8-platinum-metrics.md'
 
 export const MACOS8_METRICS: ChromeMetrics = {
   /**
-   * 19px, and it is the best-corroborated number in the project: Apple's prose states
-   * it twice (classic HIG p162, restated in the OS 8 addendum p103), `StandardWDEF.a`
-   * carries `minTitleH EQU 19`, and it measures 19 rows in four separate figures.
+   * The measured interior, not Apple's documented 19.
+   *
+   * Four figures give 22px from the outer frame line to the content and a 20px interior
+   * between the two black lines. Apple's prose says 19px (p103, and classic HIG p162,
+   * and `StandardWDEF.a`'s `minTitleH EQU 19`) — but no figure delimits 19 rows, both
+   * candidates inside the interior cut through a bevel ring, and both sum to 22. So 19
+   * is `documented` and 20 is what the pixels show; `border.top` 2 + 20 = 22.
    */
-  titleBarHeight: 19,
+  titleBarHeight: 20,
   /**
    * Unchanged when inactive. The fill goes flat and the frame lines lighten, but the
    * outer-frame-to-content distance is 22px in both states, so the drag region does
    * not move — which matters because a changing title bar height would shift the
    * content area on every focus change.
    */
-  titleBarHeightInactive: 19,
+  titleBarHeightInactive: 20,
   /**
-   * 6px per side, as six discrete 1px steps. The top is 1px of black and then the
-   * title bar, so `top` carries only the frame line; the WM adds `titleBarHeight`.
+   * 6px on the sides and bottom. The top is 2 — one black line above the title bar and
+   * one below it — so `border.top + titleBarHeight` is the measured 22px band.
+   *
+   * This is the **document window** frame. Utility windows and tool palettes measure
+   * 4px with no 2px core, which is why the value is per-window-class rather than
+   * era-wide; the skin's utility chrome declares its own.
    */
-  border: insets(1, 6, 6, 6),
+  border: insets(2, 6, 6, 6),
   /** Square. Rounded window corners are an Aqua idea; Platinum frames are rectangles. */
   cornerTop: { kind: 'radius', px: 0 },
   /**
@@ -86,7 +96,14 @@ export const MACOS8_METRICS: ChromeMetrics = {
    * modern slop, and the anachronism is recorded in the provenance note.
    */
   resizeGrab: 4,
-  /** 1px on the right and bottom. Painted, never hit-tested. */
+  /**
+   * 1px on the right and bottom. Painted, never hit-tested.
+   *
+   * Both free ends are pulled in 2px — the right column starts at frame-top + 2 and the
+   * bottom row at frame-left + 2 — so the shadow is an L notched at the top-right *and*
+   * the bottom-left. Its colour tracks the frame line rather than being black: #000000
+   * active, #555555 inactive.
+   */
   shadowInsets: insets(0, 1, 1, 0),
   /**
    * The Finder staggered new windows down and right. A static figure cannot show a
@@ -111,24 +128,33 @@ export const MACOS8_METRICS: ChromeMetrics = {
 
 export const MACOS8_PROVENANCE: Provenance<ChromeMetrics> = {
   titleBarHeight: {
-    level: 'documented',
-    source: `${PROSE} (p103); measured in ${FIG_5_1}, ${FIG_5_3} and ${FIG_5_6}`,
-    note: 'Documented in Apple prose twice and measured as 19 rows in four figures. '
-      + 'Rows 0..18 of the bar: FFFFFF highlight, 2x CCCCCC, twelve rows of stripes, '
-      + '4x CCCCCC. The 999999 and 000000 rows below it are frame, not title bar.',
+    level: 'measured',
+    source: `${FIG_5_3}; confirmed in ${FIG_5_1} and ${FIG_5_6}`,
+    note: 'The measured quantities are 22px from the outer frame line to the content '
+      + 'and a 20px interior between the two black lines: 1px bevel ring A, an 18px '
+      + 'CCCCCC face, 1px bevel ring B. Apple\'s prose says 19px (p103) and that is '
+      + 'documented, but no figure carries a boundary delimiting 19 rows — both '
+      + 'candidates inside the interior cut through a bevel ring and both sum to 22, so '
+      + 'the arithmetic cannot choose. 20 + border.top 2 = the measured 22, which is '
+      + 'what the window manager needs; where Apple\'s 19 sits inside it is derived.',
   },
   titleBarHeightInactive: {
     level: 'measured',
     source: FIG_5_1,
-    note: 'Figure 5-1 shows both states side by side. Outer frame line to content is '
-      + '22px in each, so the height is unchanged; only the lighting differs.',
+    note: 'Figure 5-1 shows both states side by side: 22px outer line to content and a '
+      + '20px interior in each. The active interior is bevelled and striped, the '
+      + 'inactive one flat DDDDDD. Only the lighting differs — and the boxes, which an '
+      + 'inactive window does not draw at all.',
   },
   border: {
     level: 'measured',
-    source: `${FIG_5_3}; confirmed independently in ${FIG_5_1}`,
-    note: 'Six 1px steps. Left/top outer->inner 000000 FFFFFF CCCCCC CCCCCC 999999 '
-      + '000000; bottom/right outer->inner 000000 999999 CCCCCC CCCCCC FFFFFF 000000 '
-      + '— the highlight and shadow swap. Top is 1px because the title bar follows it.',
+    source: `${FIG_5_3}; confirmed independently in ${FIG_5_1} and ${FIG_5_6}`,
+    note: '6px on the sides and bottom, as two nested 1px bevel rings around a 2px '
+      + 'CCCCCC core inside 1px black lines: ring A outset (FFFFFF top/left, 999999 '
+      + 'bottom/right), ring B inset (999999 top/left, FFFFFF bottom/right). One light '
+      + 'source, two rings — not four per-side stacks. Top is 2 because both black '
+      + 'lines bracket the title bar and 2 + 20 = the measured 22px band. This is the '
+      + 'DOCUMENT window frame: utility windows and tool palettes measure 4px.',
   },
   cornerTop: {
     level: 'measured',
@@ -174,8 +200,9 @@ export const MACOS8_PROVENANCE: Provenance<ChromeMetrics> = {
     level: 'documented',
     source: `${PROSE} (p103-104); measured in ${FIG_5_6}`,
     note: 'The collapse box hides the content region and leaves the title bar visible '
-      + 'and active. Figure 5-6 shows the collapsed window: 23px total, being 1px '
-      + 'frame, 19px title bar, the 999999+000000 pair, and 1px of bottom frame.',
+      + 'and active — which is why the window manager must not hide the frame for this '
+      + 'style. Figure 5-6 shows the collapsed window: 23px total, being 1px frame, the '
+      + '20px interior, 1px inner line, and 1px of bottom frame.',
   },
 }
 
@@ -219,7 +246,10 @@ export const MACOS8 = {
     inactiveText: '#666666',
     /** Scroll bar track fill. */
     trackFill: '#AAAAAA',
-    /** A scroll bar with nothing to scroll: flat, no arrows, no thumb. */
+    /**
+     * A scroll bar with nothing to scroll, on an ACTIVE window. The arrows are still
+     * drawn, in #888888 — see scrollBar.emptyActive. An inactive window's bar is white.
+     */
     trackEmpty: '#EEEEEE',
   },
 
@@ -243,15 +273,29 @@ export const MACOS8 = {
     leadRows: 2,
     /** Rows below the last stripe that stay flat. */
     tailRows: 4,
-    /** The stripes stop this far clear of the title's ink on each side. */
+    /**
+     * The stripes stop clear of the title's ink. The clear zone is 46px against 37px of
+     * ink and is offset one column between row types, so the slack is 5px on one side
+     * and 4px on the other depending on which colour the row carries. Nine pixels of
+     * total slack; a symmetric 4/4 describes a 45px zone that exists on neither row.
+     */
     textClearance: 4,
+    textClearanceLong: 5,
   },
 
   /**
-   * Close, zoom and collapse boxes — identical construction, 13x13 footprint.
+   * Close, zoom and collapse boxes — one construction, 13x13, three glyphs.
    *
-   * `3 + 13 + 3 = 19` exactly, so unlike XP's caption buttons these are genuinely
-   * centred and still land on the pixel grid. Odd bar, odd box, integer result.
+   * They are **not** identical: byte-differencing the three 13x13 blocks gives 11, 18
+   * and 15 differing pixels, never zero. The chisel, the inner bevel and the ramp are
+   * shared; the glyph is what distinguishes them, and the glyph is the point of the
+   * widget. Close carries none, zoom a nested 7x7 outline, collapse two 9px rules.
+   *
+   * Five construction layers, not three — the inner bevel and its white corner pixel
+   * are 16 pixels of a 167-pixel widget, and without them the dark ring lands straight
+   * on the ramp.
+   *
+   * An **inactive window draws none of them at all**.
    */
   box: {
     /** Footprint including the chisel. */
@@ -268,11 +312,21 @@ export const MACOS8 = {
     chiselDark: '#888888',
     /** Lower-right chisel. */
     chiselLight: '#FFFFFF',
+    /** Inner bevel, inside the dark outline. */
+    innerBevelDark: '#888888',
+    innerBevelLight: '#CCCCCC',
+    innerCorner: '#FFFFFF',
     /**
-     * The interior is a diagonal gradient, lighter toward the bottom right, not a flat
-     * well. Six steps, measured down a column through the close box.
+     * A diagonal ramp over the 7x7 core — not the whole interior — in bands of constant
+     * (col + row) two units wide. Seven steps: the brightest is a single `#FFFFFF`
+     * pixel, and it is the one that makes the diagonal read as lit rather than as a
+     * wash. Confirmed at 2x in Figure 5-7.
      */
-    interior: ['#999999', '#AAAAAA', '#BBBBBB', '#CCCCCC', '#DDDDDD', '#EEEEEE'],
+    core: 7,
+    interior: ['#999999', '#AAAAAA', '#BBBBBB', '#CCCCCC', '#DDDDDD', '#EEEEEE', '#FFFFFF'],
+    /** Utility windows and tool palettes carry the same three boxes at this size. */
+    utilitySize: 10,
+    utilityBody: 8,
   },
 
   /**
@@ -280,14 +334,16 @@ export const MACOS8 = {
    *
    * 16px, which is the classic Mac value this project already recorded for System 1 —
    * so Platinum changed the appearance and kept the geometry, exactly as it did for
-   * the title bar. Measured 16px in two separate windows.
+   * the title bar. Measured across **four figures and five instances**, including a
+   * real list box (p039 Figure 2-25), which is the case that disposes of any "19px is
+   * the list-box variant" reading.
    *
-   * Figure 2-26, the standalone specimen, is **19px** and its arrow box is 16x19 and
-   * therefore not square. It is raw indexed data, so that is not a rescale artefact;
-   * it is a specimen drawn thicker than the control ships. Recorded as contested in
-   * `docs/eras/macos8.md`, resolved to 16px here because only an assembled window
-   * gives real geometry. Figure 2-26 remains the authority on construction, being the
-   * only figure that shows an active bar with both arrows and a thumb.
+   * Figure 2-26's 19px is **not** a second right answer and is not `contested`. It is
+   * the same 16px artwork stretched by +3 across the track only, by whole-row
+   * duplication: along the track it matches to the pixel (arrow box 16, thumb 17),
+   * across it every layer gains, and the extra rows land *inside* the black outlines
+   * where no framing could put them. Duplication introduces no new colours, so the
+   * distinct-colour test cannot detect it — that is the trap worth carrying forward.
    */
   scrollBar: {
     thickness: 16,
@@ -296,21 +352,44 @@ export const MACOS8 = {
     /** Across the track, from the outer line inward. */
     trackEdgeNear: ['#777777', '#888888'],
     trackEdgeFar: ['#BBBBBB', '#CCCCCC'],
+    /**
+     * Fixed-size, 16 across by 17 along — measured at three different track lengths and
+     * byte-identical in two of them. Not the 16x16 square CLAUDE.md records for the
+     * classic era. Whether it is truly fixed or proportional clamped at a 17px minimum
+     * cannot be settled from figures alone.
+     */
+    thumbAlong: 17,
+    /**
+     * A bar with nothing to scroll still **draws its arrows**, in grey — the same glyph
+     * artwork recoloured. Two distinct empty states, and neither is "no arrows".
+     */
+    emptyActive: { fill: '#EEEEEE', arrow: '#888888', divider: '#555555', line: '#000000' },
+    emptyInactive: { fill: '#FFFFFF', line: '#555555' },
   },
 
   /**
-   * The accent colour, as a five-step ramp.
+   * The accent colour: **four** steps by role, plus two values that are not ramp steps.
    *
    * Apple states the scroll indicator "takes the color set by the user through the
    * Appearance control panel" (p40) and that the default focus ring is lavender (p66).
    * Two figures show two different accents, which is what proves it is a variable
    * rather than a constant — so the skin ships it as custom properties.
    *
-   * The greens are read out of Figure 2-26's declared 16-entry palette, not sampled.
+   * Both ramps are measured inside thumb pixels rather than read off a declared
+   * palette; the green budget closes to one pixel of the thumb's interior. The fifth
+   * green a first reading would take (`#CCFFCC`) is a 4px grip cap whose structurally
+   * identical lavender counterpart is a **grey** — a slot one accent fills with colour
+   * and the other with grey is not a ramp step.
    */
   accent: {
-    lavender: ['#CCCCFF', '#9999FF', '#6666CC', '#333399', '#000044'],
-    green: ['#CCFFCC', '#66FF99', '#33CC66', '#339966', '#006633'],
+    lavender: {
+      highlight: '#CCCCFF', face: '#9999FF', grip: '#333399', shadow: '#6666CC',
+      gripCap: '#EEEEEE', corner: '#EEEEEE',
+    },
+    green: {
+      highlight: '#66FF99', face: '#33CC66', grip: '#006633', shadow: '#339966',
+      gripCap: '#CCFFCC', corner: '#FFFFFF',
+    },
   },
 
   /** Menu bar: 20px, and Platinum kept the classic Roman-script height. */
@@ -338,9 +417,16 @@ export const MACOS8 = {
     separatorRuleOffset: 2,
     separatorRule: '#888888',
     separatorEngrave: '#FFFFFF',
-    /** 1px, on the right. Same asymmetric idea as the window frame's shadow. */
+    /**
+     * 1px on the right AND the bottom, each free end pulled in 2px — the same notched L
+     * as the window frame's shadow. A first reading caught only the right edge.
+     */
     shadow: 1,
     shadowColor: '#222222',
+    /** Item text ink, from the popup's interior left edge. */
+    textInset: 16,
+    /** Ink-to-ink gap between menu bar titles, constant across four gaps. */
+    barTitleGap: 15,
     /** The pulled-down menu title. Not a plain inversion. */
     titleHighlight: '#333399',
     titleHighlightTop: '#6666CC',
@@ -429,19 +515,26 @@ export const MACOS8_PROVENANCE_EXTRA = {
       + '3 + 13 + 3 closes on the 19px bar in both.',
   },
   scrollBar: {
-    level: 'contested',
-    source: `${FIG_5_3} and ${FIG_5_1} give 16px; ${FIG_2_26} gives 19px`,
-    note: '16px in two assembled windows, with a square 16x16 arrow box, matching the '
-      + 'classic value. The 19px standalone specimen is not a rescale — it is raw '
-      + 'indexed data — so both readings are real and only the window one is the '
-      + 'shipping control. Resolved to 16px; see docs/eras/macos8.md section 5.',
+    level: 'measured',
+    source: `${FIG_5_3}, ${FIG_5_1} (two instances), ${FIG_5_6}, and p039 Figure 2-25 `
+      + `— a real list box`,
+    note: '16px across four figures and five instances, with a square 16x16 arrow box, '
+      + 'matching the classic value. Not contested: Figure 2-26\'s 19px is the same '
+      + 'artwork stretched +3 across the track only, by row duplication, with the extra '
+      + 'rows inside the black outlines. A reading explains both numbers, so contested '
+      + 'would be the wrong level. See docs/eras/macos8.md section 5.',
   },
   accent: {
     level: 'measured',
-    source: `${FIG_2_26} declared palette (green); ${FIG_5_3} thumb (lavender); `
-      + `${PROSE} p40 and p66`,
-    note: 'Two figures show two different accents, which is the proof it is a user '
-      + 'variable rather than a constant. Lavender is the documented default.',
+    source: `${FIG_5_3} and the list box at p039 Figure 2-25 (lavender, byte-identical `
+      + `thumbs); ${FIG_2_26} (green); ${PROSE} p40 and p66`,
+    note: 'Four steps by role, not five. Both ramps are measured inside thumb pixels — '
+      + 'the green budget closes to one pixel of the interior — rather than read off a '
+      + 'declared palette, which by this project\'s own rule is not proof of use. The '
+      + 'fifth green (CCFFCC) is a 4px grip cap whose lavender counterpart is a GREY, '
+      + 'so it is not a ramp step. 000044 was dropped: it is a bevel-button icon '
+      + 'outline from a different chapter with a disjoint grey family. Two accents in '
+      + 'two figures is the proof it is a user variable; lavender is the default.',
   },
   menuBar: { level: 'measured', source: FIG_4_1 },
   menu: {
