@@ -122,10 +122,25 @@ body {
   --layer-menu: 200000;
 }
 
-/* Menus are positioned by the menu controller in client coordinates. */
+/*
+ * Menus are positioned by the menu controller in client coordinates, on the shell
+ * root, and scale themselves to the display.
+ *
+ * A menu has to live on the root: parented to the scaled desktop it would be clipped
+ * by it and would stop inheriting the skin's generated custom properties. But on the
+ * root it also escapes the display transform, and the bitmap eras render at an
+ * integer scale above 1 — System 1 is 512x342, which is 2x on an ordinary viewport —
+ * so a menu came out at half the size of the era around it: 8px items in a 16px era.
+ * Windows 3.1 masked this because 640x480 in a 1024x768 viewport is scale 1.
+ *
+ * `--display-scale` is written by src/shell/display.ts, so this holds for any era
+ * without the shell or a skin having to arrange it.
+ */
 [data-menu] {
   position: absolute;
   z-index: var(--layer-menu);
+  transform: scale(var(--display-scale, 1));
+  transform-origin: 0 0;
 }
 
 [data-switcher] {

@@ -229,3 +229,72 @@ Append every correction I make here as a permanent rule. Never delete entries.
   `LayoutDuration / frames`. Frame count and percentiles fall when the host is busy;
   script time per frame does not, because it measures how long our code ran rather than
   when it was allowed to run.
+
+### Two agreeing secondary sources still lose to the era's own pixels (System 1)
+- `StandardWDEF.a` plus Executor agreeing exactly is a real corroboration and it was still
+  wrong in five places, because both describe the *drawing code* and a reader
+  reconstructing geometry from drawing code fills gaps with plausible arithmetic. Stripes
+  start at `left+2` not `left+1`, the close box is 9px in not 10px, the size box is a 16×16
+  box carrying an 11×11 icon not a 14×14 box, the scroll trough is `ltGray` 25% not the
+  desktop's 50%, and the shadow notches *both* the top-right and the bottom-left corner.
+  Prefer the output of the code running over a description of the code.
+- Collapsing two patterns into one is the commonest classic-Mac error and it is invisible
+  until measured: the desktop and the scroll bar trough are different QuickDraw patterns
+  (50% checkerboard on a 1px cell vs `ltGray` on a 4×2 cell). Measured 50.0% and 25.2%.
+- A two-colour bitmap needs no calibration argument. Any resample introduces a third value,
+  so `#000000` + `#FFFFFF` and nothing else *is* the proof of 1:1 — a stronger argument than
+  XP's placement scale or Tiger's push-button widths. But allow exactly one flat illustrator
+  tone under 5%, reported with its bbox: resampling produces dozens of blend values along
+  every edge, a callout box produces one tone in one rectangle.
+- `box-shadow: 1px 1px 0 0` *is* "the frame's edges translated (+1, +1)", so it reproduces
+  both corner notches for free. `border-right` + `border-bottom` produces neither and the
+  square corners look plausible enough that nobody questions them.
+- Three figures agreeing and a fourth that is structurally incapable of answering is a
+  majority vote, not a measurement. The bottom-left shadow corner ships as a provenance note
+  stating the disagreement, because picking the value that matched the code already written
+  is the exact failure this project exists to avoid.
+
+### An absent button is not a refused command
+- A skin cannot express "this era has no maximize" by emitting no button:
+  `toggleMaximize` is still reachable from the keymap, the window chrome menu and any app
+  call, and each path produced a maximized System 1 window with no way back.
+  `maximizeSemantics: 'none'` in `ChromeMetrics` is what makes the window manager refuse it.
+  Ask "can a skin even express this" before "should a skin express this".
+- Hardcoded accelerator literals in shared code (`accel: 'Alt+F7'`) were a latent lie in
+  every era and a visible one in 1984, where the keyboard has no Control, no Option, no
+  Escape, no arrows and no function keys. `Shell.accelFor` derives the label from the actual
+  binding, so a menu cannot disagree with the keyboard and a skin that binds nothing shows
+  nothing.
+
+### Chromium's LCD text antialiasing is not defeatable, so assert the claim that is true
+- It tints the edge pixels of glyphs that are already exactly on the pixel grid.
+  `-webkit-font-smoothing: antialiased`, `-webkit-font-smoothing: none`, `font-smooth: never`
+  and `text-rendering: optimizeSpeed` are all no-ops on it. "Exactly two colours" is false
+  in this renderer and no CSS makes it true.
+- Loosening a threshold until a false assertion passes yields a test that asserts nothing.
+  Restate the claim instead: **there is no grey in a 1-bit UI** — every pixel luma <40 or
+  >208. A flat grey fill lands at ~128 and fails; a 50% checkerboard sampled at a fractional
+  scale averages to ~128 and fails, which is the failure the integer viewport exists to
+  prevent. The fringe bound is a separate assertion, not a tolerance on the first.
+- Still fix the real bug the false test found: CSS centring distributes free space without
+  rounding, so a title of opposite parity to its bar lands on a half pixel. `Math.floor`,
+  because `StandardWDEF` centres with integer division and that truncates.
+
+### Scale an overlay in place; do not re-parent it to inherit a transform
+- Re-parenting menus into `.desktop` so they inherited the viewport scale worked and was
+  wrong: `.desktop` is inside the scaled, clipped viewport, so an overhanging menu gets
+  clipped by the screen edge and a menu opened from a shell region outside the viewport is
+  positioned in the wrong coordinate space entirely. Publish `--display-scale` on the shell
+  root and `transform: scale()` the overlay where it already lives.
+- Do not "fix" the positioner to compensate. Dividing by the scale in
+  `MenuController.position()` was reverted in full — positioning stays in root coordinates
+  and the transform handles the rest, which is the only version that composes with a sibling
+  session's work without either session knowing about the other.
+- A `:root` fallback block in a skin masks exactly this class of bug. `skin.css` ships with
+  none and carries a comment saying why, because the absence otherwise reads as an omission.
+
+### Extract the shared assertion, do not copy it
+- "Use Win 3.1's stipple construction unchanged" is satisfiable in letter by copying the
+  helper into a second spec, and that breaks it in fact — two copies drift and the one that
+  drifts is the one nobody looks at. `measureParity` moved to `test/browser/stipple.ts` and
+  both eras import it, so one instrument holds two eras and the source to one standard.

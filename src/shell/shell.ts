@@ -28,10 +28,13 @@ export interface SkinManifest {
   keymap: readonly Binding[]
   viewport?: ViewportSpec
   /**
-   * Custom properties derived from the skin's measured metrics, applied to the
-   * desktop element. This is how a stylesheet reads a measurement without keeping
-   * a second copy of it that could drift — the XP caption gradient and frame steps
-   * are generated from the arrays in its metrics file.
+   * Custom properties derived from the skin's measured metrics, applied to the shell
+   * root. This is how a stylesheet reads a measurement without keeping a second copy
+   * of it that could drift — the XP caption gradient and frame steps are generated
+   * from the arrays in its metrics file.
+   *
+   * The root rather than the desktop, because menus are hosted on the root and
+   * inherit nothing written below it.
    */
   generatedProperties?: () => Record<string, string>
 }
@@ -62,12 +65,20 @@ export class Shell {
     this.display = new Display(root, skin.viewport ?? { mode: 'native' })
     this.teardowns.push(this.display.attach())
 
-    // The skin id lets era CSS scope itself to the desktop, and the generated
-    // properties carry measured values into the stylesheet.
+    // The skin id lets era CSS scope itself to the desktop; the generated properties
+    // carry measured values into the stylesheet from the root, which every surface
+    // inherits from including the menus hosted there.
     this.display.desktop.dataset['skin'] = skin.id
     if (skin.generatedProperties) {
+      /*
+       * On the shell root, not on the desktop. Menus live on the root so that the
+       * display transform cannot clip them, which means anything written onto the
+       * desktop is invisible to them — a menu got no background, no border and the
+       * browser's default serif. Writing at the root is the one placement every
+       * surface inherits from.
+       */
       for (const [prop, value] of Object.entries(skin.generatedProperties())) {
-        this.display.desktop.style.setProperty(prop, value)
+        root.style.setProperty(prop, value)
       }
     }
 
@@ -75,17 +86,7 @@ export class Shell {
     this.gestures = new GestureController(this.wm)
     this.switcher = new Switcher(this.wm, this.capture, this.display.desktop)
     this.keyboardGeometry = new KeyboardGeometry(this.wm, this.capture)
-    /*
-     * Menus are hosted by the scaled desktop, not by the page root.
-     *
-     * Parented to the root they escaped the display transform: on System 1, which
-     * renders 512x342 at an integer scale, every menu came out at half the size of
-     * the era around it and inherited none of the skin's generated custom properties,
-     * because those are written onto the desktop element. Both symptoms are one cause.
-     * `MenuController.position` divides by the host's own scale, so the client
-     * coordinates it is handed still work.
-     */
-    this.menus = new MenuController(skin.menu, this.capture, this.display.desktop)
+    this.menus = new MenuController(skin.menu, this.capture, root)
 
     this.dispatcher = new Dispatcher({
       root,

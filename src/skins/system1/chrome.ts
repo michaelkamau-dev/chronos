@@ -163,8 +163,15 @@ export class System1Chrome implements ChromeRenderer {
   private centreTitle(h: System1Handle): void {
     const bar = h.titleText.parentElement
     if (!bar) return
-    const free = bar.clientWidth - h.titleText.offsetWidth
-    h.titleText.style.left = `${Math.max(0, Math.floor(free / 2))}px`
+    const width = h.titleText.offsetWidth
+    const left = Math.max(0, Math.floor((bar.clientWidth - width) / 2))
+    h.titleText.style.left = `${left}px`
+    // The title bar paints the erased rectangle behind the string as a background
+    // layer, because an opaque background on the element that carries the text takes
+    // every glyph in it off the pixel grid — see skin.css. Publishing the box here
+    // means the erase and the string are placed by one calculation.
+    bar.style.setProperty('--s1-title-x', `${left}px`)
+    bar.style.setProperty('--s1-title-w', `${width}px`)
   }
 
   private applyState(h: System1Handle, s: WindowState): void {

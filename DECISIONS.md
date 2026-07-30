@@ -1089,3 +1089,255 @@ Two eras are built. Four remain, in this order and for these reasons:
 Nothing is half-finished at this boundary. The two open external items — `luna.msstyles`
 and a pressed-button Windows 3.1 capture — are recorded in §13 with notes, and neither
 blocks a skin.
+
+---
+
+## Phase 4, era/system1 — measurement
+
+### 4.17 The HIG's two-tone bitmaps are 1:1 by construction, so this era needs no calibration argument
+
+**Call.** `tools/pdf-extract/extract-mac-figures.py` pulls eight image XObjects out of
+`macintosh-hig.pdf` and verifies each one. Five of the eight contain exactly `#000000`
+and `#FFFFFF`; the other three contain those plus **one** flat illustrator tone
+(`#F1F3F2` on p204, `#BEBEBE` on p077) under 5% coverage, reported with its bounding
+box. Anything else fails the extraction rather than being measured.
+
+**Reasoning.** XP's window figure needed an argument for why its bitmap is 1:1 (page
+placement at 1.38 px/pt, which is not 96/72) and Tiger's needed a calibration against
+three documented push-button widths. This era needs neither, and the reason is stronger
+than either of those arguments: **a two-colour bitmap cannot have been resampled.** Any
+scale factor other than 1 blends edge pixels and introduces a third value. There is no
+third value. One of the figures is 512×342 — precisely the framebuffer of a Macintosh
+128K/512K/Plus — so it is not merely unresampled, it is a whole screen at native size.
+
+The single-extra-tone allowance is the part worth defending, because it looks like a
+loosened gate. It is not: resampling produces *dozens* of blend values spread along
+every edge, while an illustrator's callout box produces one flat tone in one rectangle.
+The script distinguishes them by count and by coverage, prints the bbox so the tone can
+be identified by eye, and p077 additionally gets a region-scoped check over
+`(0, 0, 512, 20)` so the menu-bar band it is used for is proven two-tone on its own.
+
+### 4.18 Five values in §7's System 1 table are corrected by measurement
+
+**Call.** `src/skins/system1/metrics.ts` ships measured values where they disagree with
+the `StandardWDEF.a` + Executor table §7 carried before the build. Every number is
+reproduced by `tools/pdf-extract/measure-mac-system1.py`, which prints the run-length
+profiles rather than asserting silently.
+
+1. **Racing stripes start at `left+2`, not `left+1`.** Row 4 of the 512×342 screen runs
+   `(0,0) (2,7) (9,19) (21,96) (242,333) (335,335)`: frame line at 0, then ink from 2.
+2. **The close box is 9px in from the frame line, not 10px.** The gaps at 8 and 20 in
+   that same profile are its 1px paper surround knocking the stripes out.
+3. **The size box is 16×16, not 14×14.** The icon inside it is 11×11 at inset 3/3. The
+   14 was the icon's bounding box read as the box, and 16 is what makes the corner line
+   up with the 16px scroll bars.
+4. **The scroll bar trough is 25%, not 50%.** Two distinct QuickDraw patterns: the
+   desktop is the 50% checkerboard (measured 50.0%, all ink on one parity), the trough
+   is `ltGray` on a 4×2 cell (measured 25.2%, ink at cell offsets `(0,0)` and `(2,1)`).
+5. **Both shadow corners are notched, not only the top-right.** The shadow is the
+   frame's right column and bottom row translated (+1, +1), which leaves a hole at each
+   end of the L.
+
+**Reasoning.** The prior table was labelled `confirmed` on the strength of two sources
+agreeing — Apple's shipped assembly listing and a clean-room reimplementation of it. That
+is a real corroboration and it was still wrong in five places, because both sources
+describe the *drawing code*, and a reader reconstructing geometry from drawing code fills
+gaps with plausible arithmetic. `left+1` is what you write down if you assume the stripes
+abut the frame. 14×14 is what you write down if you measure the icon. The figures are the
+output of that code actually running, which is the thing being reproduced.
+
+The fifth correction paid for itself immediately: `box-shadow: 1px 1px 0 0` is exactly
+"the edges translated (+1, +1)", so it produces both notches for free. A `border-right`
+plus `border-bottom` would have produced neither, and the version of the frame that used
+borders had square corners nobody would have questioned.
+
+### 4.19 One measurement did not resolve, and it ships as recorded variance
+
+**Call.** `border`'s provenance note states the disagreement in full: the two genuine
+screen dumps put a 1px notch at the bottom-left, the two book-cropped 1-bit figures
+differ from each other (0px and 2px), and the 512×342 screen cannot settle it because the
+desktop checkerboard's parity paints the same pixel. The dumps are what ships.
+
+**Reasoning.** Three figures and a fourth that is structurally incapable of answering is
+not a measurement, it is a majority vote. Writing `measured` with no note would claim a
+precision that does not exist, and picking the value that matched the code already written
+would be the failure mode this project exists to avoid. §7's figure rules already say a
+JPEG-derived hex is `measured`, never `documented`; this is the same distinction applied
+to a geometry value whose sources conflict. The note is the deliverable — a later session
+with `luna.msstyles`-grade material for the Mac can close it in one pass, and until then
+nobody re-derives the disagreement from scratch.
+
+### 4.20 Chicago is ChiKareGo2, with three documented rejections and one unconfirmed licence
+
+**Call.** `src/skins/system1/fonts/chicago-sub.woff2`, subset to `0020-00FF`. The target
+is the measured cell rather than a name: 16px cell, 9px cap height, 3px descender, 14
+distinct advances, 13 ink widths, at `font-size: 16px` / `line-height: 15px`.
+`tools/font-compare/system1-chicago.mjs` renders all four candidates at 16px magnified 4×
+into `docs/fonts/system1-font-chicago.png` and records each verdict.
+
+**Reasoning.** §7's rule is that an unresolved font blocks the chrome that depends on it,
+and the rule specifically requires naming the substitute *and* showing a rendered
+comparison at the sizes the era uses — not choosing on metrics alone. Three candidates
+were rejected on the render: the full rejections and per-candidate numbers are in
+`docs/eras/system1.md` rather than here, because they are era findings.
+
+The 1024 upm / 64-units-per-pixel requirement is the non-obvious constraint. A bitmap face
+whose em square is not a whole multiple of the pixel grid puts every glyph edge on a
+fraction at *some* size, and this era's whole viewport strategy exists to keep the 1px
+checkerboard from averaging into grey. A font that fails it fails the same way the
+checkerboard does.
+
+One item is open and it is a licence question, not a design one: ChiKareGo2 ships under a
+free-use grant whose exact variant could not be confirmed from inside the sandbox — every
+primary source for it is 403 at the proxy. It needs one fetch from outside. Recorded in
+`docs/eras/system1.md` and in §13 rather than resolved by assumption, because "probably CC"
+is not an attribution and `test/budget.test.js` requires every shipped font to be
+attributable.
+
+### 4.21 `notPatBic` reuses Windows 3.1's knockout construction unchanged
+
+**Call.** `measureParity` moved out of `test/browser/win31-fidelity.spec.ts` into
+`test/browser/stipple.ts`, and both eras' suites import it. The System 1 assertion is the
+same numbers against the same instrument: parity share ≥0.95 on a disabled label, <0.7 on
+an enabled one.
+
+**Reasoning.** §7 records the stipple under its own heading precisely so it is built once,
+and the brief said to use Windows 3.1's construction unchanged. Copying the helper into a
+second spec would have satisfied that in letter and broken it in fact: two copies drift,
+and the one that drifts is the one nobody looks at. The extraction is the whole change —
+no CSS was written for this. Apple's `notPatBic` and Microsoft's `GrayString` render from
+the same rules in `skin.css`'s knockout overlay, eight years and two vendors apart, which
+is the claim §7 makes and now the code makes too.
+
+The proof on Apple's own bitmap: the File menu's disabled `Revert` is 77 ink pixels with
+**all 77 on one `(x+y)` parity**; `Save As…` beside it is 179 split 91/88.
+
+---
+
+## Phase 4, era/system1 — the chrome
+
+### 4.22 `maximizeSemantics: 'none'` is a core addition, because an absent button is not a refused command
+
+**Call.** `MaximizeSemantics` in `src/core/wm/types.ts` gains a third member, `'none'`,
+and `WindowManager.toggleMaximize` returns immediately when the active chrome declares it.
+`Shell` gates its Restore and Maximize menu items on `wm.metrics.maximizeSemantics !==
+'none'`.
+
+**Reasoning.** Reported as a contract bug under §11 the moment it surfaced. System 1's
+`documentProc` has no zoom box at all — zoom arrives with `zoomDocProc` in 1987 — so the
+skin emits no button. That is necessary and not sufficient: `toggleMaximize` is reachable
+from the keymap, from the window chrome menu, and from any app that calls it, and every one
+of those paths would have produced a maximized System 1 window with no way back. A skin
+cannot fix that by omitting DOM.
+
+This is exactly the shape §7's "structural rules do not belong to a skin" heading
+describes, one level up: the question to ask is *would a skin that omitted this be wrong*,
+and here the honest answer is that a skin **cannot** express it. The declaration belongs in
+`ChromeMetrics` next to `minimizeStyle`, which already worked this way. `'fill'` and
+`'zoom'` are unchanged, so XP and Win 3.1 are untouched.
+
+### 4.23 Menu accelerators come from the active skin's keymap, not from literals in the shell
+
+**Call.** `Shell.accelFor(command)` reads the active skin's keymap and returns the chord
+bound to that command. The six hardcoded `accel: 'Alt+F7'`-style literals in the window
+chrome menu are gone.
+
+**Reasoning.** Those literals were Windows chords written into shared code, and they were
+already a latent lie — the menu said `Alt+F7` in every era while only one era bound it. In
+System 1 they are a visible one: the 1984 keyboard has no Control, no Option, no Escape, no
+arrows and no function keys, so `Alt+F7` is not merely wrong for the era, it names keys that
+do not physically exist. Deriving the label from the binding means the menu cannot disagree
+with the keyboard, in any era, and a skin that binds nothing shows nothing rather than
+showing a fiction. `exactOptionalPropertyTypes` forbids `accel: undefined`, hence the
+spread helper rather than an assignment.
+
+Era-specific consequence, in the skin where it belongs: `System1MenuRenderer.commandChord`
+returns a key only for a single-`Meta` chord and renders nothing for anything else. The
+drawn `⌘` is a measured 9×9 bitmap, not a character.
+
+### 4.24 Menus scale on the shell root, and the re-parenting fix was the wrong one
+
+**Call.** `src/shell/display.ts` publishes `--display-scale` on the shell root.
+`src/shell/base.css` gives `[data-menu]` `transform: scale(var(--display-scale))` with
+origin `0 0`. Menus stay parented to the root, where Tiger put them.
+
+**Reasoning.** A menu rendered at logical pixels inside an integer-scaled viewport comes out
+at 1/scale — half size at 2×. The first fix re-parented menus into `.desktop` so they
+inherited the scale transform, and it was wrong for a reason worth recording: `.desktop` is
+inside the scaled, clipped viewport, so a menu that overhangs the screen edge gets clipped by
+it, and a menu opened from a shell region that lives *outside* the viewport would have been
+positioned in the wrong coordinate space entirely. Scaling in place keeps one parent and one
+coordinate system.
+
+`MenuController.position()` was also edited during the first attempt, to divide by the scale.
+That is reverted in full — the file is byte-identical to main. Positioning stays in root
+coordinates and the transform handles the rest, which is the only version that composes with
+Tiger's `ShellRegion` without either session having to know about the other.
+
+Generated CSS properties now go on the root too, matching Tiger's shape exactly so the merge
+is textual. `skin.css` has **no** `:root` block: the properties arrive from
+`system1GeneratedProperties()` at runtime, and a `:root` fallback would have masked exactly
+the bug that was being fixed. There is a comment in the file saying so, because the absence
+looks like an omission.
+
+### 4.25 The two-tones test asserts no mid grey, because Chromium's LCD antialiasing is not defeatable
+
+**Call.** `test/browser/system1-fidelity.spec.ts` asserts that **no pixel anywhere in the
+rendered screen is a mid grey** — every pixel has luma <40 or >208 — and that the remaining
+edge fringe is under 2% of pixels. It does not assert that exactly two colours exist.
+
+**Reasoning.** The first version asserted two colours and failed on 632 pixels of one window
+title. Three fixes narrowed the cause and none of them removed it: integer `Math.floor`
+centring (which was a real bug and is kept — see 4.26), moving the white behind the string
+into the title bar as an erase rectangle, and a `clip-path`ped `::before`. What is left is
+Chromium's LCD subpixel text path, which tints the edge pixels of glyphs that are already
+exactly on the pixel grid. `-webkit-font-smoothing: antialiased`, `-webkit-font-smoothing:
+none`, `font-smooth: never` and `text-rendering: optimizeSpeed` are all no-ops on it.
+
+So the two-colour claim is false in this renderer and no amount of CSS makes it true. The
+temptation is to keep the assertion and loosen the threshold until it passes, which produces
+a test that asserts nothing. The claim that *is* both true and load-bearing is the one the
+whole era rests on: **there is no grey in a 1-bit UI.** A flat grey fill lands at luma ~128
+and fails. A 50% checkerboard sampled at a fractional scale averages to ~128 and fails —
+which is the exact failure the integer viewport exists to prevent, so the test now guards the
+thing it was always trying to guard. The 2% fringe bound is separate and is what stops a
+regression from turning edge tinting into a look. Both numbers are asserted; neither was
+chosen to make a red test green.
+
+### 4.26 The title is centred by the renderer, with truncating division
+
+**Call.** `System1Chrome.centreTitle` computes `Math.floor((bar.clientWidth - width) / 2)`
+and writes it as `left`, publishing the box to CSS as `--s1-title-x` / `--s1-title-w` so the
+erase rectangle and the string are placed by one calculation. Called on title, rect and focus
+changes only.
+
+**Reasoning.** CSS centring distributes free space without rounding, so a title whose width
+has the opposite parity to its bar lands on a half pixel — and a half-pixel glyph edge in a
+1-bit era is the one thing the integer-scaled viewport exists to prevent. `Math.floor` rather
+than `Math.round` because that is what the era did: `StandardWDEF` positions the title with
+`(left + right - titleWidth) / 2` in integer arithmetic, which truncates.
+
+Reading layout here is deliberate and bounded. `core/wm/drag.ts` remains the only place a
+layout read is forbidden outright; this runs on discrete state changes and never inside a
+gesture loop. The alternative — measuring text width in JS — would have needed a font metrics
+table in the skin, which is a second source of truth for something the browser already knows.
+
+### 4.27 What System 1 deliberately does not ship in this pass
+
+**Call.** No menu bar, and no scroll bars. Both are measured, recorded in
+`metrics.ts` with provenance, and asserted by `measure-mac-system1.py`. Neither is rendered.
+
+**Reasoning.** The menu bar is System 1's defining chrome and it is the one piece that
+*must* be built on Tiger's `ShellRegion` / `SkinManifest.regions` rather than beside it.
+That landed on `claude/chronos-tiger-phase-4-tm4o09` and is not in `main` yet, and building
+a second mechanism for the same contract to avoid waiting is worse than waiting — the brief
+says so and it is right. The measurements are done, so it is a rendering pass and not a
+research one once the merge happens.
+
+Scroll bars are phase 5 for every era, not a System 1 exception, and are recorded here only
+because the trough pattern finding (4.18) reads as if a scroll bar exists. The 25%/50%
+distinction is in `metrics.ts` and in the measurement script now, so phase 5 inherits it
+rather than rediscovering it.
+
+Stating both here rather than leaving them as gaps: a missing feature that is written down
+is a plan, and a missing feature that is not is a bug nobody has found yet.

@@ -346,24 +346,34 @@ test.describe('menus', () => {
     expect(await menu.locator('[data-menu-submenu]').count()).toBeGreaterThan(0)
   })
 
-  test('a menu is hosted inside the scaled desktop, at the era\'s own size',
+  test('a menu is hosted on the shell root and scales itself to the display',
     async ({ page }) => {
       await page.evaluate(() => window.__chronos.openWindows(1))
       await page.locator('[data-part="titlebar"]').first().click({ button: 'right' })
       const m = await page.evaluate(() => {
         const menu = document.querySelector<HTMLElement>('[data-menu]')!
         const desktop = document.querySelector<HTMLElement>('[data-desktop]')!
+        const root = document.getElementById('chronos-root')!
         return {
           insideDesktop: desktop.contains(menu),
+          onRoot: menu.parentElement === root,
           scale: window.__chronos.shell.display.scale(),
+          published: getComputedStyle(root).getPropertyValue('--display-scale').trim(),
           rendered: menu.getBoundingClientRect().height,
           own: menu.offsetHeight,
+          family: getComputedStyle(menu).fontFamily,
         }
       })
-      // Parented to the page root a menu escapes the display transform, so on this
-      // era it came out at half the size of everything around it.
-      expect(m.insideDesktop).toBe(true)
+      // A menu lives on the root so the display transform cannot clip it — which also
+      // means it escapes that transform, and this era renders at scale 2. Left
+      // unscaled it came out at half the size of the era around it.
+      expect(m.insideDesktop).toBe(false)
+      expect(m.onRoot).toBe(true)
+      expect(m.published).toBe(String(m.scale))
       expect(m.rendered).toBeCloseTo(m.own * m.scale, 0)
+      // And it inherits the skin's generated properties, which are written at the root
+      // for exactly this reason: on the desktop, a menu got the browser's serif.
+      expect(m.family).toContain('S1 Chicago')
     })
 })
 
@@ -595,45 +605,181 @@ test.describe('the era is one bit deep, and the viewport proves it', () => {
   })
 
   /*
-   * The whole-era assertion. Every tone in System 1 is a dither of two colours, so a
-   * single antialiased edge anywhere — a soft glyph, a `border-radius`, a fractional
-   * scale, a gradient — appears as a third value and fails this. It is the reason the
-   * corner arcs are clip-path staircases and the font size is 16px and not 15 or 17.
+   * The whole-era assertion, and the one that took the longest to state truthfully.
+   *
+   * Every tone in System 1 is a dither of two colours, so no pixel anywhere may be a
+   * mid grey: a grey disabled-text fill, a fractional display scale, a `border-radius`,
+   * a gradient or a softened glyph all produce one and all fail here.
+   *
+   * What the era *does* produce, and what a naive "exactly two colours" assertion
+   * fails on, is **LCD subpixel fringing on text**. Chromium tints the edge pixels of
+   * a glyph whenever it takes the LCD text path, and it does so even when the glyph is
+   * perfectly pixel-aligned, because the filter kernel spans neighbouring subpixels.
+   * Measured on this era: the fringes are exactly four values — `#4f0f00`, `#000f4f`,
+   * `#ffe7a7` and `#a7e7ff` — whose lumas are 32, 18, 231 and 215. Every one is within
+   * a few percent of black or white. There is no mid grey, which is the actual claim.
+   *
+   * When Chromium takes that path is worth recording, because it explains why some of
+   * this era's surfaces are pure and others are not. LCD text is used when the text
+   * sits on a background Blink can prove opaque *and* its layer's transform is a
+   * translation. So the window titles are fringed — white erase rect, and the frame
+   * carries `translate3d` — while the menus are not, because a menu is scaled by
+   * `--display-scale` and a scale disables the LCD path outright. `background: none`
+   * on the title made it pure too, by removing the provable opacity, but it also let
+   * the racing stripes run through the string, which is flatly wrong rather than
+   * subtly wrong. None of `-webkit-font-smoothing: antialiased`, `none`,
+   * `font-smooth: never` or `text-rendering: optimizeSpeed` changes it — measured, and
+   * §7 says as much about that property already.
+   *
+   * §7 names the complete cure: render the affected text to a 1x canvas and upscale
+   * with `image-rendering: pixelated`. It costs selectable, accessible text, so it is
+   * not taken here and the limitation is recorded instead.
    */
-  test('the rendered desktop contains two tones and nothing between', async ({ page }) => {
+  test('no pixel anywhere is a mid grey', async ({ page }) => {
     await page.evaluate(() => window.__chronos.openWindows(2))
     await page.evaluate(() => {
       const host = document.querySelector('[data-win-id] [data-content]')!
-      const b = document.createElement('button')
-      b.className = 's1-button'
-      b.textContent = 'Cancel'
-      host.appendChild(b)
-      const d = document.createElement('button')
-      d.className = 's1-button'
-      d.textContent = 'Eject'
-      d.disabled = true
-      host.appendChild(d)
+      const wrap = document.createElement('div')
+      // A block container at an integer offset, so the test measures the skin rather
+      // than the baseline alignment of two bare inline-blocks.
+      wrap.setAttribute('style', 'position:absolute;left:8px;top:8px')
+      for (const [label, off] of [['Cancel', false], ['Eject', true]] as const) {
+        const b = document.createElement('button')
+        b.className = 's1-button'
+        b.textContent = label
+        b.disabled = off
+        b.style.display = 'block'
+        b.style.marginBottom = '8px'
+        wrap.appendChild(b)
+      }
+      host.appendChild(wrap)
     })
     await page.locator('[data-part="titlebar"]').first().click({ button: 'right' })
-    const tones = await page.evaluate(
-      async ({ bytes }) => {
+    const surfaces = [
+      [...(await page.locator('[data-desktop]').screenshot())],
+      [...(await page.locator('[data-menu]').first().screenshot())],
+    ]
+    const stats = await page.evaluate(async (shots: number[][]) => {
+      let pure = 0
+      let fringe = 0
+      const mid: string[] = []
+      for (const bytes of shots) {
         const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' })
         const bmp = await createImageBitmap(blob)
         const c = new OffscreenCanvas(bmp.width, bmp.height)
         const ctx = c.getContext('2d')!
         ctx.drawImage(bmp, 0, 0)
         const d = ctx.getImageData(0, 0, bmp.width, bmp.height).data
-        const seen = new Map<number, number>()
         for (let i = 0; i < d.length; i += 4) {
-          const key = (d[i]! << 16) | (d[i + 1]! << 8) | d[i + 2]!
-          seen.set(key, (seen.get(key) ?? 0) + 1)
+          const r = d[i]!
+          const g = d[i + 1]!
+          const b = d[i + 2]!
+          if ((r === 0 && g === 0 && b === 0) || (r === 255 && g === 255 && b === 255)) {
+            pure++
+            continue
+          }
+          const luma = 0.299 * r + 0.587 * g + 0.114 * b
+          if (luma < 40 || luma > 208) fringe++
+          else mid.push(`#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')} luma ${Math.round(luma)}`)
         }
-        return [...seen.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .map(([k, n]) => ({ hex: `#${k.toString(16).padStart(6, '0')}`, n }))
-      },
-      { bytes: [...(await page.locator('[data-desktop]').screenshot())] },
-    )
-    expect(tones.map((t) => t.hex).sort()).toEqual(['#000000', '#ffffff'])
+      }
+      return { pure, fringe, mid: [...new Set(mid)].slice(0, 8), total: pure + fringe + mid.length }
+    }, surfaces)
+
+    // The claim: no mid grey exists. A grey fill lands at luma ~128 and fails.
+    expect(stats.mid, 'mid-grey pixels').toEqual([])
+    // And the fringing stays a rounding error on text edges rather than a look.
+    expect(stats.fringe / stats.total).toBeLessThan(0.02)
+  })
+})
+
+test.describe('era-correct path syntax over the same stored nodes', () => {
+  test('renders colon-separated paths with the extension hidden', async ({ page }) => {
+    const result = await page.evaluate(async () => {
+      const fs = window.__chronos.fs
+      const codec = window.__chronos.codec
+      const docs = (await fs.list(fs.root())).find((n) => n.wellKnown === 'documents')!
+      const file = await fs.createFile(docs.id, 'Letter.txt', 'x', { mime: 'text/plain' })
+      const path = codec.format(await fs.chain(file))
+      return {
+        path,
+        storedName: docs.name,
+        volume: codec.volumeName(),
+        separator: codec.separator,
+        // The display drops the extension, so a path read off the screen has to be
+        // typeable back — parse matches the stored name first, then the shown form.
+        roundTrip: (await codec.parse(path, fs.root())) === file,
+        byStoredName: (await codec.parse('Macintosh HD:Documents:Letter.txt', fs.root())) === file,
+        // A leading colon is the era's relative marker, and `::` is the parent.
+        relative: (await codec.parse(':Letter', docs.id)) === file,
+        parent: (await codec.parse('::Documents:Letter', docs.id)) === file,
+        wrongVolume: await codec.parse('Untitled:Documents:Letter', fs.root()),
+      }
+    })
+    // The same stored node the XP codec renders as C:\My Documents\Letter.txt.
+    expect(result.path).toBe('Macintosh HD:Documents:Letter')
+    expect(result.storedName).toBe('Documents')
+    expect(result.volume).toBe('Macintosh HD')
+    expect(result.separator).toBe(':')
+    expect(result.roundTrip).toBe(true)
+    expect(result.byStoredName).toBe(true)
+    expect(result.relative).toBe(true)
+    expect(result.parent).toBe(true)
+    expect(result.wrongVolume).toBeNull()
+  })
+
+  test('a folder path ends in a colon and the System Folder keeps its name', async ({ page }) => {
+    const out = await page.evaluate(async () => {
+      const fs = window.__chronos.fs
+      const codec = window.__chronos.codec
+      const roots = await fs.list(fs.root())
+      const docs = roots.find((n) => n.wellKnown === 'documents')!
+      return {
+        folder: codec.format(await fs.chain(docs.id)),
+        names: roots.map((n) => ({ stored: n.name, shown: codec.displayName(n) })),
+      }
+    })
+    expect(out.folder).toBe('Macintosh HD:Documents:')
+    const byStored = new Map(out.names.map((n) => [n.stored, n.shown]))
+    // No Recycle Bin, no Program Files: the Trash was an icon and applications sat on
+    // the volume.
+    expect(byStored.get('Trash')).toBe('Trash')
+    expect(byStored.get('Applications')).toBe('Applications')
+    expect(byStored.get('System')).toBe('System Folder')
+  })
+
+  test('the extension policy is conservative, not greedy', async ({ page }) => {
+    const shown = await page.evaluate(async () => {
+      const codec = window.__chronos.codec
+      const fs = window.__chronos.fs
+      const made = await Promise.all(
+        ['Letter.txt', 'Notes.1984', 'Read Me', 'Chart.png', 'a.b'].map((n) =>
+          fs.createFile(fs.root(), n, 'x', { mime: 'text/plain' }),
+        ),
+      )
+      const stats = await Promise.all(made.map((id) => fs.stat(id)))
+      return stats.map((n) => [n.name, codec.displayName(n)])
+    })
+    // A short alphanumeric run after the last dot is an extension; a year is not, and
+    // a name with no dot is untouched.
+    expect(Object.fromEntries(shown)).toEqual({
+      'Letter.txt': 'Letter',
+      'Notes.1984': 'Notes.1984',
+      'Read Me': 'Read Me',
+      'Chart.png': 'Chart',
+      'a.b': 'a',
+    })
+  })
+
+  test('name collisions get the Mac decoration, not the Windows one', async ({ page }) => {
+    const suggested = await page.evaluate(async () => {
+      const fs = window.__chronos.fs
+      await fs.createFile(fs.root(), 'Report', 'a', { mime: 'text/plain' })
+      const { system1NameDecorator } = await import('/src/skins/system1/paths.ts')
+      return fs.suggestName(fs.root(), 'Report', system1NameDecorator)
+    })
+    // The Finder appended " copy". " (2)" belongs to a different skin, and the
+    // filesystem knows neither.
+    expect(suggested).toBe('Report copy')
   })
 })

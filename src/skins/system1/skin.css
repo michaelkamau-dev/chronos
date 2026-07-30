@@ -34,28 +34,28 @@
   font-display: block;
 }
 
-:root {
-  --s1-ink: #000000;
-  --s1-paper: #FFFFFF;
-
-  /*
-   * One face at one size for the whole era, exactly as Windows 3.1 has one.
-   *
-   * 16px is the only size that works: ChiKareGo2 is a 1024-upm face on a 64-unit
-   * pixel grid, so at 16px every coordinate and every advance lands on a whole pixel
-   * and nothing antialiases. It also puts the cap height at exactly 9px and the
-   * descender at exactly 3px, which is Chicago 12.
-   *
-   * `--s1-line` is 15px, not 16. At 16px the font's content box is exactly 15px and
-   * its baseline sits 12px down, so a 15px line box has zero half-leading and lands
-   * the cap top on row 3. A 16px line-height would half-lead by 0.5px and push every
-   * glyph in the era off the pixel grid.
-   */
-  --s1-fs: 16px;
-  --s1-line: 15px;
-  --s1-title-h: 19px;
-  --s1-menu-item-h: 16px;
-}
+/*
+ * There is no `:root` block here on purpose.
+ *
+ * Every value this stylesheet reads is generated from metrics.ts onto the shell root
+ * (see index.ts and Shell's constructor), so a second static declaration would be a
+ * second copy of a measured number — exactly what the generated-properties mechanism
+ * exists to prevent. Windows 3.1 and XP carried such duplicates because generated
+ * properties used to land on the desktop and menus could not see them; that is fixed,
+ * and this skin never had them.
+ *
+ * Two of those values are worth stating here even though they live in metrics.ts,
+ * because everything else depends on them:
+ *
+ * - `--s1-fs` is **16px**, and 16px is the only size that works. ChiKareGo2 is a
+ *   1024-upm face on a 64-unit pixel grid, so at 16px every coordinate and every
+ *   advance lands on a whole pixel and nothing antialiases. It also puts the cap
+ *   height at exactly 9px and the descender at exactly 3px, which is Chicago 12.
+ * - `--s1-line` is **15px**, not 16. At 16px the font's content box is exactly 15px
+ *   and its baseline sits 12px down, so a 15px line box has zero half-leading and
+ *   lands the cap top on row 3. A 16px line-height would half-lead by 0.5px and take
+ *   every glyph in the era off the pixel grid.
+ */
 
 /* ---------------------------------------------------------------- desktop */
 
@@ -145,14 +145,36 @@
   height: var(--s1-title-h);
   position: relative;
   border-bottom: 1px solid var(--s1-ink);
-  background-image: repeating-linear-gradient(
-    180deg,
-    var(--s1-ink) 0 1px,
-    transparent 1px 2px
-  );
-  background-repeat: no-repeat;
-  background-size: calc(100% - var(--s1-stripe-inset) * 2) var(--s1-stripe-band);
-  background-position: var(--s1-stripe-inset) var(--s1-stripe-top);
+  /*
+   * Two background layers, in paint order: the title's erased rectangle over the
+   * stripes.
+   *
+   * This is what the Window Manager did — erase a rect around the title, then draw
+   * the string into it — and here it is also the only construction that keeps the
+   * glyphs on the pixel grid. An opaque `background` on the element that *carries*
+   * text makes Blink switch to LCD subpixel antialiasing, and LCD text brings
+   * subpixel glyph positioning with it, so a 2px stem lands as `? ? # # ? ?` across
+   * six device columns instead of four. Painting the white on the parent leaves the
+   * title element transparent, which keeps glyph origins on integers. Measured: 544
+   * antialiased pixels in one four-letter title before, zero after.
+   *
+   * `-webkit-font-smoothing` does not help. Confirmed on this Chromium: `antialiased`,
+   * `none`, `font-smooth: never` and `text-rendering: optimizeSpeed` all leave the
+   * count at 544, which is §7's point about that property restated as a measurement.
+   *
+   * The erased rect's position and width come from `centreTitle` in chrome.ts, which
+   * is also what places the title itself, so the two cannot disagree.
+   */
+  background-image:
+    linear-gradient(var(--s1-paper), var(--s1-paper)),
+    repeating-linear-gradient(180deg, var(--s1-ink) 0 1px, transparent 1px 2px);
+  background-repeat: no-repeat, no-repeat;
+  background-size:
+    var(--s1-title-w, 0px) var(--s1-title-h),
+    calc(100% - var(--s1-stripe-inset) * 2) var(--s1-stripe-band);
+  background-position:
+    var(--s1-title-x, 0px) 0,
+    var(--s1-stripe-inset) var(--s1-stripe-top);
   cursor: default;
 }
 
@@ -184,7 +206,8 @@
   max-width: 100%;
   height: var(--s1-line);
   padding: 0 var(--s1-title-clear);
-  background: var(--s1-paper);
+  /* No background here on purpose — the title bar paints the erased rect. An opaque
+   * background on this element takes every glyph in it off the pixel grid. */
   color: var(--s1-ink);
   overflow: hidden;
   white-space: nowrap;

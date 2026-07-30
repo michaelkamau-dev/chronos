@@ -173,6 +173,15 @@ export class Display {
   }
 
   private emit(): void {
+    /*
+     * The scale is published on the shell root as a custom property.
+     *
+     * Overlays that must live on the root rather than inside the scaled surface —
+     * menus — cannot inherit the display transform, so they scale themselves from
+     * this. Writing it here rather than in the shell keeps it next to the arithmetic
+     * that produces it: `measure` is the only place the factor is decided.
+     */
+    this.host.style.setProperty('--display-scale', String(this.state.scale))
     for (const fn of this.listeners) fn(this.state)
   }
 }
