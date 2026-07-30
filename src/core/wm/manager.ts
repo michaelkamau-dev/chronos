@@ -27,6 +27,7 @@ import {
   type ChromeRenderer,
   type CloseGuard,
   type FrameHandle,
+  minimizeHidesFrame,
   type OpenSpec,
   type Unsubscribe,
   type WindowId,
@@ -131,6 +132,9 @@ export class WindowManager {
 
     const handle = this.chrome.createFrame(state)
     handle.el.dataset['winId'] = String(id)
+    // Written here as well as on every transition so a stylesheet can rely on the
+    // attribute existing rather than on `:not([data-minimized])` also matching.
+    handle.el.dataset['minimized'] = 'false'
     // Position and the 0,0 transform origin come from the skin's CSS. The WM
     // never writes `top` or `left` — not at creation and not in the drag loop —
     // so `test/invariants.test.js` can assert that mechanically.
@@ -188,11 +192,23 @@ export class WindowManager {
       this.focused = null
       const next = this.mru.find((w) => {
         const e = this.entries.get(w)
-        return e !== undefined && !e.state.minimized
+        return e !== undefined && !this.isOffScreen(e.state)
       })
       if (next !== undefined) this.focus(next)
     }
     return true
+  }
+
+  /**
+   * Is this window minimized *away* — not merely collapsed?
+   *
+   * Every place the window manager used to ask "is it minimized?" meant "is it gone
+   * from the screen?", which were the same question until an era arrived whose
+   * minimize leaves the frame in place. They are now different questions and this is
+   * the one the WM actually wants.
+   */
+  private isOffScreen(s: WindowState): boolean {
+    return s.minimized && minimizeHidesFrame(this.chrome.metrics.minimizeStyle)
   }
 
   setCloseGuard(id: WindowId, guard: CloseGuard | null): void {
@@ -205,7 +221,10 @@ export class WindowManager {
   focus(id: WindowId): void {
     const entry = this.entries.get(id)
     if (!entry) return
-    if (entry.state.minimized) this.restore(id)
+    // Focusing a window that is off the screen has to bring it back first. Focusing a
+    // *collapsed* one must not expand it: clicking a windowshade's title bar activates
+    // it, and only the collapse box expands it again.
+    if (this.isOffScreen(entry.state)) this.restore(id)
 
     // Focus is redirected to a blocking modal rather than denied outright,
     // which is what every one of the six eras does.
@@ -415,6 +434,7 @@ export class WindowManager {
     const s = entry.state
     entry.minimizedFrom = cloneRect(s.rect)
     s.minimized = true
+    entry.handle.el.dataset['minimized'] = 'true'
     this.chrome.updateFrame(entry.handle, s, Change.Minimized)
     // The reduced-motion query is honoured here, not in the skin. A skin that
     // forgot the check would ship an era that animates anyway, and the only
@@ -422,14 +442,26 @@ export class WindowManager {
     if (!prefersReducedMotion()) {
       await this.chrome.minimizeTo(entry.handle, target ?? this.resolveMinimizeTarget(id))
     }
-    entry.handle.el.style.display = 'none'
+    /*
+     * Only a minimize that takes the window off the screen hides the frame.
+     *
+     * A windowshade does not: the content region goes and the title bar stays, so it
+     * remains visible, draggable and focusable. Hiding it here would make the one era
+     * that declares `collapse` the one era whose minimize is wrong, and a skin could
+     * only fight it with `display: … !important` — patching in the skin what §11 says
+     * belongs in core.
+     */
+    const hides = minimizeHidesFrame(this.chrome.metrics.minimizeStyle)
+    if (hides) entry.handle.el.style.display = 'none'
     this.emit('minimized', id)
 
-    if (this.focused === id) {
+    // Focus moves on only when the window actually left. A collapsed window keeps it —
+    // Apple's own description is that it "remains visible and active".
+    if (hides && this.focused === id) {
       this.focused = null
       const next = this.mru.find((w) => {
         const e = this.entries.get(w)
-        return e !== undefined && w !== id && !e.state.minimized
+        return e !== undefined && w !== id && !this.isOffScreen(e.state)
       })
       if (next !== undefined) this.focus(next)
     }
@@ -440,6 +472,7 @@ export class WindowManager {
     if (!entry || !entry.state.minimized) return
     const s = entry.state
     s.minimized = false
+    entry.handle.el.dataset['minimized'] = 'false'
     entry.handle.el.style.display = ''
     this.chrome.updateFrame(entry.handle, s, Change.Minimized)
     if (!prefersReducedMotion()) {
