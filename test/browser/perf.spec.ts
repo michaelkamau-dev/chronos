@@ -5,6 +5,12 @@
  * transform-only, does not thrash layout, and does not allocate per frame. This
  * file measures all four, with 20 windows open, over a sustained drag.
  *
+ * Selectors here use the window manager's own contract vocabulary —
+ * `[data-win-id]`, `[data-action]`, `[data-part]`, `[data-resize]` — rather than
+ * any skin's class names. These tests assert the contract, so they must pass
+ * against whichever era is active; keying them to one skin's classes made them
+ * hang the moment Windows XP became the default.
+ *
  * How each claim is measured:
  *
  * - **Frame pacing** — rAF timestamps collected in-page during the drag. A
@@ -48,8 +54,8 @@ async function boot(page: Page): Promise<void> {
 /** Drives a drag from inside the page and records rAF pacing while it runs. */
 async function measureDrag(page: Page, durationMs: number): Promise<FrameStats> {
   return page.evaluate(async (duration) => {
-    const frame = document.querySelector<HTMLElement>('.win[data-state="focused"]')
-      ?? document.querySelector<HTMLElement>('.win')
+    const frame = document.querySelector<HTMLElement>('[data-win-id][data-state="focused"]')
+      ?? document.querySelector<HTMLElement>('[data-win-id]')
     if (!frame) throw new Error('no window to drag')
     const bar = frame.querySelector<HTMLElement>('[data-part="titlebar"]')
     if (!bar) throw new Error('no title bar')
@@ -163,7 +169,7 @@ test.describe('@perf drag performance', () => {
 
     await boot(page)
     await page.evaluate((n) => window.__chronos.openWindows(n), WINDOWS)
-    await expect(page.locator('.win')).toHaveCount(WINDOWS)
+    await expect(page.locator('[data-win-id]')).toHaveCount(WINDOWS)
 
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU_THROTTLE })
 
@@ -231,7 +237,7 @@ test.describe('@perf drag performance', () => {
     const cdp = await page.context().newCDPSession(page)
 
     await page.evaluate((n) => window.__chronos.openWindows(n), WINDOWS)
-    await expect(page.locator('.win')).toHaveCount(WINDOWS)
+    await expect(page.locator('[data-win-id]')).toHaveCount(WINDOWS)
 
     // Count listeners actually registered on the root element via CDP, which
     // reports the real registry rather than anything the page can self-report.
@@ -265,7 +271,7 @@ test.describe('@perf drag performance', () => {
     await page.evaluate(() => window.__chronos.openWindows(3))
     await measureDrag(page, 400)
     const willChange = await page
-      .locator('.win')
+      .locator('[data-win-id]')
       .evaluateAll((els) => els.map((el) => (el as HTMLElement).style.willChange))
     // Holding will-change permanently is how 20 windows become a memory problem.
     expect(willChange.every((w) => w === '')).toBe(true)

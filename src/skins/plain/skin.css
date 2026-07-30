@@ -21,33 +21,14 @@
   --plain-focus-ring: #ffd24a;
 }
 
-* {
-  box-sizing: border-box;
+/* Structural positioning lives in src/shell/base.css; this is only the fill. */
+.desktop {
+  background: var(--plain-bg);
 }
 
-html,
 body {
-  margin: 0;
-  height: 100%;
-  overflow: hidden;
   font: 13px/1.4 system-ui, sans-serif;
   background: #222;
-}
-
-#chronos-root {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-/* The scaled desktop surface. Integer-scaled for the bitmap eras; the harness
- * runs at 1x but goes through the same transform so the path is exercised. */
-.desktop {
-  position: absolute;
-  inset: 0;
-  transform-origin: 0 0;
-  background: var(--plain-bg);
 }
 
 .desktop-surface {
@@ -58,11 +39,8 @@ body {
 /* ------------------------------------------------------------------ windows */
 
 .win {
-  position: absolute;
-  /* The transform origin. The window manager writes only `transform`, never
-   * `top`/`left`, so these live here rather than inline. */
-  left: 0;
-  top: 0;
+  /* Absolute positioning and the 0,0 transform origin come from base.css, keyed
+   * off data-win-id so no skin has to remember them. */
   display: flex;
   flex-direction: column;
   background: var(--plain-frame);
@@ -287,7 +265,6 @@ body {
 /* ------------------------------------------------------------------- menus */
 
 .menu {
-  position: absolute;
   z-index: 200000;
   min-width: 160px;
   padding: 2px;

@@ -380,7 +380,7 @@ test.describe('watch — the no-duplicate-state invariant', () => {
     // The two windows cascade and overlap, so raise A the way a user would
     // before reaching for its toolbar.
     await page
-      .locator('.win')
+      .locator('[data-win-id]')
       .nth(0)
       .locator('[data-part="titlebar"]')
       .click({ position: { x: 30, y: 8 } })
@@ -408,15 +408,26 @@ test.describe('watch — the no-duplicate-state invariant', () => {
     })
     await page.evaluate((id) => window.__chronos.openDirectoryWindow(id as never), dirId)
 
+    // Expected strings come from the active codec rather than being hardcoded, so
+    // this passes under any era's path syntax.
+    const expected = await page.evaluate(async (id) => {
+      const fs = window.__chronos.fs
+      const codec = window.__chronos.codec
+      return {
+        dir: codec.format(await fs.chain(id as never)),
+        root: codec.format(await fs.chain(fs.root())),
+      }
+    }, dirId)
+
     const view = page.locator('.dirview').nth(0)
-    await expect(view.locator('.dirview-path')).toHaveText('/Vanishing/')
+    await expect(view.locator('.dirview-path')).toHaveText(expected.dir)
 
     await page.evaluate(async (id) => {
       await window.__chronos.fs.purge(id as never)
     }, dirId)
 
     // The window must recover to the root, not keep rendering a folder that is gone.
-    await expect(view.locator('.dirview-path')).toHaveText('/')
+    await expect(view.locator('.dirview-path')).toHaveText(expected.root)
   })
 
   test('closing a window releases its watcher', async ({ page }) => {
@@ -472,14 +483,18 @@ test.describe('path codec', () => {
         missing,
       }
     })
-    expect(result.path).toBe('/Documents/Round Trip/letter.txt')
+    // Era-agnostic on purpose: this file tests the filesystem, and the path syntax
+    // belongs to whichever skin is active. The concrete Windows spelling is
+    // asserted in xp-fidelity.spec.ts.
+    expect(result.path).toContain('Round Trip')
+    expect(result.path).toContain('letter.txt')
     expect(result.matches).toBe(true)
     expect(result.relativeMatches).toBe(true)
     expect(result.dotdotMatches).toBe(true)
     expect(result.missing).toBeNull()
   })
 
-  test('directories format with a trailing separator', async ({ page }) => {
+  test('directories format with a trailing separator and files without', async ({ page }) => {
     await boot(page)
     const paths = await page.evaluate(async () => {
       const fs = window.__chronos.fs
@@ -487,14 +502,19 @@ test.describe('path codec', () => {
       const dir = await fs.createDir(fs.root(), 'Folder')
       const file = await fs.createFile(dir, 'f.txt', '', { mime: 'text/plain' })
       return {
+        sep: codec.separator,
         root: codec.format(await fs.chain(fs.root())),
         dir: codec.format(await fs.chain(dir)),
         file: codec.format(await fs.chain(file)),
       }
     })
-    expect(paths.root).toBe('/')
-    expect(paths.dir).toBe('/Folder/')
-    expect(paths.file).toBe('/Folder/f.txt')
+    // The rule, not the spelling: a directory path ends in the era's separator and
+    // a file path does not. Whether that separator is / or \\ or : is the skin's.
+    expect(paths.dir.endsWith(paths.sep)).toBe(true)
+    expect(paths.file.endsWith(paths.sep)).toBe(false)
+    expect(paths.dir).toContain('Folder')
+    expect(paths.file).toContain('f.txt')
+    expect(paths.root.endsWith(paths.sep)).toBe(true)
   })
 })
 

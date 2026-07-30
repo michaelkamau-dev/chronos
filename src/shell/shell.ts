@@ -8,6 +8,7 @@
  * `test/invariants.test.js` enforces.
  */
 
+import './base.css'
 import { Display, type ViewportSpec } from './display.js'
 import { Switcher } from './switcher.js'
 import { KeyboardGeometry } from './keyboard-geometry.js'
@@ -26,6 +27,13 @@ export interface SkinManifest {
   menu: MenuRenderer
   keymap: readonly Binding[]
   viewport?: ViewportSpec
+  /**
+   * Custom properties derived from the skin's measured metrics, applied to the
+   * desktop element. This is how a stylesheet reads a measurement without keeping
+   * a second copy of it that could drift — the XP caption gradient and frame steps
+   * are generated from the arrays in its metrics file.
+   */
+  generatedProperties?: () => Record<string, string>
 }
 
 /** Supplies the MenuSpec for a right-click on a given target. */
@@ -53,6 +61,15 @@ export class Shell {
   constructor(root: HTMLElement, skin: SkinManifest) {
     this.display = new Display(root, skin.viewport ?? { mode: 'native' })
     this.teardowns.push(this.display.attach())
+
+    // The skin id lets era CSS scope itself to the desktop, and the generated
+    // properties carry measured values into the stylesheet.
+    this.display.desktop.dataset['skin'] = skin.id
+    if (skin.generatedProperties) {
+      for (const [prop, value] of Object.entries(skin.generatedProperties())) {
+        this.display.desktop.style.setProperty(prop, value)
+      }
+    }
 
     this.wm = new WindowManager(this.display.desktop, skin.chrome, this.display.workArea())
     this.gestures = new GestureController(this.wm)

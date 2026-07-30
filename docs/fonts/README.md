@@ -9,8 +9,8 @@ re-verified against the Controls chapter mirror (see "Verification" below).
 
 | Role | Microsoft specifies | Sizes in px @96dpi | Substitute | Status |
 |---|---|---|---|---|
-| System default — body, menus, dialogs, labels | **Tahoma** 8 / 9 / 11pt | 11 / 12 / 15 | **Source Sans 3** (OFL) | **needs your call** |
-| Window title bars, and nothing else | **Trebuchet MS Bold** 10pt | 13 | **Cabin** (OFL) | **needs your call** |
+| System default — body, menus, dialogs, labels | **Tahoma** 8 / 9 / 11pt | 11 / 12 / 15 | **Source Sans 3** (OFL) | approved |
+| Window title bars, and nothing else | **Trebuchet MS Bold** 10pt | 13 | **Cabin** (OFL) | approved — **with a stated loss, below** |
 | Floating / tear-off palette captions only | **Verdana Bold** 8pt | 11 | **DejaVu Sans Bold** | agreed |
 | Headers only, never body text | **Franklin Gothic Medium** 14pt+ (21pt in Control Panel titles) | 19 / 28 | **Libre Franklin** (OFL) | agreed |
 
@@ -111,26 +111,42 @@ Trebuchet MS is a moderately narrow humanist sans.
 | Liberation Sans Bold | 160.4px | single-storey | OFL 1.1 |
 | Open Sans | 164.1px | single-storey | OFL 1.1 |
 
-**Cabin stands.** Fira Sans Medium was added to test whether it carried Trebuchet's
-double-storey `g`. It does not — it is single-storey, and at 148.4px it is also
-5.7px wider than Cabin. It fails both tests, so the stated rule applies.
+**Cabin stands.** Fira Sans Medium was tested on the hypothesis that it carries
+Trebuchet's double-storey `g`. It does not — it is single-storey, and at 148.4px it
+is 5.7px wider than Cabin. Failing both tests, the stated rule applies and no
+further sign-off was needed.
 
-**Correcting an earlier claim of mine: Source Sans 3 does not have a double-storey
-`g` either.** I said it did. It does not. Rendered at 150px and inspected —
-[`xp-trebuchet-g-letterform.png`](xp-trebuchet-g-letterform.png) — **every one of
-the candidates is single-storey.** Trebuchet MS's double-storey `g` is unusual for a
-humanist sans, and nothing in the reachable OFL set reproduces it.
+Rendered at 150px and inspected —
+[`xp-trebuchet-g-letterform.png`](xp-trebuchet-g-letterform.png) — **every
+candidate is single-storey**, including Source Sans 3, which had earlier been
+claimed to be double-storey. Both that claim and the Fira Sans one were wrong.
 
-So the compromise is real but it is not a choice between candidates: no available
-substitute has the correct glyph. That makes the decision simpler than it looked —
-Cabin wins on width and overall character, and the `g` is a loss taken regardless
-of which candidate is picked.
+### The `g` is a permanent fidelity loss, not a compromise between candidates
 
-A cautionary note on how that error happened: counting closed contours in the glyph
-outline reports Cabin, Source Sans 3 and Open Sans as having three contours and Fira
-Sans two, which reads as "double-storey versus single-storey" and is wrong. Three
-contours can be a single-storey `g` whose tail terminal closes separately. The
-structural proxy was misleading; only rendering it settled it.
+Trebuchet MS's double-storey `g` is the face's **signature** — the single most
+recognisable thing about it, and unusual enough in a humanist sans that it is what
+identifies Trebuchet on sight. **No reachable OFL face reproduces it.**
+
+That puts this in the same category as the two losses already recorded in
+`docs/ARCHITECTURE.md` §7:
+
+| Era | Face | Loss |
+|---|---|---|
+| Mac OS 8.5+ | Charcoal | no free substitute exists at all |
+| Mac OS X Tiger | Lucida Grande | no OFL clone; the closest relative forbids modification |
+| **Windows XP** | **Trebuchet MS Bold** | **substitute exists, but its signature `g` cannot be reproduced** |
+
+It is visible on **every XP window caption containing a `g`** — `Programs`,
+`Settings`, `My Images`, `Log Off`, `Debug`. Recording it as a loss rather than
+absorbing it into "Cabin is close enough", because it will not be fixed by picking
+a different candidate. It is fixed only by a face nobody has drawn yet, or by
+drawing the glyph.
+
+A note on how the letterform was misjudged: counting closed contours reports three
+for Cabin, Source Sans 3 and Open Sans versus two for Fira Sans, which reads like a
+double-versus-single-storey signal. It is not — a single-storey `g` can close its
+tail terminal as its own contour. The structural proxy was misleading; only
+rendering settled it.
 
 ## Verdana Bold and Franklin Gothic Medium
 

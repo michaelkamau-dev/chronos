@@ -46,7 +46,12 @@ function assets() {
 }
 
 function classify(name) {
-  if (/\.(woff2?|ttf|otf)$/.test(name)) return 'font'
+  if (/\.(woff2?|ttf|otf)$/.test(name)) {
+    // A `-defer` face is declared but not on the critical path: a browser only
+    // fetches an @font-face when rendered text uses it, and floating palette
+    // captions or 14pt+ headers do not exist on first paint.
+    return /-defer[.-]/.test(name) ? 'font-deferred' : 'font'
+  }
   if (/^skin-/.test(name)) return 'skin'
   if (/^app-/.test(name)) return 'app'
   return 'core'
@@ -70,6 +75,7 @@ test('each chunk is inside its class budget', () => {
       skinTotals.set(era, (skinTotals.get(era) ?? 0) + size)
       continue
     }
+    if (kind === 'font-deferred') continue
     const budget = BUDGETS[kind]
     if (size > budget) {
       failures.push(`${name} (${kind}) ${(size / KB).toFixed(1)}KB > ${(budget / KB).toFixed(0)}KB`)
@@ -106,14 +112,33 @@ test('the critical path fits the 4G budget', () => {
   }
 
   const worstSkin = Math.max(0, ...perSkin.values())
-  const worstFont = Math.max(0, ...perFont.values())
-  const total = html + core + worstSkin + worstFont
+  // Every critical-path font loads together, so they sum. Windows XP needs four
+  // faces because Microsoft specifies four; two of them are deferred and excluded.
+  const fontTotal = [...perFont.values()].reduce((a, b) => a + b, 0)
+  const total = html + core + worstSkin + fontTotal
 
   assert.ok(
     total <= BUDGETS.criticalPath,
     `critical path ${(total / KB).toFixed(1)}KB > ${(BUDGETS.criticalPath / KB).toFixed(0)}KB ` +
       `(html ${(html / KB).toFixed(1)} + core ${(core / KB).toFixed(1)} + ` +
-      `skin ${(worstSkin / KB).toFixed(1)} + font ${(worstFont / KB).toFixed(1)})`,
+      `skin ${(worstSkin / KB).toFixed(1)} + fonts ${(fontTotal / KB).toFixed(1)})`,
+  )
+})
+
+test('the critical-path fonts fit their share', () => {
+  // The per-class font budget applies to everything that loads on first paint,
+  // summed — not to the largest single file.
+  let total = 0
+  const loaded = []
+  for (const { name, path } of assets()) {
+    if (classify(name) !== 'font') continue
+    total += gz(path)
+    loaded.push(name)
+  }
+  assert.ok(
+    total <= BUDGETS.font,
+    `critical-path fonts ${(total / KB).toFixed(1)}KB > ${(BUDGETS.font / KB).toFixed(0)}KB ` +
+      `across ${loaded.length} faces: ${loaded.join(', ')}`,
   )
 })
 

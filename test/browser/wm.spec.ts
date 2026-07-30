@@ -1,6 +1,12 @@
 /**
  * Window manager behaviour, driven through real browser input.
  *
+ * Selectors here use the window manager's own contract vocabulary —
+ * `[data-win-id]`, `[data-action]`, `[data-part]`, `[data-resize]` — rather than
+ * any skin's class names. These tests assert the contract, so they must pass
+ * against whichever era is active; keying them to one skin's classes made them
+ * hang the moment Windows XP became the default.
+ *
  * These are the phase-1 gate: every window manager capability the brief lists,
  * exercised with actual pointer and keyboard events rather than by calling
  * methods directly, because the dispatcher and the hit-test are the parts most
@@ -16,7 +22,7 @@ async function boot(page: Page): Promise<void> {
 }
 
 function win(page: Page, n: number) {
-  return page.locator('.win').nth(n)
+  return page.locator('[data-win-id]').nth(n)
 }
 
 async function titleBarOf(page: Page, n: number) {
@@ -35,10 +41,10 @@ test.describe('window lifecycle', () => {
   test('opens, cascades and focuses the newest window', async ({ page }) => {
     await boot(page)
     await openWindows(page, 3)
-    await expect(page.locator('.win')).toHaveCount(3)
+    await expect(page.locator('[data-win-id]')).toHaveCount(3)
 
     // The newest window is focused and frontmost.
-    const states = await page.locator('.win').evaluateAll((els) =>
+    const states = await page.locator('[data-win-id]').evaluateAll((els) =>
       els.map((el) => ({
         state: (el as HTMLElement).dataset['state'],
         z: Number((el as HTMLElement).style.zIndex),
@@ -64,7 +70,7 @@ test.describe('window lifecycle', () => {
     await expect(win(page, 1)).toHaveAttribute('data-state', 'blurred')
     await expect(win(page, 2)).toHaveAttribute('data-state', 'blurred')
 
-    const z = await page.locator('.win').evaluateAll((els) =>
+    const z = await page.locator('[data-win-id]').evaluateAll((els) =>
       els.map((el) => Number((el as HTMLElement).style.zIndex)),
     )
     expect(z[0]).toBe(Math.max(...z))
@@ -74,14 +80,14 @@ test.describe('window lifecycle', () => {
     await boot(page)
     await openWindows(page, 2)
     await win(page, 1).locator('[data-action="close"]').click()
-    await expect(page.locator('.win')).toHaveCount(1)
+    await expect(page.locator('[data-win-id]')).toHaveCount(1)
   })
 
   test('Alt+F4 closes the focused window through the same path', async ({ page }) => {
     await boot(page)
     await openWindows(page, 2)
     await page.keyboard.press('Alt+F4')
-    await expect(page.locator('.win')).toHaveCount(1)
+    await expect(page.locator('[data-win-id]')).toHaveCount(1)
   })
 
   test('a close guard can refuse the close', async ({ page }) => {
@@ -94,9 +100,9 @@ test.describe('window lifecycle', () => {
       wm.setCloseGuard(id, () => false)
     })
     await win(page, 0).locator('[data-action="close"]').click()
-    await expect(page.locator('.win')).toHaveCount(1)
+    await expect(page.locator('[data-win-id]')).toHaveCount(1)
     await page.keyboard.press('Alt+F4')
-    await expect(page.locator('.win')).toHaveCount(1)
+    await expect(page.locator('[data-win-id]')).toHaveCount(1)
   })
 })
 
@@ -334,7 +340,7 @@ test.describe('modal dialogs', () => {
       await page.keyboard.press('Tab')
       const insideModal = await page.evaluate(() => {
         const active = document.activeElement
-        const frames = [...document.querySelectorAll('.win')]
+        const frames = [...document.querySelectorAll('[data-win-id]')]
         const idx = frames.findIndex((f) => f.contains(active))
         return idx
       })
@@ -380,7 +386,7 @@ test.describe('modal dialogs', () => {
 
     const closed = await page.evaluate((owner) => window.__chronos.shell.wm.close(owner as never), ownerId)
     expect(closed).toBe(false)
-    await expect(page.locator('.win')).toHaveCount(2)
+    await expect(page.locator('[data-win-id]')).toHaveCount(2)
   })
 })
 
@@ -457,7 +463,7 @@ test.describe('context menus', () => {
     await expect(menu).toBeVisible()
     await menu.locator('.menu-item', { hasText: 'New Window' }).click()
     await expect(page.locator('.menu')).toHaveCount(0)
-    await expect(page.locator('.win')).toHaveCount(2)
+    await expect(page.locator('[data-win-id]')).toHaveCount(2)
   })
 
   test('menus are keyboard navigable and skip separators', async ({ page }) => {
@@ -488,7 +494,7 @@ test.describe('context menus', () => {
     await page.locator('.menu').nth(1).locator('.menu-item', { hasText: 'Send to Back' }).click()
 
     await expect(page.locator('.menu')).toHaveCount(0)
-    const z = await page.locator('.win').evaluateAll((els) =>
+    const z = await page.locator('[data-win-id]').evaluateAll((els) =>
       els.map((el) => Number((el as HTMLElement).style.zIndex)),
     )
     // The formerly focused window is now backmost.
@@ -520,6 +526,6 @@ test.describe('suspend and resume', () => {
     expect(events).toContain('suspended')
     expect(events).toContain('resumed')
     await expect(win(page, 0)).toHaveAttribute('data-suspended', 'false')
-    await expect(page.locator('.win')).toHaveCount(1)
+    await expect(page.locator('[data-win-id]')).toHaveCount(1)
   })
 })

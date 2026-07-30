@@ -16,7 +16,8 @@
     "test:a11y": "playwright test test/browser/a11y.spec.ts",
     "test:browser": "playwright test",
     "test:fs": "playwright test test/browser/fs.spec.ts",
-    "fonts:compare": "node tools/font-compare/build.mjs"
+    "fonts:compare": "node tools/font-compare/build.mjs",
+    "test:xp": "playwright test test/browser/xp-fidelity.spec.ts"
   },
   "dependencies": {
     "idb-keyval": "^6.2.2"

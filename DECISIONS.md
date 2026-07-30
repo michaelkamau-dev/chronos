@@ -573,6 +573,11 @@ median over pixels that pass a blue test discards both automatically.
 
 ### 3.13 Corrected: no candidate has Trebuchet's double-storey `g`
 
+**Attribution, at the repo owner's instruction:** the Fira Sans double-storey claim
+and the earlier Source Sans 3 one were both the owner's, not mine. Recorded here
+because the log's purpose is that a decision can be revisited on its merits, and
+that needs the provenance of the belief that drove it to be accurate.
+
 **Call.** Cabin stands for the Trebuchet row, and my earlier claim that Source Sans
 3 has the correct double-storey `g` is withdrawn.
 
@@ -591,3 +596,125 @@ in the glyph outline reports three for Cabin, Source Sans 3 and Open Sans versus
 for Fira Sans, which looks like a double-versus-single-storey signal. It is not — a
 single-storey `g` can close its tail terminal as a separate contour. The structural
 proxy was misleading and only rendering settled it.
+
+### 3.14 The Trebuchet `g` is recorded as a permanent fidelity loss
+
+**Call.** `docs/fonts/README.md` now lists the missing double-storey `g` in the same
+table as Charcoal and Lucida Grande — losses with no available fix — rather than
+describing Cabin as a close-enough compromise.
+
+**Reasoning.** A compromise implies a better candidate might exist. This one does
+not: Trebuchet's double-storey `g` is the face's signature, it is unusual enough in
+a humanist sans to be its identifying mark, and no reachable OFL face has it. It
+shows on every XP caption containing a `g` — `Programs`, `Settings`, `Log Off`. The
+honest framing is a stated loss with a named cause, which is also the only framing
+that leaves a future fix findable.
+
+**Tiebreaker.** CLAUDE.md's fidelity rule: an unverifiable or unreachable value is
+recorded as such rather than papered over. A missing glyph form is the same class of
+fact as a missing measurement.
+
+---
+
+## Phase 3 — Windows XP Luna
+
+### 3.15 The corner is a discriminated union in the contract, not a number
+
+**Call.** `ChromeMetrics.cornerTop` is now
+`{ kind: 'radius'; px } | { kind: 'steps'; insets }`.
+
+**Reasoning.** XP's corner is a five-row arc with per-row x-insets 5,3,2,1,1,0 — a
+hand-drawn corner bitmap. No `border-radius` value reproduces it, so a numeric
+`cornerRadiusTop` field could only ever hold an approximation and would quietly
+invite one. A union makes "this era's corner is categorically not a radius" a fact
+the type system carries, and Tiger and Ledger can still say `radius` honestly.
+
+Implemented as a `clip-path` polygon generated from the insets. Every segment is
+axis-aligned on an integer pixel boundary, so there is no partial coverage and
+therefore no antialiasing — the steps stay hard, which is the entire point. The
+fidelity test asserts `border-radius` is `0px` so a future edit cannot quietly
+swap the mechanism back.
+
+### 3.16 Base layout moved out of the skin layer
+
+**Call.** New `src/shell/base.css` carries the reset, `html/body/#chronos-root`
+sizing, `.desktop` positioning and the frame transform-origin rule.
+
+**Reasoning.** The XP skin was written without those rules and **every window
+landed at y = −30**: `#chronos-root` had no height, so the work area computed to
+zero and `constrainToWorkArea` clamped every window above the top edge. That is a
+structural requirement masquerading as styling, and duplicating it into six
+stylesheets would have reproduced the bug five more times.
+
+The transform-origin rule is keyed off `[data-win-id]` — the attribute the window
+manager itself sets — rather than off a skin class, so it holds regardless of what
+a skin names its frame element. A skin can no longer forget it.
+
+### 3.17 Behaviour tests assert the contract vocabulary, not skin classes
+
+**Call.** `wm`, `a11y`, `perf` and `fs` specs select on `[data-win-id]`,
+`[data-action]`, `[data-part]` and `[data-resize]` rather than `.win`,
+`.win-button` and friends.
+
+**Reasoning.** Making XP the active skin hung four suites outright: they were
+waiting on `.win`, which only the harness skin emits. The tests are meant to assert
+the *window manager contract*, which is exactly the data-attribute vocabulary — so
+keying them to one skin's class names was wrong on its own terms, and it would have
+broken again at every era in phase 4.
+
+The same applies to their assertions: one test identified chrome buttons by
+`className.includes('win-button')` and silently found none under XP. It now reads
+`dataset.action`.
+
+### 3.18 Filesystem tests are era-agnostic; era syntax is asserted per skin
+
+**Call.** `fs.spec.ts` asserts path *properties* — round-trip, `..` resolution, a
+trailing separator on directories — using the active codec's own `separator`. The
+concrete `C:\My Documents\Letter.txt` spelling is asserted in `xp-fidelity.spec.ts`.
+
+**Reasoning.** Those tests hardcoded `/Documents/...`, which is the harness codec's
+syntax, so they failed the moment a real era became active. A filesystem test that
+depends on one era's path spelling is testing the wrong layer — and the cross-era
+spine is precisely the claim that the same stored node renders differently per era.
+
+### 3.19 Font subsetting keeps the licence records, and axes are fully pinned
+
+**Call.** `pyftsubset --name-IDs='0,1,2,3,4,5,6,7,13,14'`, and every variable axis
+pinned before subsetting.
+
+**Reasoning.** Two separate findings. First, pyftsubset drops name records by
+default **including nameID 0 (copyright) and 13 (licence)** — both the OFL and the
+Bitstream Vera licence require the notice to travel with the font, so the default
+would have shipped four licence violations. `LICENCES.md` records how to verify
+they survived.
+
+Second, `varLib.instancer` with a partial pin keeps the `gvar`/`HVAR` machinery: the
+four faces came to 65KB partially instanced and 47.6KB fully pinned. Source Sans 3
+ships at wght 400 only, so nothing in the skin may ask for bold until the folder
+task-box chrome lands and a second instance is added — a synthetic browser bold
+would look wrong.
+
+### 3.20 Two of the four faces are deferred, and the budget test knows it
+
+**Call.** `palette-defer.woff2` and `header-defer.woff2` are declared in CSS but
+excluded from the critical-path font budget.
+
+**Reasoning.** Microsoft specifies four faces, which is inherently more than the
+30KB single-era font budget assumed. But floating palette captions and 14pt+
+headers do not exist on first paint, and a browser only fetches an `@font-face`
+when rendered text uses it — so they are lazy for free, with no machinery.
+
+The budget test now sums the critical-path faces rather than taking the largest,
+because they load together. Critical path is 24.5KB of fonts against 30KB, and
+~48KB total against 250KB.
+
+### 3.21 `shadowInsets: 0` is recorded as a finding, not a gap
+
+**Call.** XP's `shadowInsets` is tagged `unverified` with a note saying zero is a
+positive finding.
+
+**Reasoning.** Luna windows have no drop shadow — visible in the figure and
+consistent with the Visual Guidelines. But "we measured zero" and "we have no value"
+are different states, and a bare `0` would be indistinguishable from a default. The
+note says which it is, and flags that menu drop shadows are a separate unmeasured
+case.

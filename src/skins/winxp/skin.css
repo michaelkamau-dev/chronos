@@ -1,0 +1,556 @@
+/*
+ * Windows XP Luna, Blue scheme.
+ *
+ * Built to the measured 1:1 figure. Where XP.css and the figure disagree, the
+ * figure wins — see src/skins/winxp/metrics.ts for the four divergences.
+ *
+ * Custom properties beginning `--xp-gen-` are written at runtime from
+ * metrics.ts so the gradient stops and frame steps cannot drift from the
+ * measurements. Everything else is literal.
+ *
+ * Font sizes are integer pixels, never `pt`. 8pt at 96dpi is 10.667px and would
+ * land every glyph edge on a half-pixel; Windows rasterised it at 11px.
+ */
+
+@font-face {
+  font-family: 'XP UI';
+  src: url('./fonts/tahoma-sub.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'XP Caption';
+  src: url('./fonts/caption-sub.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+
+/*
+ * Declared but not on the critical path. A browser only fetches an @font-face
+ * when rendered text actually uses it, so floating palettes and 14pt+ headers
+ * cost nothing until one exists.
+ */
+@font-face {
+  font-family: 'XP Palette';
+  src: url('./fonts/palette-defer.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'XP Header';
+  src: url('./fonts/header-defer.woff2') format('woff2');
+  font-weight: 500;
+  font-display: block;
+}
+
+:root {
+  /* Documented in the Visual Guidelines. */
+  --xp-face: #ECE9D8;
+  --xp-face-light: #F1EFE2;
+  --xp-window-bg: #FFFFFF;
+  --xp-text: #000000;
+  --xp-disabled-control: #A1A192;
+  --xp-disabled-menu: #808080;
+  --xp-btn-border: #003C74;
+  --xp-textbox-border: #7F9DB9;
+  --xp-textbox-disabled-fill: #EBEBE4;
+  --xp-combo-disabled-fill: #C9C7BA;
+  --xp-combo-disabled-border: #F5F4EA;
+  --xp-groupbox-title: #0046D5;
+  --xp-menu-highlight: #316AC5;
+  --xp-menu-border: #808080;
+  --xp-spin-outline: #828282;
+  --xp-status-sep-left: #C7C5B2;
+  --xp-status-gripper: #B8B4A3;
+  --xp-caption-text: #FFFFFF;
+  --xp-caption-text-inactive: #D8E4F8;
+
+  /* Integer pixel sizes. Only 9pt and 21pt divide evenly at 96dpi. */
+  --xp-fs-8: 11px;
+  --xp-fs-9: 12px;
+  --xp-fs-11: 15px;
+  --xp-fs-caption: 13px;
+  --xp-fs-palette: 11px;
+  --xp-fs-header-14: 19px;
+  --xp-fs-header-21: 28px;
+}
+
+/* ---------------------------------------------------------------- desktop */
+
+.desktop[data-skin='winxp'] {
+  /* The Luna default is a photograph; a flat fill from the published palette
+   * stands in until an era wallpaper is drawn. */
+  background: #5A7EDC;
+}
+
+/* ----------------------------------------------------------------- window */
+
+.xp-win {
+  /* Absolute positioning and the 0,0 transform origin come from base.css. */
+  display: flex;
+  flex-direction: column;
+  background: var(--xp-face);
+  /* Four discrete 1px steps per side, written from the measured arrays. The
+   * bottom differs from the sides, which is why they are separate properties. */
+  box-shadow: var(--xp-gen-frame);
+  contain: layout paint;
+  font-family: 'XP UI', sans-serif;
+  font-size: var(--xp-fs-8);
+  color: var(--xp-text);
+  /* clip-path carrying the stepped corner is set inline by chrome.ts, because it
+   * is derived from the metrics rather than authored here. */
+}
+
+/* --------------------------------------------------------------- titlebar */
+
+.xp-titlebar {
+  flex: 0 0 auto;
+  /* Measured twice from two separate bitmaps in the source document. */
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 var(--xp-capbtn-right, 5px) 0 5px;
+  background: var(--xp-gen-caption-active);
+  cursor: default;
+  user-select: none;
+  touch-action: none;
+}
+
+.xp-win[data-state='blurred'] .xp-titlebar {
+  background: var(--xp-gen-caption-inactive);
+}
+
+.xp-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  /* Trebuchet MS Bold 10pt -> 13px. The caption is the ONLY place this face
+   * appears; body text is the Tahoma stand-in. */
+  font-family: 'XP Caption', sans-serif;
+  font-weight: 700;
+  font-size: var(--xp-fs-caption);
+  color: var(--xp-caption-text);
+  /* Luna's caption text carries a 1px shadow. */
+  text-shadow: 1px 1px 1px rgba(0, 0, 40, 0.55);
+  pointer-events: none;
+  padding-bottom: 1px;
+}
+
+.xp-win[data-state='blurred'] .xp-title {
+  color: var(--xp-caption-text-inactive);
+  text-shadow: 1px 1px 1px rgba(0, 0, 40, 0.3);
+}
+
+.xp-win[data-dirty='true'] .xp-title::after {
+  content: ' *';
+}
+
+.xp-sysicon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(135deg, #FFD24A 0%, #E8A020 60%, #C07A10 100%);
+  border-radius: 1px;
+  cursor: default;
+}
+
+.xp-sysicon:hover {
+  filter: brightness(1.12);
+}
+
+.xp-sysicon:active {
+  filter: brightness(0.9);
+}
+
+.xp-sysicon:focus-visible {
+  outline: 1px dotted #FFFFFF;
+  outline-offset: 1px;
+}
+
+.xp-sysicon:disabled {
+  filter: grayscale(1) opacity(0.5);
+}
+
+/* -------------------------------------------------- caption buttons */
+
+.xp-controls {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+/*
+ * Caption buttons are NOT a uniform set. XP's navigation-button colour system is
+ * semantic: red is high-impact, blue is neutral. So close is red *by category*
+ * and minimize/maximize are blue — the documented rationale, not a style choice.
+ */
+.xp-capbtn {
+  position: relative;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 3px;
+  cursor: default;
+  font: inherit;
+}
+
+.xp-capbtn--neutral {
+  background: linear-gradient(180deg, #4E92F7 0%, #2C6FE0 45%, #1B55C4 90%, #3F7BE8 100%);
+}
+
+.xp-capbtn--impact {
+  background: linear-gradient(180deg, #E8846B 0%, #D8542F 45%, #B93417 90%, #E06A48 100%);
+}
+
+.xp-capbtn:hover:not(:disabled) {
+  filter: brightness(1.18);
+}
+
+.xp-capbtn:active:not(:disabled) {
+  filter: brightness(0.82);
+}
+
+.xp-capbtn:focus-visible {
+  outline: 1px dotted #FFFFFF;
+  outline-offset: -3px;
+}
+
+.xp-capbtn:disabled {
+  background: linear-gradient(180deg, #A8B8D0 0%, #8FA0BC 100%);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Glyphs drawn from box-shadow rectangles so they stay on the pixel grid at
+ * 21px rather than relying on a scaled font glyph. */
+.xp-capbtn::before,
+.xp-capbtn::after {
+  content: '';
+  position: absolute;
+  background: #FFFFFF;
+}
+
+.xp-capbtn:disabled::before,
+.xp-capbtn:disabled::after {
+  background: #E2E6EE;
+}
+
+.xp-capbtn[data-glyph='minimize']::before {
+  left: 5px;
+  bottom: 5px;
+  width: 9px;
+  height: 3px;
+}
+
+.xp-capbtn[data-glyph='maximize']::before {
+  left: 4px;
+  top: 4px;
+  width: 11px;
+  height: 10px;
+  background: transparent;
+  border: 1px solid #FFFFFF;
+  border-top-width: 3px;
+}
+
+.xp-capbtn[data-glyph='restore']::before {
+  left: 6px;
+  top: 3px;
+  width: 8px;
+  height: 7px;
+  background: transparent;
+  border: 1px solid #FFFFFF;
+  border-top-width: 2px;
+}
+
+.xp-capbtn[data-glyph='restore']::after {
+  left: 3px;
+  top: 7px;
+  width: 8px;
+  height: 7px;
+  background: var(--xp-capbtn-restore-fill, transparent);
+  border: 1px solid #FFFFFF;
+  border-top-width: 2px;
+}
+
+.xp-capbtn[data-glyph='close']::before,
+.xp-capbtn[data-glyph='close']::after {
+  left: 4px;
+  top: 9px;
+  width: 13px;
+  height: 2px;
+}
+
+.xp-capbtn[data-glyph='close']::before {
+  transform: rotate(45deg);
+}
+
+.xp-capbtn[data-glyph='close']::after {
+  transform: rotate(-45deg);
+}
+
+/* ------------------------------------------------------------- content */
+
+.xp-content {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: auto;
+  background: var(--xp-window-bg);
+  min-height: 0;
+  /* The 4px frame is drawn by the window's box-shadow, so the content area is
+   * inset by it rather than carrying its own border. */
+  margin: 0 4px 4px 4px;
+}
+
+.xp-win[data-suspended='true'] .xp-content {
+  opacity: 0.45;
+}
+
+/* --------------------------------------------------------- resize handles */
+
+.xp-resize {
+  position: absolute;
+  touch-action: none;
+}
+
+.xp-win[data-resizable='false'] .xp-resize,
+.xp-win[data-maximized='true'] .xp-resize {
+  display: none;
+}
+
+.xp-resize-n { top: 0; left: 6px; right: 6px; height: 4px; cursor: ns-resize; }
+.xp-resize-s { bottom: 0; left: 6px; right: 6px; height: 4px; cursor: ns-resize; }
+.xp-resize-w { left: 0; top: 6px; bottom: 6px; width: 4px; cursor: ew-resize; }
+.xp-resize-e { right: 0; top: 6px; bottom: 6px; width: 4px; cursor: ew-resize; }
+.xp-resize-nw { top: 0; left: 0; width: 6px; height: 6px; cursor: nwse-resize; }
+.xp-resize-ne { top: 0; right: 0; width: 6px; height: 6px; cursor: nesw-resize; }
+.xp-resize-sw { bottom: 0; left: 0; width: 6px; height: 6px; cursor: nesw-resize; }
+.xp-resize-se { bottom: 0; right: 0; width: 6px; height: 6px; cursor: nwse-resize; }
+
+.xp-win.is-dragging .xp-content,
+.xp-win.is-resizing .xp-content {
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------- controls */
+
+/*
+ * Command buttons: 75x23 documented, and the corner is "a 1 pixel indent" in
+ * Microsoft's own words — not a radius. A 1px indent is four clipped corner
+ * pixels, which is what the clip-path below produces. XP.css's 3px radius is
+ * that project's interpretation and is not used.
+ */
+.xp-button {
+  min-width: 75px;
+  height: 23px;
+  padding: 0 12px;
+  border: 1px solid var(--xp-btn-border);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F3F2EA 46%, #E3E1D2 88%, #D6D2C2 100%);
+  font-family: 'XP UI', sans-serif;
+  font-size: var(--xp-fs-8);
+  color: var(--xp-text);
+  cursor: default;
+  clip-path: polygon(
+    1px 0, calc(100% - 1px) 0, 100% 1px, 100% calc(100% - 1px),
+    calc(100% - 1px) 100%, 1px 100%, 0 calc(100% - 1px), 0 1px
+  );
+}
+
+.xp-button:hover:not(:disabled) {
+  /* Luna's amber hover glow. */
+  background: linear-gradient(180deg, #FFFCF0 0%, #FFE7A8 45%, #FDD474 88%, #F5BE3E 100%);
+}
+
+/*
+ * Pressed swaps the gradient. The label does NOT move: the 1px label shift is
+ * classic-Windows behaviour and is wrong for Luna.
+ */
+.xp-button:active:not(:disabled) {
+  background: linear-gradient(180deg, #CDCAC3 0%, #E3E3DB 10%, #E5E5DE 92%, #F2F2F1 100%);
+}
+
+.xp-button:focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -4px;
+}
+
+.xp-button:disabled {
+  color: var(--xp-disabled-control);
+  background: var(--xp-face);
+  border-color: #C3C2B8;
+}
+
+.xp-textbox {
+  height: 20px;
+  padding: 2px 3px;
+  border: 1px solid var(--xp-textbox-border);
+  background: #FFFFFF;
+  font-family: 'XP UI', sans-serif;
+  font-size: var(--xp-fs-8);
+  color: var(--xp-text);
+}
+
+.xp-textbox:hover:not(:disabled) {
+  border-color: #5E8AB4;
+}
+
+.xp-textbox:focus-visible {
+  outline: none;
+  border-color: #3D7BAD;
+}
+
+.xp-textbox:disabled {
+  background: var(--xp-textbox-disabled-fill);
+  color: var(--xp-disabled-control);
+}
+
+.xp-textbox[readonly] {
+  background: var(--xp-textbox-disabled-fill);
+  color: var(--xp-text);
+}
+
+/* Combo boxes have a different disabled fill from text boxes — separately
+ * specified in the source, not a typo. */
+.xp-combo {
+  height: 21px;
+  border: 1px solid var(--xp-textbox-border);
+  background: #FFFFFF;
+  font-family: 'XP UI', sans-serif;
+  font-size: var(--xp-fs-8);
+}
+
+.xp-combo:disabled {
+  background: var(--xp-combo-disabled-fill);
+  border-color: var(--xp-combo-disabled-border);
+  color: var(--xp-disabled-control);
+}
+
+.xp-check,
+.xp-radio {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.xp-groupbox > legend {
+  color: var(--xp-groupbox-title);
+  font-size: var(--xp-fs-8);
+}
+
+.xp-groupbox:disabled > legend {
+  color: var(--xp-disabled-control);
+}
+
+/* --------------------------------------------------------------- menus */
+
+.xp-menu {
+  z-index: 200000;
+  min-width: 140px;
+  padding: 2px;
+  background: #FFFFFF;
+  border: 1px solid var(--xp-menu-border);
+  font-family: 'XP UI', sans-serif;
+  font-size: var(--xp-fs-8);
+  user-select: none;
+}
+
+.xp-menu-item {
+  display: grid;
+  grid-template-columns: 20px 1fr auto 12px;
+  align-items: center;
+  gap: 4px;
+  height: 19px;
+  padding: 0 2px;
+  color: var(--xp-text);
+  cursor: default;
+}
+
+/* Highlight is driven by the menu controller rather than :hover, so keyboard
+ * and pointer navigation land on exactly the same visual state. */
+.xp-menu-item[data-highlight='true'] {
+  background: var(--xp-menu-highlight);
+  color: #FFFFFF;
+}
+
+/* Menu disabled text is #808080, NOT the #A1A192 used for controls. Two
+ * different disabled greys in one OS, separately specified. */
+.xp-menu-item[aria-disabled='true'] {
+  color: var(--xp-disabled-menu);
+}
+
+.xp-menu-item[aria-disabled='true'][data-highlight='true'] {
+  background: #D8E0EC;
+  color: var(--xp-disabled-menu);
+}
+
+.xp-menu-separator {
+  height: 0;
+  margin: 2px 1px;
+  border-top: 1px solid var(--xp-menu-border);
+}
+
+.xp-menu-check,
+.xp-menu-trail,
+.xp-menu-sub {
+  font-size: 10px;
+  text-align: center;
+}
+
+.xp-menu-trail {
+  padding-right: 6px;
+  opacity: 0.85;
+}
+
+/* --------------------------------------------------------------- switcher */
+
+.switcher {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100000;
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  background: var(--xp-face);
+  border: 1px solid var(--xp-menu-border);
+  box-shadow: var(--xp-gen-frame);
+  font-family: 'XP UI', sans-serif;
+  font-size: var(--xp-fs-8);
+  max-width: 90%;
+  overflow: hidden;
+}
+
+.switcher-item {
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.switcher-item[aria-selected='true'] {
+  background: var(--xp-menu-highlight);
+  border-color: #1B4E9B;
+  color: #FFFFFF;
+}
+
+/* --------------------------------------------------------- keyboard modes */
+
+.xp-win.is-keyboard-moving .xp-titlebar,
+.xp-win.is-keyboard-resizing .xp-titlebar {
+  outline: 1px dotted #FFFFFF;
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-win,
+  .xp-capbtn,
+  .xp-button {
+    transition: none !important;
+  }
+}

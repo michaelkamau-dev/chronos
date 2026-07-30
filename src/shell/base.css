@@ -1,0 +1,60 @@
+/*
+ * Base layout, shared by every era.
+ *
+ * Nothing here is era styling — it is the structural minimum the window manager
+ * and the display surface require in order to work at all. It lives outside the
+ * skin layer for two reasons:
+ *
+ * 1. **A skin cannot forget it.** The Windows XP skin was written without these
+ *    rules and every window landed at y=-30: `#chronos-root` had no height, so the
+ *    work area computed to zero and the window manager clamped every window above
+ *    the top edge. Duplicating structural rules into six stylesheets guarantees
+ *    that bug six times.
+ * 2. **The transform-origin rule is a contract, not a look.** The window manager
+ *    writes only `transform` and never `top`/`left`, which is only correct if
+ *    frames are absolutely positioned at the origin. Keying that off the WM's own
+ *    `data-win-id` attribute makes it true for any skin's class names.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#chronos-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* The scaled desktop surface. Integer-scaled for the bitmap eras; the transform is
+ * applied by src/shell/display.ts, which is also where the scale is chosen. */
+.desktop {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+}
+
+/*
+ * The transform origin for every window frame, in every era.
+ *
+ * Keyed off `data-win-id` — which the window manager sets — rather than off a skin
+ * class, so this holds no matter what a skin calls its frame element.
+ */
+[data-win-id] {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* Menus are positioned by the menu controller in client coordinates. */
+.menu {
+  position: absolute;
+}

@@ -1,20 +1,21 @@
 /**
- * Phase-2 entry point.
+ * Phase-3 entry point.
  *
- * Boots the filesystem, then the shell with the `plain` harness skin, then opens
- * a directory view. Every status-strip control does its job.
+ * Boots the filesystem, then the shell with the Windows XP Luna skin — the
+ * reference implementation every other era is measured against — then opens a
+ * directory view. Every status-strip control does its job.
  *
  * `window.__chronos` is the handle the browser tests drive. It is a test surface,
  * not an app API: phase 5 replaces the directory-view harness with the real Files
  * app and this shrinks to the app registry.
  */
 
-import { plainSkin } from './skins/plain/index.js'
+import { winxpSkin } from './skins/winxp/index.js'
 import { Shell } from './shell/shell.js'
 import { asAppId, type WindowId } from './core/wm/types.js'
 import { Filesystem } from './core/fs/fs.js'
 import { FsStore, nodeKey } from './core/fs/store.js'
-import { createPlainCodec, plainNameDecorator } from './skins/plain/paths.js'
+import { createXpCodec, xpNameDecorator } from './skins/winxp/paths.js'
 import { DirectoryView } from './harness/directory-view.js'
 import type { NodeId, PathCodec } from './core/fs/types.js'
 
@@ -25,14 +26,15 @@ const store = new FsStore()
 const fs = new Filesystem(store)
 await fs.open()
 
-const codec: PathCodec = createPlainCodec(fs)
+const codec: PathCodec = createXpCodec(fs)
 
 const shell = new Shell(root, {
-  id: plainSkin.id,
-  chrome: plainSkin.chrome,
-  menu: plainSkin.menu,
-  keymap: plainSkin.keymap,
+  id: winxpSkin.id,
+  chrome: winxpSkin.chrome,
+  menu: winxpSkin.menu,
+  keymap: winxpSkin.keymap,
   viewport: { mode: 'native' },
+  generatedProperties: winxpSkin.generatedProperties,
 })
 shell.bindFocusFollowing()
 
@@ -57,7 +59,7 @@ function openDirectoryWindow(startAt?: NodeId): WindowId {
   const view = new DirectoryView({
     fs,
     codec,
-    decorate: plainNameDecorator,
+    decorate: xpNameDecorator,
     root: handle.content,
     ...(startAt !== undefined ? { startAt } : {}),
     onError: (message) => {

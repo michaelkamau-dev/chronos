@@ -7,6 +7,12 @@
  * reachable either from a chord in the active skin's keymap or from a menu entry
  * that keyboard navigation can walk to.
  *
+ * Selectors here use the window manager's own contract vocabulary —
+ * `[data-win-id]`, `[data-action]`, `[data-part]`, `[data-resize]` — rather than
+ * any skin's class names. These tests assert the contract, so they must pass
+ * against whichever era is active; keying them to one skin's classes made them
+ * hang the moment Windows XP became the default.
+ *
  * It also covers the accessibility obligations that are media queries rather
  * than preferences, per CLAUDE.md.
  */
@@ -44,7 +50,7 @@ test.describe('keyboard completeness', () => {
         }
       }
       const d = shell.dispatcher
-      const bar = document.querySelector<HTMLElement>('.win [data-part="titlebar"]')
+      const bar = document.querySelector<HTMLElement>('[data-win-id] [data-part="titlebar"]')
       if (bar) collect(shell.menuSpecFor(d.resolve(bar)))
       const desktop = document.querySelector<HTMLElement>('.desktop')
       if (desktop) collect(shell.menuSpecFor(d.resolve(desktop)))
@@ -70,7 +76,7 @@ test.describe('keyboard completeness', () => {
 test.describe('focus and naming', () => {
   test('every chrome button has an accessible name', async ({ page }) => {
     await boot(page)
-    const unnamed = await page.locator('.win-button').evaluateAll((els) =>
+    const unnamed = await page.locator('[data-action]').evaluateAll((els) =>
       els
         .filter((el) => {
           const label = el.getAttribute('aria-label') ?? ''
@@ -83,7 +89,7 @@ test.describe('focus and naming', () => {
 
   test('Tab reaches every chrome button of the focused window', async ({ page }) => {
     await boot(page)
-    const expected = await page.locator('.win').last().locator('.win-button:not([disabled])').count()
+    const expected = await page.locator('[data-win-id]').last().locator('[data-action]:not([disabled])').count()
     expect(expected).toBeGreaterThan(0)
 
     const reached = new Set<string>()
@@ -92,13 +98,15 @@ test.describe('focus and naming', () => {
       const info = await page.evaluate(() => {
         const active = document.activeElement as HTMLElement | null
         if (!active) return null
-        const frames = [...document.querySelectorAll('.win')]
+        const frames = [...document.querySelectorAll('[data-win-id]')]
         return {
-          cls: active.className,
+          // Identified by the contract attribute, not a skin class: every era
+          // names its chrome buttons differently but all of them carry data-action.
+          action: active.dataset['action'] ?? null,
           frame: frames.findIndex((f) => f.contains(active)),
         }
       })
-      if (info && info.cls.includes('win-button')) reached.add(info.cls)
+      if (info?.action) reached.add(info.action)
       // Focus must never escape the focused window.
       if (info) expect(info.frame).toBe(1)
     }
@@ -130,7 +138,7 @@ test.describe('focus and naming', () => {
         rect: { x: 60, y: 300, w: 300, h: 160 },
       })
     })
-    const maximize = page.locator('.win').last().locator('[data-action="maximize"]')
+    const maximize = page.locator('[data-win-id]').last().locator('[data-action="maximize"]')
     await expect(maximize).toBeDisabled()
     // A disabled control must also be out of the tab order.
     const focusable = await maximize.evaluate((el) => (el as HTMLButtonElement).disabled)
@@ -147,7 +155,7 @@ async function animationsDuringMinimize(page: Page): Promise<number> {
   return page.evaluate(async () => {
     const wm = window.__chronos.shell.wm
     const id = wm.focusedId()!
-    const el = document.querySelector<HTMLElement>(`.win[data-win-id="${id}"]`)!
+    const el = document.querySelector<HTMLElement>(`[data-win-id="${id}"]`)!
     // Force the initial layout first so it cannot be mistaken for animation work.
     void el.getBoundingClientRect()
     const pending = wm.minimize(id)
@@ -196,7 +204,7 @@ test.describe('reduced motion is a media query, not a preference', () => {
     await boot(page)
     await setReducedMotion(page, 'reduce')
     expect(await animationsDuringMinimize(page), 'no animation under reduced motion').toBe(0)
-    await expect(page.locator('.win').last()).toHaveCSS('display', 'none')
+    await expect(page.locator('[data-win-id]').last()).toHaveCSS('display', 'none')
   })
 
   test('no element declares a non-zero transition or animation duration', async ({ page }) => {

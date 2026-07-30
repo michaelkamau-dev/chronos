@@ -31,8 +31,17 @@ export interface ChromeMetrics {
   titleBarHeightInactive: number
   /** Frame border thickness per side, excluding the title bar. */
   border: Insets
-  /** Radius of the top two corners. Square eras use 0. */
-  cornerRadiusTop: number
+  /**
+   * How the top two corners are shaped.
+   *
+   * A discriminated union rather than a number because Windows XP's corner is
+   * categorically not a radius: Microsoft's 1:1 figure shows a 5-row arc whose
+   * per-row x-insets are 5,3,2,1,1,0 — a hand-drawn corner bitmap that no
+   * `border-radius` value reproduces. Eras that genuinely use a radius say so.
+   */
+  cornerTop:
+    | { readonly kind: 'radius'; readonly px: number }
+    | { readonly kind: 'steps'; readonly insets: readonly number[] }
   /** Extra hit-test slop around resize edges, so a 1px border stays grabbable. */
   resizeGrab: number
   /** Shadow area that is painted but must not be hit-tested. */
