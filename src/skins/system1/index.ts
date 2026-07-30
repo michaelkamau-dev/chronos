@@ -26,6 +26,7 @@
 import { Keymap, type Binding } from '../../core/input/keymap.js'
 import { System1Chrome } from './chrome.js'
 import { System1MenuRenderer } from './menu.js'
+import { system1Regions } from './shell.js'
 import { SYSTEM1, SYSTEM1_METRICS, SYSTEM1_PROVENANCE, type Bitmap } from './metrics.js'
 import './skin.css'
 
@@ -114,7 +115,7 @@ export function insetArc(insets: readonly number[]): number[] {
 
 /** Written onto the desktop element so the stylesheet reads the measurements. */
 export function system1GeneratedProperties(): Record<string, string> {
-  const { titleBar, menu, button, glyphs } = SYSTEM1
+  const { titleBar, menu, menuBar, button, glyphs } = SYSTEM1
   return {
     '--s1-ink': SYSTEM1.palette.ink,
     '--s1-paper': SYSTEM1.palette.paper,
@@ -143,6 +144,25 @@ export function system1GeneratedProperties(): Record<string, string> {
     '--s1-fs': `${SYSTEM1.font.cell}px`,
     '--s1-line': `${SYSTEM1.font.ascent + SYSTEM1.font.descender}px`,
     '--s1-cap-top': `${menu.capTop}px`,
+
+    /*
+     * The menu bar. `--s1-menubar-stride` is negative on purpose: a title's box is
+     * the string plus 10px either side and the stride is the string plus 15, so the
+     * boxes overlap by 5px. Both numbers are measured and they do not reconcile —
+     * see the note on `menuBar` in metrics.ts. Expressing the overlap as a negative
+     * margin is what reproduces both exactly instead of splitting the difference.
+     */
+    '--s1-menubar-h': `${menuBar.height}px`,
+    '--s1-menubar-rule': `${menuBar.rule}px`,
+    '--s1-menubar-title-top': `${menuBar.titleTop}px`,
+    '--s1-menubar-cell-top': `${menuBar.cellTop}px`,
+    '--s1-menubar-title-h': `${menuBar.titleHeight}px`,
+    '--s1-menubar-pad': `${menuBar.titlePad}px`,
+    '--s1-menubar-stride': `${menuBar.titleGap - menuBar.titlePad * 2}px`,
+    '--s1-menubar-inset': `${menuBar.firstTitleInset}px`,
+    '--s1-menubar-apple-box': `${menuBar.appleAdvance + menuBar.titlePad * 2}px`,
+    '--s1-screen-border': `${SYSTEM1.screen.border}px`,
+    '--s1-menubar-apple-top': `${menuBar.appleTop}px`,
 
     '--s1-menu-item-h': `${menu.itemHeight}px`,
     '--s1-menu-sep-rule': `${menu.separatorRule}px`,
@@ -186,6 +206,7 @@ export function system1GeneratedProperties(): Record<string, string> {
     '--s1-gen-command': pixelShadow(glyphs.command),
     '--s1-gen-grow': pixelShadow(glyphs.growIcon),
     '--s1-gen-checkbox': pixelShadow(glyphs.checkboxX),
+    '--s1-gen-apple': pixelShadow(glyphs.apple),
   }
 }
 
@@ -196,7 +217,11 @@ export function system1GeneratedProperties(): Record<string, string> {
  * keys** — every one of those arrives on a later keyboard. That single fact settles
  * most of this table:
  *
- * - `Meta+W` and `Meta+N` are the era's own File-menu equivalents, Close and New.
+ * - `Meta+W` is Close and **`Meta+O` is Open**, the era's own File-menu chords. Open
+ *   rather than New because ⌘O is the chord that produced a window in 1984 — you
+ *   opened a disk or a folder — while ⌘N was New Folder, which makes no window and
+ *   which Chronos has nothing to make. Binding `shell.newWindow` to ⌘N would have put
+ *   the era's folder chord on a window command and made the menu bar say so.
  * - `Meta+.` is the era's cancel. There was no Escape key to press.
  * - **`Escape` is bound anyway**, as the accessibility escape hatch. `CLAUDE.md`
  *   requires that an era's behaviour may never be the thing that blocks one, and a
@@ -211,7 +236,7 @@ export function system1GeneratedProperties(): Record<string, string> {
  */
 export const SYSTEM1_KEYMAP: readonly Binding[] = [
   { chord: 'Meta+W', command: 'window.close' },
-  { chord: 'Meta+N', command: 'shell.newWindow' },
+  { chord: 'Meta+O', command: 'shell.newWindow' },
   { chord: 'Meta+.', command: 'shell.closeTransient' },
   { chord: 'Escape', command: 'shell.closeTransient' },
   { chord: 'Ctrl+Tab', command: 'window.cycleNext' },
@@ -233,6 +258,12 @@ export const system1Skin = {
   metrics: SYSTEM1_METRICS,
   provenance: SYSTEM1_PROVENANCE,
   keymap: SYSTEM1_KEYMAP,
+  /**
+   * One region: the menu bar. No Dock and no window list, because there is no
+   * multitasking to list — the era's answer to "where are my other windows" is that
+   * you click one, and §12's neutral cycling chord is the accessibility path.
+   */
+  regions: system1Regions(),
   generatedProperties: system1GeneratedProperties,
   /**
    * 512x342, integer-scaled. Not a stylistic choice: the desktop is a 1px 50%

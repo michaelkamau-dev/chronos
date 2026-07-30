@@ -350,15 +350,134 @@ was fudged.
 
 ---
 
+## The menu bar
+
+Built on Tiger's `ShellRegion` after it reached main. One region, `edge: 'top'`,
+`kind: 'menubar'`, `reservesSpace: true`, `thickness: 20` — and **no** `minimizeTarget`,
+because `minimizeStyle: 'none'` means the window manager never asks. There is no Dock
+and no window list: the era has no multitasking to list, and its answer to "where are
+my other windows" is that you click one.
+
+### Where the geometry came from
+
+Three of the eight figures carry a menu bar, and **two of them have a menu pulled
+down** — which matters, because an unhighlighted title is just its string and shows no
+box at all. `measure_menubar` in `tools/pdf-extract/measure-mac-system1.py` reproduces
+all of it.
+
+| Value | Measured | Figures |
+|---|---|---|
+| Bar height | 20px, rule on row 19 | three |
+| Decomposition | 1px screen border + 1px + 16px cell + 1px + 1px rule | derived, and the cap band confirms it |
+| Cap band | rows 5–13 | two |
+| Title box | rows 1–18, string + 10px either side | two (41px on a 21px string, 65px on a 44px one) |
+| Title stride | string + 15px | one, exact on 4 of its 5 transitions |
+| First box | 8px in from the screen's border line | one |
+| Apple title | 11×14 ink, 17px advance | one |
+| Pull-down origin | left border on the box's left edge, top border on the bar's rule | two |
+
+The pull-down origin is the nicest of these because it is not a number, it is a
+construction: the title box ends on row 18, so opening the menu at the **title's**
+bottom rather than the bar's puts the menu's own 1px top border exactly on the rule.
+The inverted title, the rule and the menu's left border then read as one continuous run
+of ink, which is what both figures show — `x=40` is ink from row 0 to row 212 in the
+file-menu figure, unbroken.
+
+### The two measurements that do not reconcile
+
+A box of `string + 20` on a stride of `string + 15` means adjacent boxes overlap by
+5px. Rects that partition a menu bar cannot overlap.
+
+Every attempt to solve it away produced a half pixel. Assuming the boxes are adjacent
+and the highlight *is* the box gives a margin of 7.5px, from two independent
+directions. Assuming the highlight is the box outset by a constant gives 5px on one
+figure and 6px on the other. Neither is a number a 1984 Toolbox would have used.
+
+So both measurements ship exactly — `padding: 0 10px` and `margin-right: -5px` — and
+the overlap is recorded as the derived consequence. It is unobservable: only one title
+is ever inverted, so no figure shows two boxes, and in DOM order the later title wins
+the shared pixels for hit-testing. The alternative was to split the difference, which
+would have made *both* visible measurements wrong to hide one invisible inconsistency.
+
+The Apple title's 17px advance is solved from the same arithmetic rather than measured
+directly: its ink is 11px, and 17 is the advance that lands File's box on x=40, Edit's
+string on x=86 and every later title on its measured column. It is `measured` with the
+solution shown, not `documented`.
+
+### The Apple glyph, and a figure disagreement
+
+The two bar figures draw **different** apples: 11×14 in the file-menu figure, 9×11 on
+p077. The file-menu one ships, because it is the figure that also carries the title box
+and the pull-down alignment, and taking the bar's geometry and its contents from one
+bitmap is what keeps them consistent. The disagreement is in `APPLE`'s comment rather
+than averaged away.
+
+The glyph is Apple's trademark, reproduced here as an 11×14 bitmap the same way the
+checkmark, the command symbol and the grow icon are. Flagged rather than assumed: it
+is a brand mark and not merely UI furniture, and it is the one bitmap in this skin that
+is not simply a shape.
+
+### The menus, and what is deliberately absent from them
+
+The 1984 Finder's bar: **Apple, File, Edit, View, Special**. `Label` is a System 7 menu
+and is not here, though every figure shows it, because `macintosh-hig.pdf` is the 1992
+edition.
+
+- **Apple** — About the Finder, then the desk accessories, all disabled. This is where
+  the `notPatBic` stipple is most visible, which is the point: it is the single most
+  distinctive thing about a 1984 menu and almost every recreation renders it flat grey.
+- **File** — `Open` and `Close`, the two commands that exist. Get Info, Duplicate, Page
+  Setup and Eject are *absent* rather than present-and-disabled, because listing them
+  would mean either showing ⌘I, ⌘D and ⌘E — which nothing binds, the exact lie
+  `Shell.accelFor` exists to prevent — or stripping them of the chords the era gave
+  them, which misrepresents the menu just as badly.
+- **Edit** — Undo, Cut, Copy, Paste, Clear, all disabled, and all carrying ⌘Z ⌘X ⌘C ⌘V.
+  A **disabled** item promises nothing, so it may carry its historical chord; an
+  **enabled** item's accelerator must come from the keymap. A fidelity test asserts
+  exactly that split.
+- **View** — the five sort orders, disabled, with `by Icon` ticked. Checked *and*
+  disabled looks contradictory and is what the Finder showed: the current view stays
+  ticked while the commands do not apply.
+- **Special** — Clean Up, Empty Trash, Erase Disk, Set Startup, all disabled.
+
+### `Meta+O`, not `Meta+N`
+
+`shell.newWindow` moved to ⌘O and the item reads `Open`. ⌘O is the chord that produced
+a window in 1984 — you opened a disk or a folder — while ⌘N was New Folder, which makes
+no window and which Chronos has nothing to make. Leaving it on ⌘N would have put the
+era's folder chord on a window command and, now that there is a menu bar, printed it.
+
+The era's Open required a selection and the harness has no icon layer until phase 5, so
+here it is unconditional. That is the one place this menu is more permissive than the
+Finder was.
+
+### The substitute's coverage is part of verifying it
+
+ChiKareGo2 has **no U+2026 and no U+2014**. The font comparison never caught it: it
+rendered the target strings and measured their shapes and widths, so a character none
+of them contained was invisible to it.
+
+A missing glyph does not fail loudly. It falls back to the browser's default face,
+whose fractional advance takes every glyph after it in the run off the pixel grid — the
+text still appears, it is simply no longer 1-bit. Measured on the harness's own window
+title, which contains an em dash: `Files — Macintosh HD:` renders 311.28px wide,
+`Files - Macintosh HD:` renders 306px.
+
+Fixed where it is this skin's to fix — the Apple menu says `About the Finder...` with
+three periods — and asserted by a new test that runs `document.fonts.check` over every
+string this skin renders. **Still open:** `src/main.ts:146` builds every window title
+with an em dash, which is harness text shared by six eras and not mine to change. It is
+the only remaining fallback in the era, and it is recorded here rather than fixed
+quietly.
+
+---
+
 ## Not built in this pass
 
-- **The menu bar.** Measured (20px including its 1px rule, title ink positions from the
-  512px strip) and recorded in `SYSTEM1.menuBar`, but not rendered. It needs Tiger's
-  `ShellRegion` / `SkinManifest.regions`, which is on
-  `claude/chronos-tiger-phase-4-tm4o09` and not yet in main. Building a second
-  region mechanism to avoid waiting would be worse than waiting.
 - **Scroll bars, the size box's drag behaviour beyond the `se` handle, and the
   three documented scroll-bar states.** Scroll bars are a tier-2 widget and the
   `UiKit` is phase 5; XP and Windows 3.1 ship none either. Every number they need is
   measured and in `SYSTEM1.scrollBar`, including the `ltGray` cell.
-- **The Apple menu glyph.** Needed only by the menu bar.
+- **App content.** The harness's directory view renders in the era's face but is not
+  otherwise skinned, so its text is still LCD-fringed. Apps are phase 5, and this is the
+  same gap XP and Windows 3.1 have.

@@ -252,6 +252,38 @@ const GROW_ICON: Bitmap = [
 ]
 
 /**
+ * The Apple menu's title, 11x14, from the file-menu figure's bar at x 18..28,
+ * rows 2..15.
+ *
+ * It is the one menu title that is artwork rather than a string, which is why it
+ * carries a separate advance in `menuBar.appleAdvance`: 11px of ink inside a 17px
+ * advance, and 17 is what makes every following title in that figure land on its
+ * measured column.
+ *
+ * The 512-wide bar on p077 draws a *different* apple — 9x11 rather than 11x14 —
+ * so the two figures disagree and the disagreement is recorded rather than
+ * averaged. This one ships because it comes from the same bitmap as the title box
+ * and the pull-down alignment, and measuring the bar's geometry and its contents
+ * from one figure is what keeps them consistent.
+ */
+const APPLE: Bitmap = [
+  '.......##..',
+  '......##...',
+  '......#....',
+  '..###..###.',
+  '.##########',
+  '#########..',
+  '#########..',
+  '#########..',
+  '##########.',
+  '###########',
+  '.##########',
+  '.##########',
+  '..########.',
+  '...##..##..',
+]
+
+/**
  * The checkbox mark, inside the 12x12 frame. Measured on the HIG's checkbox figure.
  *
  * The HIG's words are "an x appears in the box" (p235), and the x is drawn corner to
@@ -349,8 +381,47 @@ export const SYSTEM1 = {
     troughPattern: { mode: 'ltGray', cellX: 4, cellY: 2 },
   },
 
-  /** Roman script. Documented in Inside Macintosh and measured twice here. */
-  menuBar: { height: 20, rule: 1 },
+  /**
+   * Roman script, 20px including its 1px rule — documented in Inside Macintosh and
+   * measured on three figures.
+   *
+   * The bar's first row is the screen's own border line, which is what makes the
+   * arithmetic close: 2px + a 16px Chicago cell + 1px + the 1px rule. The cap top
+   * therefore lands on row 5, measured on two figures.
+   *
+   * A title's box is only visible while its menu is pulled down, because the bar
+   * shows nothing but the string otherwise. Two figures have one pulled down and
+   * they agree: **rows 1..18, and 10px of box either side of the string**. The
+   * stride between strings is a separate measurement — 15px, exact on four of the
+   * five transitions in the Finder's bar — and the two do not reconcile: a box of
+   * `string + 20` on a stride of `string + 15` means adjacent boxes overlap by 5px.
+   * That is unobservable, because only one title is ever highlighted, and no figure
+   * can settle it. Both measurements ship as measured and the overlap is the
+   * derived consequence; see `menuBar`'s provenance.
+   */
+  menuBar: {
+    height: 20,
+    rule: 1,
+    /** The highlight box: rows 1..18 of the bar, so 1px clear above the rule. */
+    titleTop: 1,
+    titleHeight: 18,
+    /**
+     * Where the 16px Chicago cell starts inside that box. The bar decomposes as
+     * 1px border + 1px + the cell + 1px + the rule, and `capTop` of 3 inside the
+     * cell is what lands the cap top on bar row 5 — measured on two figures.
+     */
+    cellTop: 1,
+    /** Box padding either side of the string, measured on two figures. */
+    titlePad: 10,
+    /** String-to-string stride beyond the string's own advance. */
+    titleGap: 15,
+    /** The first box's left edge, from the screen's border line. */
+    firstTitleInset: 8,
+    /** The Apple title is artwork: 11px of ink inside a 17px advance. */
+    appleAdvance: 17,
+    /** The apple's ink starts one row below the box top, at bar row 2. */
+    appleTop: 1,
+  },
 
   menu: {
     /** 1px black frame, plus a 1px black shadow offset (+1, +1) like the window's. */
@@ -485,6 +556,7 @@ export const SYSTEM1 = {
     growIcon: GROW_ICON,
     checkboxX: CHECKBOX_X,
     scrollArrowUp: SCROLL_ARROW_UP,
+    apple: APPLE,
   },
 } as const
 
@@ -517,9 +589,21 @@ export const SYSTEM1_PROVENANCE_EXTRA = {
       + '"a light gray rectangle" (p182).',
   },
   menuBar: {
-    level: 'documented',
+    level: 'measured',
     source: `${PROSE} Chapter 4, and Inside Macintosh's MBarHeight for the Roman `
-      + `script. Measured at 20px including its 1px rule on two figures.`,
+      + `script. Height measured at 20px including its 1px rule on three figures; `
+      + `the title geometry on the two that have a menu pulled down — `
+      + `docs/sources/figures/mac-hig-file-menu.png and mac-hig-screen-512x342.png.`,
+    note: 'The box (string + 10px each side, rows 1..18) and the stride (string + '
+      + '15px) are separately measured and do not reconcile: adjacent boxes overlap '
+      + 'by 5px. Only one title is ever highlighted, so no figure shows two boxes and '
+      + "none can settle it, and the Menu Manager's own title-rect arithmetic is not "
+      + 'in docs/sources/. Both measurements ship exactly and the overlap is derived; '
+      + 'the hit boundary therefore falls 10px left of the next string. Reproduced by '
+      + 'measure-mac-system1.py, which predicts four of the five Finder transitions '
+      + 'exactly and misses View->Label by 2px on side bearings. `appleAdvance` is '
+      + 'solved from the same arithmetic: 17 is the value that lands File, Edit and '
+      + 'every later box on its measured column.',
   },
   menu: {
     level: 'measured',

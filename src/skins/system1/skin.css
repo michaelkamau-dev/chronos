@@ -586,6 +586,111 @@
   background-size: var(--s1-stipple, 2px) var(--s1-stipple, 2px);
 }
 
+/* -------------------------------------------------------------- menu bar */
+
+/*
+ * The menu bar, and the arithmetic that lands it on Apple's pixels.
+ *
+ * 20px total, decomposing exactly as the era's own does: **1px + 18px + 1px**. The
+ * first row is the screen's border line and the last is the bar's rule, which leaves
+ * the 18px band the title boxes were measured in.
+ *
+ * The top border is drawn here rather than left to the desktop, and that is not a
+ * duplicate. The screen's border is an inset `box-shadow` on `.desktop`, and an inset
+ * shadow paints *below* descendant content — so the bar's own opaque white background
+ * covers it, and row 0 came out paper instead of ink. Redrawing it as the bar's top
+ * border reproduces the measured row whatever sits underneath.
+ */
+.s1-menubar {
+  display: flex;
+  align-items: flex-start;
+  box-sizing: border-box;
+  height: var(--s1-menubar-h);
+  padding-left: var(--s1-menubar-inset);
+  border-top: var(--s1-screen-border) solid var(--s1-ink);
+  border-bottom: var(--s1-menubar-rule) solid var(--s1-ink);
+  background: var(--s1-paper);
+  font-family: 'S1 Chicago', monospace;
+  font-size: var(--s1-fs);
+  line-height: var(--s1-line);
+  color: var(--s1-ink);
+}
+
+/*
+ * A title. Its box fills the 18px band, carries 10px either side of the string, and
+ * sits 15px from the previous string — both measured, and they do not reconcile:
+ * `--s1-menubar-stride` is the 5px overlap they imply, as a negative margin. It is
+ * not observable, because only one title is ever inverted and the later element wins
+ * the shared pixels for hit-testing.
+ *
+ * `display: flex` with `flex-start` rather than a bare button, because Chromium
+ * centres a button's content: a 15px line box centred in a 17px content area lands on
+ * a half pixel, which is the one thing this era's viewport exists to prevent. With the
+ * 1px of padding on top instead, the line box starts at bar row 2 and the cap top
+ * lands on row 5 — measured on two figures.
+ */
+.s1-menubar-title {
+  display: flex;
+  align-items: flex-start;
+  appearance: none;
+  box-sizing: border-box;
+  height: var(--s1-menubar-title-h);
+  margin: 0 var(--s1-menubar-stride) 0 0;
+  padding: var(--s1-menubar-cell-top) var(--s1-menubar-pad) 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+  white-space: nowrap;
+}
+
+/*
+ * The Apple title is artwork, so its box is the measured 17px advance plus the same
+ * 10px either side, and its 11x14 bitmap is drawn from a 1x1 origin like every other
+ * glyph in the era. `currentColor` is what makes it invert with the box for free.
+ */
+.s1-menubar-title[data-glyph='apple'] {
+  position: relative;
+  width: var(--s1-menubar-apple-box);
+}
+
+.s1-menubar-title[data-glyph='apple']::before {
+  content: '';
+  position: absolute;
+  left: var(--s1-menubar-pad);
+  top: var(--s1-menubar-apple-top);
+  width: 1px;
+  height: 1px;
+  box-shadow: var(--s1-gen-apple);
+}
+
+/*
+ * Rest, hover and focus are the same pixels, and that is the era rather than an
+ * omission: hover feedback on a menu title is a mouse-over idea that does not exist
+ * in 1984, and a 1-bit bar has exactly two states. The keyboard path is real — the
+ * titles are buttons, so Tab reaches them and Enter, Space or ArrowDown opens the menu
+ * a press would — and its indicator is the open state, because a focus ring drawn over
+ * the bar would be a third state on a surface the era gave two.
+ */
+.s1-menubar-title:focus-visible {
+  outline: none;
+}
+
+/*
+ * Open: the box inverts, which is what a Mac menu title has always done.
+ *
+ * Its bottom edge is bar row 18, one row clear of the rule, and a menu opens with its
+ * own 1px top border on that rule — so the inversion, the rule and the menu's left
+ * border read as one continuous run of ink. Both figures with a menu pulled down show
+ * exactly that, and it is why `MenuBar` opens at the title's `bottom` rather than the
+ * bar's.
+ */
+.s1-menubar-title[data-open='true'] {
+  background: var(--s1-ink);
+  color: var(--s1-paper);
+}
+
 /* ------------------------------------------------------------------ menus */
 
 /*

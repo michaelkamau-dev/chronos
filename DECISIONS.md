@@ -1630,3 +1630,136 @@ rather than rediscovering it.
 
 Stating both here rather than leaving them as gaps: a missing feature that is written down
 is a plan, and a missing feature that is not is a bug nobody has found yet.
+
+---
+
+## Phase 4, era/system1 — the menu bar
+
+### 4.43 The bar is built on Tiger's `ShellRegion`, and it is the era's only region
+
+**Call.** `src/skins/system1/shell.ts` declares one region: `edge: 'top'`,
+`kind: 'menubar'`, `thickness: 20`, `reservesSpace: true`, and **no** `minimizeTarget`.
+No Dock, no taskbar, no window list.
+
+**Reasoning.** Waiting for `ShellRegion` to reach main rather than building an
+equivalent was the right call and cost nothing: the region API fit without a single
+change to it. What it did surface is that a region's *needs* were one short — see 4.44.
+
+The absences are the era rather than a reduced scope. There is no multitasking to list,
+so a Window menu would be a Mac OS 8 idea three eras early; there is no minimize, so
+there is nothing for a Dock to receive. `minimizeStyle: 'none'` means the window
+manager never calls the minimize-target provider, and the region declaring one anyway
+would be dead code that reads as a feature.
+
+### 4.44 A region host needs `accelFor`, or its menus write chords as literals
+
+**Call.** `ShellRegionHost` gains `accelFor(command)`, wired to `Shell.accelFor`.
+
+**Reasoning.** Reported under §11. 4.38 removed the hardcoded `Alt+F7`-style
+accelerators from the shell's own chrome menu; the region host was built without the
+equivalent, so Tiger's menu bar carries `accel: 'Meta+N'` and `accel: 'Meta+W'` as
+literals. That is right for Tiger and would have been wrong here the moment the chord
+moved — which it then did, in 4.46. A region's menus are the most visible place in the
+product where a label can disagree with the keyboard, so the accessor belongs there.
+Four lines, additive, and Tiger's literals can become calls whenever that branch wants
+them to.
+
+### 4.45 The title box and the title stride are both measured and do not reconcile
+
+**Call.** `padding: 0 10px` and `margin-right: -5px` on a title, reproducing the box
+(string + 10px either side) and the stride (string + 15px) exactly. The 5px overlap
+they imply is recorded, not resolved.
+
+**Reasoning.** Rects that partition a menu bar cannot overlap, so one of the two must be
+wrong — and neither is. Both come off the figures cleanly: the box from the two figures
+that have a menu pulled down (41px around a 21px string, 65px around a 44px one), the
+stride from the one figure whose whole bar is unobstructed, exact on four of its five
+transitions and off by 2px on the fifth from side bearings.
+
+Every attempt to solve it produced a half pixel. Adjacent boxes with the highlight equal
+to the box gives a margin of 7.5px from two independent directions. A highlight outset
+by a constant gives 5px on one figure and 6px on the other. A 1984 Toolbox did not use
+either.
+
+No figure can settle it, because only one title is ever highlighted, and the Menu
+Manager's own title-rect arithmetic is not in `docs/sources/`. So both ship exactly and
+the overlap is derived — it is unobservable, since the later title wins the shared
+pixels for hit-testing. Splitting the difference would have made both visible
+measurements wrong in order to hide one invisible inconsistency, which is the same call
+4.34 made on the shadow corner and 4.19's predecessors made before it.
+
+### 4.46 `shell.newWindow` moves to `Meta+O`, because ⌘N made a folder
+
+**Call.** System 1's keymap binds `Meta+O`, and the File menu's item reads `Open`.
+
+**Reasoning.** ⌘O is the chord that produced a window in 1984 — you opened a disk or a
+folder. ⌘N was New Folder, which makes no window and which Chronos has nothing to make.
+The old binding was harmless while nothing displayed it and became a visible lie the
+moment the menu bar existed, which is 4.38's point arriving from the other direction:
+`accelFor` guarantees the label matches the binding, so a wrong binding now prints
+itself.
+
+Absent from the File menu for the same reason: Get Info, Duplicate, Page Setup and
+Eject. Listing them means either showing ⌘I, ⌘D and ⌘E, which nothing binds, or
+stripping the chords the era gave them. Both misrepresent the menu; omission does not.
+
+The one relaxation, stated: the era's Open required a selection, and the harness has no
+icon layer until phase 5, so here it is unconditional.
+
+### 4.47 A disabled item may carry its historical accelerator; an enabled one may not
+
+**Call.** The Edit menu ships Undo, Cut, Copy, Paste and Clear — all disabled, all
+carrying ⌘Z ⌘X ⌘C ⌘V. A test asserts that every **enabled** item's accelerator equals
+`Shell.accelFor(command)`.
+
+**Reasoning.** The rule 4.38 established is that a label must not advertise a chord the
+keymap does not bind. A disabled item advertises nothing — it is the era telling you
+what the menu would offer if there were something to edit — so the historical chord is
+information rather than a promise. Drawing the line at `enabled` makes it testable
+instead of a matter of judgement, and it is what lets the era keep the four chords it
+made famous without binding any of them to a harness that has no clipboard.
+
+### 4.48 Chrome outside the desktop needs its own inset, separate from a region's reservation
+
+**Call.** `Display.setHostInsets(edges)` in CSS pixels, applied only in `fixed` mode.
+`Shell.applyReservedEdges` feeds it `extraReserved` while `setReservedEdges` keeps
+receiving the sum.
+
+**Reasoning.** Reported under §11. Found by this era's one-bit gate, which started
+failing on the merge with main and passed on the commit before it — diagnosed by
+running it there rather than by adjusting the number, as 4.16 requires.
+
+The cause is that "reserved" was one number doing two jobs. A shell region is a child of
+the desktop, so it is inside the display transform and its claim is in logical era
+pixels: it shrinks the work area and must not move the desktop, which is already around
+it. The harness status strip is anchored to the host in CSS pixels and is *outside* the
+desktop, so on top of shrinking the work area it has to move the desktop clear of
+itself. Summing them cannot express either — and before Tiger the strip was `static` and
+painted underneath the desktop, so the collision only appeared when it was correctly
+positioned at the bottom.
+
+Measured: three device rows of antialiased status-strip text bleeding into a 512×342
+desktop and reading as grey in an era that has none. Windows 3.1 has the same viewport
+mode and the same latent overlap; Tiger is `native`, where the desktop is the host area
+and `workArea()` already handles it, which is why the insets apply in `fixed` mode only.
+
+### 4.49 A substitute face's coverage is part of verifying it
+
+**Call.** A test runs `document.fonts.check('16px "S1 Chicago"', …)` over every string
+the skin renders. The Apple menu says `About the Finder...` with three periods.
+
+**Reasoning.** ChiKareGo2 has no U+2026 and no U+2014. 4.35's comparison could not have
+found that: it rendered the target strings and measured their shapes and widths, so a
+character none of them contained was invisible to it. Coverage is a different question
+from fidelity and needs its own instrument.
+
+The failure is silent, which is what makes it worth a test. A missing glyph falls back to
+the browser's default face, whose fractional advance takes every glyph after it in the
+run off the pixel grid — the text still appears, it is just no longer 1-bit. Measured on
+the harness's own title: `Files — Macintosh HD:` is 311.28px wide, `Files - Macintosh HD:`
+is 306px.
+
+One instance is **not** fixed and is flagged rather than quietly changed: `src/main.ts`
+builds every window title with an em dash. That is harness text shared by six eras, four
+of which have a face that covers it, and narrowing it to fix one era is the kind of
+change CLAUDE.md says to raise instead of make.

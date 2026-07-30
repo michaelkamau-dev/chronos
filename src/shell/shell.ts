@@ -40,6 +40,16 @@ export interface ShellRegionHost {
    * which `test/browser/a11y.spec.ts` asserts across the whole vocabulary.
    */
   readonly commands: CommandRegistry
+  /**
+   * The chord the active skin binds to a command, for a region's accelerator column.
+   *
+   * `Shell.accelFor` with the same contract, exposed here because a region's menus
+   * are the most visible place an accelerator label can disagree with the keyboard.
+   * Without it a menu bar has to write chords as literals, which is right for the era
+   * that wrote them and wrong for every other — Tiger's bar carries `Meta+N` and
+   * `Meta+W` for exactly that reason.
+   */
+  accelFor(command: Command): string | undefined
   /** Open a menu with its top-left at these client coordinates. */
   openMenu(spec: MenuSpec, clientX: number, clientY: number): boolean
   /** Ask the shell to re-read every region's minimize targets and geometry. */
@@ -309,6 +319,7 @@ export class Shell {
       wm: this.wm,
       menus: this.menus,
       commands: this.commands,
+      accelFor: (command) => this.accelFor(command),
       openMenu: (spec, x, y) => this.menus.open(spec, x, y),
       invalidate: () => this.wm.setWorkArea(this.display.workArea()),
     }
@@ -355,6 +366,15 @@ export class Shell {
   }
 
   private applyReservedEdges(): void {
+    /*
+     * Two different quantities, and they are not interchangeable.
+     *
+     * A region is inside the desktop, so its claim is in logical era pixels and only
+     * the work area shrinks. The harness status strip is anchored to the host in CSS
+     * pixels, so on top of shrinking the work area it has to move the desktop clear of
+     * itself — otherwise it paints over a fixed-mode era's bottom rows.
+     */
+    this.display.setHostInsets(this.extraReserved)
     this.display.setReservedEdges({
       top: this.regionReserved.top + this.extraReserved.top,
       right: this.regionReserved.right + this.extraReserved.right,

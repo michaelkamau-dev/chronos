@@ -615,7 +615,11 @@ era has none.
 | Scroll bar | 16px wide; 16px arrow boxes; scroll box a **fixed 16px, not proportional** | measured |
 | Scroll trough | QuickDraw **`ltGray`, 25% on a 4×2 cell** — not the desktop's 50% | measured |
 | Desktop | 50% checkerboard, 1px cell, all ink on one `(x+y)` parity | measured |
-| Menu bar | 20px including its 1px rule at row 19 | measured |
+| Menu bar | 20px = 1px screen border + 18px + 1px rule; caps on row 5 | measured |
+| Menu title box | rows 1–18, string + **10px** either side; first box 8px in | measured |
+| Menu title stride | string + **15px** — exact on 4 of 5 Finder transitions | measured |
+| Apple title | 11×14 artwork inside a **17px** advance | measured |
+| Pull-down origin | left border on the title box's left edge, top border on the bar's rule | measured |
 | Menu | 1px border + 1px shadow; 16px items; cap at +3; separator rule at +8 | measured |
 | Menu columns | mark 4px, label 16px, accelerator 23px, submenu 8px — all from the border line | measured |
 | Push button | **59×20**, corner a 3-step indent `[3,1,1]`, not a radius | measured |
@@ -647,6 +651,16 @@ The five corrections, and what each one was:
 Two things the earlier table had right and that recreations get wrong, restated
 because they are the strongest authenticity tells: System 1 windows **did** have a
 drop shadow, and the scroll box **is** fixed rather than proportional.
+
+**A second measurement does not resolve, and it is in the menu bar.** The title box
+(string + 10px either side) and the title stride (string + 15px) are each measured
+directly and each reproduce their figure exactly — and together they mean adjacent
+boxes overlap by 5px, which is impossible for rects that partition the bar. No figure
+can settle it, because only one title is ever highlighted and none of the eight shows
+two boxes; the Menu Manager's own title-rect arithmetic is not in `docs/sources/`.
+Both ship exactly and the overlap is the derived consequence, expressed as a negative
+margin. It is unobservable — the later title wins the shared pixels for hit-testing —
+and it is written down rather than split down the middle.
 
 One measurement did not resolve and ships as recorded variance rather than
 smoothed: the bottom-left shadow corner. The two genuine screen dumps agree

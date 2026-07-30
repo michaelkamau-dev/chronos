@@ -379,3 +379,57 @@ Append every correction I make here as a permanent rule. Never delete entries.
   helper into a second spec, and that breaks it in fact — two copies drift and the one that
   drifts is the one nobody looks at. `measureParity` moved to `test/browser/stipple.ts` and
   both eras import it, so one instrument holds two eras and the source to one standard.
+
+### Two measurements that cannot both be true still both ship (the menu bar)
+- The title box is the string plus 10px either side and the stride is the string plus 15
+  — measured separately, each exact on its own figure, and together they mean adjacent
+  boxes overlap by 5px. Rects that partition a bar cannot overlap. Every attempt to solve
+  it produced a half pixel (7.5 from two directions; 5 on one figure and 6 on the other),
+  which no 1984 Toolbox used.
+- Ship both exactly and record the overlap as derived. It is unobservable — only one title
+  is ever inverted — so splitting the difference would make two *visible* measurements
+  wrong to hide one *invisible* inconsistency.
+- A construction beats a number: the title box ends on row 18, so opening the menu at the
+  title's bottom rather than the bar's puts the menu's 1px top border on the bar's rule for
+  free, and the inversion, the rule and the menu's left border become one run of ink.
+- Only a figure with a menu *pulled down* shows a title box at all; an unhighlighted title
+  is just its string. Look for the figure in the interaction state before concluding a
+  value is unmeasurable.
+
+### Coverage is part of verifying a substitute face, and the failure is silent
+- ChiKareGo2 has no U+2026 and no U+2014. The font comparison could not have caught it: it
+  rendered the target strings and measured their shapes and widths, so a character none of
+  them contained was invisible to it.
+- A missing glyph does not fail loudly — it falls back to the browser's default face, whose
+  fractional advance takes every glyph *after* it in the run off the pixel grid. The text
+  still appears; it is just no longer 1-bit. `Files — …` measures 311.28px, `Files - …`
+  measures 306px.
+- `document.fonts.check()` over every string a skin renders is the instrument. Add it when
+  the face is chosen, not after an era gate catches the fringe.
+
+### "Reserved" was one number doing two jobs
+- A shell region is a child of the desktop, so its claim is in logical era pixels: it
+  shrinks the work area and must not move the desktop, which is already around it. Chrome
+  anchored to the host — the harness status strip — is in CSS pixels and *outside* the
+  desktop, so it must also move a fixed-mode desktop clear of itself. Summing them cannot
+  express either, and three device rows of antialiased strip text bled into a 512x342
+  desktop and read as grey in an era that has none.
+- The gate that caught it was diagnosed by running it on the commit before the merge, not
+  by adjusting the number — the same discipline the perf gate needed. It passed there,
+  which is what proved the merge and not the menu bar was the cause.
+- A bug can be created by *correcting* something: the strip only collided once Tiger gave
+  it the `data-edge` that positions it properly. Before that it was painting underneath the
+  desktop, invisible, and nobody had noticed it was misplaced.
+
+### An era's menus may only promise what the keymap binds
+- A **disabled** item promises nothing, so it may carry its historical accelerator — that is
+  how System 1's Edit menu keeps ⌘Z ⌘X ⌘C ⌘V with none of them bound. An **enabled** item's
+  accelerator must come from `accelFor`, and a test asserts that split rather than leaving it
+  to judgement.
+- Where neither works, omit the item. Get Info, Duplicate and Eject are absent from the File
+  menu because showing ⌘I ⌘D ⌘E would advertise unbound chords and showing them bare would
+  misrepresent the era. Omission is the honest third option.
+- `ShellRegionHost` had no `accelFor`, so a region's menus had to write chords as literals —
+  the same defect one layer down from the one already fixed in the shell. Check whether a
+  fix's *reason* applies to every surface that does the same job, not just the one that
+  showed the symptom.

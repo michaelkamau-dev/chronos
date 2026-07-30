@@ -377,6 +377,338 @@ test.describe('menus', () => {
     })
 })
 
+test.describe('the menu bar', () => {
+  /**
+   * The bar's 20px decompose as 1px + 18px + 1px, and its first row is the screen's
+   * own border line — which is what makes the era's own arithmetic close and lands the
+   * cap top on row 5. Measured on three figures; reproduced by
+   * `measure-mac-system1.py`'s `measure_menubar`.
+   */
+  test('20px, its first row the screen border, its last the rule, caps on row 5',
+    async ({ page }) => {
+      const bar = page.locator('[data-shell-region="menubar"]')
+      await expect(bar).toBeVisible()
+      const grid = await inkGrid(page, bar)
+      expect(grid.length, 'the bar is 20px including its rule').toBe(20)
+
+      // Row 0 is the screen's border, short by 2px at each end for the rounded
+      // corner; row 19 is the rule and spans the whole width.
+      expect(runs(grid[0]!), 'row 0 is the screen border line').toEqual([[2, 509]])
+      expect(runs(grid[19]!), 'row 19 is the bar rule').toEqual([[0, 511]])
+
+      // Rows 1, 16, 17 and 18 carry no title ink: the 16px cell sits at rows 2..17
+      // and Chicago's caps occupy 5..13 inside it.
+      for (const i of [1, 16, 17, 18]) {
+        expect(grid[i]!.some(Boolean), `row ${i} is clear`).toBe(false)
+      }
+      const capRows = grid
+        .map((row, i) => [i, row.slice(40, 240).some(Boolean)] as const)
+        .filter(([i, any]) => any && i > 0 && i < 19)
+        .map(([i]) => i)
+      expect(capRows[0], 'the cap top lands on row 5').toBe(5)
+      expect(capRows[capRows.length - 1]).toBeLessThanOrEqual(15)
+    })
+
+  /**
+   * The Apple title is the one that is artwork rather than a string: an 11x14 bitmap
+   * from the file-menu figure at x 18..28, rows 2..15, inside a 17px advance. The
+   * advance is what makes every following title land on its measured column, which is
+   * why it is a measured value and not the ink width.
+   */
+  test('the Apple title is the measured 11x14 bitmap at x 18', async ({ page }) => {
+    const grid = await inkGrid(page, page.locator('[data-shell-region="menubar"]'))
+    const cols: number[] = []
+    for (let x = 0; x < 40; x++) {
+      if (grid.slice(1, 19).some((row) => row[x])) cols.push(x)
+    }
+    expect([cols[0], cols[cols.length - 1]], 'ink x 18..28').toEqual([18, 28])
+    const rows = grid
+      .map((row, i) => [i, row.slice(0, 40).some(Boolean)] as const)
+      .filter(([i, any]) => any && i > 0 && i < 19)
+      .map(([i]) => i)
+    expect([rows[0], rows[rows.length - 1]], 'ink rows 2..15').toEqual([2, 15])
+    // Its top three rows are the stem: 2, 2 and 1 pixels wide.
+    expect([2, 3, 4].map((i) => grid[i]!.slice(0, 40).filter(Boolean).length))
+      .toEqual([2, 2, 1])
+  })
+
+  /**
+   * Two measurements that do not reconcile, both shipped exactly.
+   *
+   * A title's box is the string plus 10px either side (two figures), and the stride to
+   * the next string is the string plus 15px (four of five transitions in the Finder's
+   * bar). Together they mean adjacent boxes overlap by 5px, which no figure can settle
+   * because only one title is ever highlighted. The construction is asserted rather
+   * than the absolute columns, because the columns also carry the substitute font's
+   * advance drift — see docs/eras/system1.md.
+   */
+  test('a title box is the string + 10px either side, on a stride of + 15',
+    async ({ page }) => {
+      const m = await page.evaluate(() => {
+        const scale = window.__chronos.shell.display.scale()
+        const bar = document.querySelector<HTMLElement>('[data-shell-region="menubar"]')!
+        const titles = [...bar.querySelectorAll<HTMLElement>('[data-menubar-title]')]
+        const origin = bar.getBoundingClientRect().left
+        const px = (v: number): number => Math.round(v / scale)
+        return {
+          pad: titles.map((t) => getComputedStyle(t).paddingLeft),
+          boxes: titles.map((t) => {
+            const r = t.getBoundingClientRect()
+            return { left: px(r.left - origin), w: px(r.width) }
+          }),
+        }
+      })
+      expect(new Set(m.pad), 'every title carries the measured 10px').toEqual(
+        new Set(['10px']),
+      )
+      // The first box's left edge, 8px in from the screen's border line.
+      expect(m.boxes[0]!.left, 'the Apple box starts at 8').toBe(8)
+      // The Apple advance is 17, so its box is 37 and the next box starts at 40 —
+      // both values straight off the file-menu figure.
+      expect(m.boxes[0]!.w, 'the Apple box is 17 + 20').toBe(37)
+      expect(m.boxes[1]!.left, 'File\'s box starts at 40').toBe(40)
+      // Every stride is its own box minus the 5px overlap the two measurements imply.
+      for (let i = 0; i < m.boxes.length - 1; i++) {
+        expect(m.boxes[i + 1]!.left - m.boxes[i]!.left, `stride ${i}`)
+          .toBe(m.boxes[i]!.w - 5)
+      }
+    })
+
+  /**
+   * Apple's own construction: the inverted title, the bar's rule and the menu's left
+   * border are one continuous run of ink. That falls out of opening the menu at the
+   * *title's* bottom rather than the bar's — the box ends on row 18, so the menu's own
+   * 1px top border lands on the rule at row 19.
+   */
+  test('a menu drops from the title box\'s left edge, its top border on the rule',
+    async ({ page }) => {
+      await page.locator('[data-menubar-title="file"]').click()
+      const m = await page.evaluate(() => {
+        const scale = window.__chronos.shell.display.scale()
+        const bar = document.querySelector<HTMLElement>('[data-shell-region="menubar"]')!
+        const title = document.querySelector<HTMLElement>('[data-menubar-title="file"]')!
+        const menu = document.querySelector<HTMLElement>('[data-menu]')!
+        const b = bar.getBoundingClientRect()
+        const t = title.getBoundingClientRect()
+        const n = menu.getBoundingClientRect()
+        const cs = getComputedStyle(title)
+        return {
+          menuLeft: Math.round((n.left - b.left) / scale),
+          titleLeft: Math.round((t.left - b.left) / scale),
+          menuTop: Math.round((n.top - b.top) / scale),
+          titleBottom: Math.round((t.bottom - b.top) / scale),
+          background: cs.backgroundColor,
+          color: cs.color,
+        }
+      })
+      expect(m.menuLeft, 'the menu\'s left border is the box\'s left edge')
+        .toBe(m.titleLeft)
+      expect(m.titleBottom, 'the box ends on row 18, so its bottom edge is row 19')
+        .toBe(19)
+      expect(m.menuTop, 'the menu\'s top border lands on the rule').toBe(19)
+      // The title inverts. On 1-bit hardware that is the only highlight there is.
+      expect(m.background).toBe('rgb(0, 0, 0)')
+      expect(m.color).toBe('rgb(255, 255, 255)')
+    })
+
+  /**
+   * The inversion has to clear however the menu closed, and Escape is the route that
+   * catches a bar polling for pointer events instead. `MenuController.subscribe` is
+   * what makes it work — this is the assertion that the bar uses it.
+   */
+  test('the inversion clears when the menu closes by Escape', async ({ page }) => {
+    const title = page.locator('[data-menubar-title="file"]')
+    await title.click()
+    await expect(title).toHaveAttribute('data-open', 'true')
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-menu]')).toHaveCount(0)
+    expect(await title.getAttribute('data-open')).toBeNull()
+  })
+
+  test('sliding along the bar with a menu open switches menus', async ({ page }) => {
+    await page.locator('[data-menubar-title="file"]').click()
+    await page.locator('[data-menubar-title="edit"]').hover()
+    await expect(page.locator('[data-menubar-title="edit"]'))
+      .toHaveAttribute('data-open', 'true')
+    expect(await page.locator('[data-menubar-title="file"]').getAttribute('data-open'))
+      .toBeNull()
+    // One menu at a time, however it was opened.
+    expect(await page.locator('[data-menu]').count()).toBe(1)
+  })
+
+  /**
+   * Every mouse interaction needs a keyboard path. The era's keyboard has no arrow
+   * keys at all, so the keys accepted here are a Chronos accessibility obligation
+   * rather than an era behaviour — the same reasoning that binds Escape in a keymap
+   * whose hardware had no Escape key.
+   */
+  test('a title opens from the keyboard and highlights the first item',
+    async ({ page }) => {
+      await page.locator('[data-menubar-title="view"]').focus()
+      await page.keyboard.press('Enter')
+      const menu = page.locator('[data-menu]')
+      await expect(menu).toHaveCount(1)
+      await expect(menu.locator('[data-menu-item]').first())
+        .toHaveAttribute('data-highlight', 'true')
+    })
+
+  /**
+   * Apple states it twice (HIG p144, p154): a menu title is never dimmed, even when
+   * every item under it is unavailable. The Apple, View and Special menus are entirely
+   * disabled here and their titles still open.
+   */
+  test('no menu title is ever disabled, however unavailable its contents',
+    async ({ page }) => {
+      const titles = page.locator('[data-menubar-title]')
+      expect(await titles.count()).toBe(5)
+      for (const t of await titles.all()) {
+        expect(await t.isDisabled(), 'a Mac menu title is never dimmed').toBe(false)
+        expect(await t.getAttribute('aria-disabled')).toBeNull()
+      }
+      await page.locator('[data-menubar-title="special"]').click()
+      await expect(page.locator('[data-menu]')).toHaveCount(1)
+    })
+
+  /**
+   * An **enabled** item's accelerator has to come from the active keymap, because it
+   * promises a chord that works. A **disabled** item promises nothing, so it may carry
+   * the chord the era gave it — which is how the Edit menu keeps the four chords it
+   * made famous without any of them being bound.
+   */
+  test('every enabled item\'s accelerator comes from the skin\'s keymap',
+    async ({ page }) => {
+      await page.locator('[data-menubar-title="file"]').click()
+      const items = await page.evaluate(() => {
+        const shell = window.__chronos.shell
+        return [...document.querySelectorAll('[data-menu-item]')].map((el) => ({
+          label: el.querySelector('.s1-menu-label')?.textContent ?? '',
+          key: el.querySelector('.s1-menu-key')?.textContent ?? '',
+          disabled: el.getAttribute('aria-disabled') === 'true',
+          fromKeymap: {
+            open: shell.accelFor('shell.newWindow'),
+            close: shell.accelFor('window.close'),
+          },
+        }))
+      })
+      // Open is the era's own chord for the action that makes a window. Command-N was
+      // New Folder, which Chronos has nothing to make.
+      expect(items.map((i) => [i.label, i.key])).toEqual([['Open', 'O'], ['Close', 'W']])
+      expect(items[0]!.fromKeymap.open).toBe('Meta+O')
+      expect(items[0]!.fromKeymap.close).toBe('Meta+W')
+      // Open always applies; Close needs a closable window, and says so.
+      expect(items.map((i) => i.disabled)).toEqual([false, true])
+
+      await page.keyboard.press('Escape')
+      await page.evaluate(() => window.__chronos.openWindows(1))
+      await page.locator('[data-menubar-title="file"]').click()
+      const enabled = await page.evaluate(() =>
+        [...document.querySelectorAll('[data-menu-item]')].map(
+          (el) => el.getAttribute('aria-disabled') === 'true',
+        ),
+      )
+      expect(enabled, 'both apply once a window is frontmost').toEqual([false, false])
+    })
+
+  test('the Edit menu keeps its historical chords, and every item is stippled',
+    async ({ page }) => {
+      await page.locator('[data-menubar-title="edit"]').click()
+      const keys = await page.evaluate(() =>
+        [...document.querySelectorAll('[data-menu-item]')].map((el) => [
+          el.querySelector('.s1-menu-label')?.textContent ?? '',
+          el.querySelector('.s1-menu-key')?.textContent ?? '',
+          el.getAttribute('aria-disabled'),
+        ]),
+      )
+      expect(keys).toEqual([
+        ['Undo', 'Z', 'true'],
+        ['Cut', 'X', 'true'],
+        ['Copy', 'C', 'true'],
+        ['Paste', 'V', 'true'],
+        ['Clear', '', 'true'],
+      ])
+      // And they are stippled by the same notPatBic knockout the window chrome menu
+      // uses — the identical instrument the Windows 3.1 suite runs on GrayString.
+      const p = await measureParity(
+        page,
+        page.locator('[data-menu] [data-menu-item]').first(),
+      )
+      expect(p.ink).toBeGreaterThan(20)
+      expect(p.oneParityShare, 'a 50% checkerboard knocked out of the glyph')
+        .toBeGreaterThan(0.95)
+    })
+
+  test('View keeps the current sort ticked while its commands are unavailable',
+    async ({ page }) => {
+      await page.locator('[data-menubar-title="view"]').click()
+      const first = page.locator('[data-menu] [data-menu-item]').first()
+      await expect(first).toHaveAttribute('aria-disabled', 'true')
+      // Checked *and* disabled is what the Finder showed: the view stays ticked, the
+      // commands do not apply. The tick is the measured 9x8 bitmap.
+      const mark = first.locator('.s1-menu-mark')
+      expect(await mark.getAttribute('data-glyph')).toBe('check')
+      expect(await mark.evaluate((el) => getComputedStyle(el, '::before').boxShadow))
+        .toContain('rgb(0, 0, 0)')
+    })
+
+  /**
+   * A substitute face's *coverage* is part of verifying it, and the font comparison
+   * never checked it: it rendered the target strings and measured their shapes and
+   * widths, so a character none of them contained was invisible to it.
+   *
+   * ChiKareGo2 has no U+2026 and no U+2014. A missing glyph does not fail loudly — it
+   * falls back to the browser's default face, whose fractional advance takes every
+   * glyph after it in the run off the pixel grid. The text still appears; it is just
+   * no longer 1-bit. That is why the menus say `About the Finder...` rather than using
+   * an ellipsis character.
+   */
+  test('the substitute covers every character this skin renders', async ({ page }) => {
+    const labels: string[] = []
+    for (const kind of ['apple', 'file', 'edit', 'view', 'special']) {
+      await page.locator(`[data-menubar-title="${kind}"]`).click()
+      labels.push(
+        ...(await page.locator('[data-menu] [data-menu-item]').allTextContents()),
+      )
+      await page.keyboard.press('Escape')
+    }
+    labels.push(...(await page.locator('[data-menubar-title]').allTextContents()))
+    const uncovered = await page.evaluate(
+      (strings: string[]) =>
+        strings.filter((t) => t !== '' && !document.fonts.check('16px "S1 Chicago"', t)),
+      labels,
+    )
+    expect(uncovered, 'every glyph comes from the era face, none from a fallback')
+      .toEqual([])
+  })
+
+  /**
+   * One region, and the absences are the era. No Dock, no taskbar, no window list —
+   * there is no multitasking to list, and no minimize for a Dock to receive.
+   */
+  test('the bar is the era\'s only region, and it reserves its 20px',
+    async ({ page }) => {
+      const m = await page.evaluate(() => {
+        const regions = [...document.querySelectorAll('[data-shell-region]')]
+          .map((el) => (el as HTMLElement).dataset['shellRegion'])
+        const desktop = document.querySelector<HTMLElement>('[data-desktop]')!
+        const bar = document.querySelector<HTMLElement>('[data-shell-region="menubar"]')!
+        return {
+          // The harness status strip is not a skin region; it lives on the root.
+          inDesktop: [...desktop.querySelectorAll('[data-shell-region]')]
+            .map((el) => (el as HTMLElement).dataset['shellRegion']),
+          regions,
+          workAreaTop: window.__chronos.shell.wm.workArea().y,
+          insideTransform: desktop.contains(bar),
+        }
+      })
+      expect(m.inDesktop, 'exactly one skin region, the menu bar').toEqual(['menubar'])
+      expect(m.regions).not.toContain('dock')
+      // Regions live inside the desktop so they sit inside the display transform:
+      // a 512x342 era's bar scales with its viewport instead of floating beside it.
+      expect(m.insideTransform).toBe(true)
+      expect(m.workAreaTop, 'the bar reserves its 20px from the work area').toBe(20)
+    })
+})
+
 test.describe('controls', () => {
   test('a push button is 59x20 with a measured 3,1,1 corner arc', async ({ page }) => {
     await page.evaluate(() => window.__chronos.openWindows(1))

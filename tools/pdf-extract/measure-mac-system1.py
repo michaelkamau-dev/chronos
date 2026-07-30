@@ -427,6 +427,91 @@ def measure_chicago(d):
     print('    New 27  Open... 43  Close 33  Quit 24  untitled 50')
 
 
+# ----------------------------------------------------------------- the menu bar
+
+def measure_menubar(d):
+    """
+    The bar, its highlighted title box, and the arithmetic that places titles.
+
+    Two figures carry a menu bar with a title pulled down, which is the only state
+    that shows a title's box at all: an unhighlighted title is just its string. Both
+    give the same three facts, and the second is what settles where a menu opens.
+    """
+    head('Menu bar — mac-hig-file-menu.png and mac-hig-screen-512x342.png')
+
+    for name in ('mac-hig-file-menu.png', 'mac-hig-screen-512x342.png',
+                 'mac-hig-menubar-512.png'):
+        ink = load(f'{d}/{name}')
+        h, w = ink.shape
+        full = [y for y in range(min(25, h)) if ink[y].sum() >= w - 4]
+        boxes = [r for r in runs(ink[1], minlen=18)]
+        print(f'  {name}  {w}x{h}')
+        print(f'    full-width rows in the top 25: {full}'
+              + ('  -> row 19 is the bar rule, so the bar is 20px including it'
+                 if 19 in full else ''))
+        if boxes:
+            top = [r for r in runs(ink[:, boxes[0][0]])][0]
+            print(f'    highlighted title box: x {boxes[0][0]}..{boxes[0][1]} '
+                  f'= {boxes[0][1] - boxes[0][0] + 1}px, rows 1..18 = 18px')
+            # The inverted string is the paper inside the box.
+            paper = ~ink[:, boxes[0][0]:boxes[0][1] + 1]
+            cols = [x for x in range(paper.shape[1])
+                    if paper[5:14, x].any()]
+            print(f'    inverted string ink: box+{cols[0]}..box+{cols[-1]} '
+                  f'= {cols[-1] - cols[0] + 1}px  -> left pad {cols[0]}, '
+                  f'right pad {boxes[0][1] - boxes[0][0] - cols[-1]}')
+            print(f'    the box\'s left column is ink from row {top[0]} to {top[1]}'
+                  f'  -> the highlight, the bar rule and the menu\'s left border are '
+                  f'one continuous run')
+        else:
+            print('    no title pulled down in this figure')
+
+    # Title strides, from the one figure whose whole bar is unobstructed.
+    ink = load(f'{d}/mac-hig-menubar-512.png')
+    cols = ink[1:19].any(axis=0)
+    groups = [g for g in runs(cols) if g[0] > 5 and g[1] < 300]
+    words = []
+    for a, b in groups:
+        if words and a - words[-1][1] <= 4:
+            words[-1][1] = b
+        else:
+            words.append([a, b])
+    names = ['apple', 'File', 'Edit', 'View', 'Label', 'Special']
+    print('\n  Finder title strings, p077 (System 7 — "Label" did not exist in 1984):')
+    for n, (a, b) in zip(names, words):
+        print(f'    {n:8s} ink x {a}..{b}  w={b - a + 1}')
+    print('  string-to-string gaps: '
+          + str([words[i + 1][0] - words[i][1] - 1 for i in range(len(words) - 1)]))
+    print('  stride check, next_ink_left == ink_left + ink_width + 15:')
+    for i in range(len(words) - 1):
+        pred = words[i][0] + (words[i][1] - words[i][0] + 1) + 15
+        got = words[i + 1][0]
+        print(f'    {names[i]:8s} -> {names[i + 1]:8s}  predicted {pred:4d}  '
+              f'measured {got:4d}  {"exact" if pred == got else f"off by {got - pred}"}')
+
+    # Cap band, and the Apple glyph, from the figure that also gives the box.
+    ink = load(f'{d}/mac-hig-file-menu.png')
+    caps = [y for y in range(1, 19) if ink[y, 86:109].any()]
+    print(f'\n  title cap band (Edit, unhighlighted): rows {caps[0]}..{caps[-1]}'
+          f' = {caps[-1] - caps[0] + 1}px'
+          '  -> a 16px cell at row 2, cap top at cell+3')
+    ax = [x for x in range(10, 35) if ink[1:19, x].any()]
+    ay = [y for y in range(1, 19) if ink[y, ax[0]:ax[-1] + 1].any()]
+    print(f'  Apple glyph: x {ax[0]}..{ax[-1]} = {ax[-1] - ax[0] + 1}px, '
+          f'rows {ay[0]}..{ay[-1]} = {ay[-1] - ay[0] + 1}px')
+    for y in range(ay[0], ay[-1] + 1):
+        print('    ' + ''.join('#' if ink[y, x] else '.'
+                               for x in range(ax[0], ax[-1] + 1)))
+    ink2 = load(f'{d}/mac-hig-menubar-512.png')
+    bx = [x for x in range(10, 35) if ink2[1:19, x].any()]
+    by = [y for y in range(1, 19) if ink2[y, bx[0]:bx[-1] + 1].any()]
+    print(f'  p077 draws a different Apple: x {bx[0]}..{bx[-1]} '
+          f'= {bx[-1] - bx[0] + 1}px, rows {by[0]}..{by[-1]} '
+          f'= {by[-1] - by[0] + 1}px. Recorded as variance; the file-menu figure is '
+          f'what ships, because it is the one that also carries the box.')
+
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -436,6 +521,7 @@ def main():
     measure_frames(d)
     measure_titlebar(d)
     measure_scrollbars(screen)
+    measure_menubar(d)
     measure_menu(d)
     measure_menu_glyphs(screen)
     measure_command_glyph(d)
