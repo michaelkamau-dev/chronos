@@ -61,6 +61,17 @@ const ERAS: Record<string, () => Promise<EraBundle>> = {
       decorate: paths.win31NameDecorator,
     }
   },
+  tiger: async () => {
+    const [{ tigerSkin }, paths] = await Promise.all([
+      import('./skins/tiger/index.js'),
+      import('./skins/tiger/paths.js'),
+    ])
+    return {
+      skin: tigerSkin,
+      codec: paths.createTigerCodec,
+      decorate: paths.tigerNameDecorator,
+    }
+  },
 }
 
 const DEFAULT_ERA = 'winxp'
@@ -88,11 +99,12 @@ const decorate: NameDecorator = era.decorate
 const shell = new Shell(root, era.skin)
 shell.bindFocusFollowing()
 
-// The status strip reserves space at the bottom, which is how a taskbar, a Dock
-// or Ledger's budget bar will shrink the work area in later phases.
+// The harness status strip reserves space at the bottom, *on top of* whatever the
+// active skin's own shell regions already claim — Tiger reserves a menu bar and a
+// Dock, and writing the display's reserved edges directly here would silently
+// discard both.
 const STATUS_HEIGHT = 24
-shell.display.setReservedEdges({ bottom: STATUS_HEIGHT })
-shell.wm.setWorkArea(shell.display.workArea())
+shell.addReservedEdges({ bottom: STATUS_HEIGHT })
 
 /** Directory views keyed by the window hosting them, so they can be torn down. */
 const views = new Map<WindowId, DirectoryView>()
@@ -140,6 +152,10 @@ shell.wm.subscribe((e) => {
 const status = document.createElement('div')
 status.className = 'status'
 status.dataset['shellRegion'] = 'status'
+// `data-edge` is what positions a region, and base.css now owns that rule for every
+// era. Without it this strip lands at the origin with a region's z-index and covers
+// whatever the active skin puts along the top — a menu bar, in Tiger's case.
+status.dataset['edge'] = 'bottom'
 root.appendChild(status)
 
 const counter = document.createElement('span')

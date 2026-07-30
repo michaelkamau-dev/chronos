@@ -1089,3 +1089,285 @@ Two eras are built. Four remain, in this order and for these reasons:
 Nothing is half-finished at this boundary. The two open external items — `luna.msstyles`
 and a pressed-button Windows 3.1 capture — are recorded in §13 with notes, and neither
 blocks a skin.
+
+## Phase 4, era/tiger — measurement
+
+### 4.17 Five more figures were found, and they corrected §7 twice
+
+**Call.** `ARCHITECTURE.md` §7's Tiger table is corrected: the first traffic light is
+**9px** from the window's left edge, not 13px, and a light is **14px** including its
+ring, not 12px. `tools/pdf-extract/measure-tiger-window.py` is fixed.
+
+**Reasoning.** Both errors had one cause, and it was in the instrument rather than in
+the reading. The script located the window's edges with *the first step greater than
+30 in channel sum*, and an Aqua window sits on a soft drop shadow that ramps in
+30-to-40-unit steps — so it stopped on the shadow, three pixels outside the window.
+The real frame line is the **largest** step in the row by a factor of five: 217
+against the shadow's 40. Measuring from it gives 9px, and Figures 13-3, 13-19 and
+13-22 independently agree.
+
+The 12px diameter is a different instrument failing differently: a saturation test
+finds a light's coloured core and stops at its 1px dark ring — and cannot see a
+*grey* light at all, which is why the disabled state had been recorded as
+unmeasurable. Testing for "materially darker than this row runs at the bar's right
+end" finds every state and gives 14px on 40+ instances.
+
+**The unblock was the Luna caption-button lesson, applied again.** The mistake log
+records: *before recording something as unresolvable pending an external file, check
+whether another figure in the same source shows it.* Figure 13-3, "Title bar buttons
+for standard windows", is **fifteen separate embedded bitmaps** rather than one, each
+placed at exactly `px/pt = 1.000`. It is the Tiger analogue of Microsoft's specimen
+sheet and it settled the traffic lights in one pass. Four more figures came with it:
+13-19 (an inactive window), 13-22 (scroll bars and the resize control), 12-11 (a menu
+with a dimmed item, a highlight and two separators) and 12-12 (the menu bar).
+
+### 4.18 The title bar gradient is resolved rather than contested
+
+**Call.** The active title bar ships as 21 measured neutral rows, `#F9F9F9` →
+`#CACACA`, tagged `measured` rather than `contested`.
+
+**Reasoning.** This looked like it was going to be Luna's caption gradient again.
+Figures 13-2 and 13-19 read the bar with a consistent 4-to-9 unit **cool cast**, which
+could plausibly have been Aqua Blue's real tint — and by the standard set in 3.7 and
+3.11 that would have had to ship unresolved.
+
+Three of Figure 13-3's fifteen specimens settle it. Cropped and compressed separately,
+they give the same 23 rows to within one unit, and **every row is exactly neutral**
+(R = G = B). A source carrying any tint cannot produce R = G = B on 23 rows in three
+independent crops. The cast belongs to those two larger, busier bitmaps.
+
+Worth recording because it is the opposite outcome to XP's: the rule is not "when
+figures disagree, ship contested", it is "find the reading that explains the
+disagreement". Here one existed.
+
+### 4.19 The corner ships as a radius, and that is a decision
+
+**Call.** `cornerTop: { kind: 'radius', px: 6 }`.
+
+**Reasoning.** The measured arc profile is 4,3,2,1,1,0 — structurally the same object
+as Luna's 5,3,2,1,1,0, which 3.15 made a `steps` union *because* no `border-radius`
+reproduces it. The difference is that Tiger's arc is **antialiased** where Luna's is
+hard 1-bit steps. A `clip-path` polygon would throw away the partial coverage, which
+here is part of the artwork rather than an artefact of measuring it. A 6px radius
+predicts 3.6, 2.0, 1.1, 0.6, 0.2, 0.0 against the measurement; the 1px excess at rows
+1–2 is the antialiasing the measurement cannot exclude.
+
+3.15 anticipated exactly this — "Tiger and Ledger can still say `radius` honestly" —
+so this is the union being used as designed rather than a weakening of it.
+
+### 4.20 Three light states have no source, and say so rather than being invented
+
+**Call.** `rest` and `disabled` are measured artwork. `hover` and `active` are
+`unverified` with notes; `focus` uses the measured Aqua ring.
+
+**Reasoning.** Figure 13-3 has fifteen states and **not one shows a glyph** — no ×, no
+−, no +. Searching the HIG for "rollover", "pointer is over" and "symbols appear"
+returns nothing about title bar buttons. `CLAUDE.md` requires all five states on every
+interactive element, so all five ship; the two with no source are tagged rather than
+presented as measurements, which is the same treatment Luna's `disabled` caption
+buttons got in 4.2.
+
+Focus is deliberately *not* a glyph trigger, and that separation is the point: focus
+has a source (Figure 7-1, plus Apple's prose at p99) and the other two do not, so
+they are kept visibly distinct. It also matches the era — Apple documents that in
+default keyboard access mode "focus moves only between fields that receive keyboard
+input", so a Tiger light showing its glyph merely because the window was activated
+would be wrong twice over.
+
+### 4.21 The Dock's fill is unverified, with the cause named
+
+**Call.** `TIGER.dock.fill` and `height` are tagged `unverified`.
+
+**Reasoning.** Figure 10-1 *is* the Dock and it does confirm §7's correction — a flat
+2D shelf, not the 3D glass shelf, which is 10.5 Leopard. What it cannot give is the
+shelf itself: the crop places the Dock on the document's white page and Tiger's shelf
+is translucent, so it composited against the paper. The median above and below the
+icons is `#FEFEFE`, which is the page. Only the 1px divider (`#DFDFDF`), the 1px
+edging (`#DEDEDE`) and the 47px icon survive — and that icon, against Apple's
+documented 48px, is what calibrates the figure as 1:1.
+
+A derived value ships so the era has a Dock, and it is labelled as derived. A 1:1
+Tiger desktop screenshot resolves it in one shot.
+
+### 4.22 Aqua's pinstripe is real, and a lossless PNG proves it
+
+**Call.** Menus render a 4px-period pinstripe — 2px `#F3F3F3`, 2px `#EFEFEF` — rather
+than a flat fill.
+
+**Reasoning.** A 4-unit alternation in a JPEG is exactly the kind of thing that should
+be dismissed as compression noise, and dismissing it is what every flat-fill
+recreation effectively does. Two things say otherwise. JPEG works in 8×8 blocks, so it
+produces an 8px period and a spread of values; this is a **2-row** period with
+**exactly two** distinct greys over a menu's whole height. And Figure 7-1 is a
+**lossless PNG** — the only one in the book — whose window body alternates `#E1E3E7` /
+`#E4E6EA` on the identical 2-row period. The lossless file is what licenses reading
+the construction out of the lossy one.
+
+## Phase 4, era/tiger — the build
+
+### 4.23 Shell regions, and the window manager still knows nothing
+
+**Call.** New `ShellRegion` and `ShellRegionHost` in `src/shell/shell.ts`, plus
+`SkinManifest.regions`. The shell builds each region's element, positions it at its
+edge, subtracts the reserving ones from the work area, and routes minimize targets.
+
+**Reasoning.** This is `ARCHITECTURE.md` §5's `ShellLayout` being implemented rather
+than invented — the doc specified `regions[]` with `edge`, `kind`, `thickness` and
+`reservesSpace` from the start, and nothing had needed it: XP's phase-3 shell has no
+taskbar and Windows 3.1 deliberately has none at all. Tiger is the first era whose
+shell is two regions, so it is the first to exercise the claim that the WM learns only
+"the work area is 22px shorter at the top and 68px at the bottom".
+
+Regions live **inside** the desktop element rather than beside it, so they sit inside
+the display transform: System 1's menu bar will scale with its integer-scaled 512×342
+viewport instead of floating beside it at device scale.
+
+**Flagged to the repo owner immediately**, per §11 — the other two parallel sessions
+cannot see it until it merges, and both System 1 and Mac OS 8 need it for their menu
+bars.
+
+### 4.24 The window manager asks where a minimized window should go
+
+**Call.** New `WindowManager.setMinimizeTarget(fn)`. `ShellRegion.minimizeTarget` is
+consulted per window at minimize time.
+
+**Reasoning.** §2 already requires "XP shrinks toward the taskbar button, Tiger genies
+to the Dock", and neither destination is knowable by the window manager: only the Dock
+knows where a given window's tile ended up, and a tile moves as windows open and
+close. The WM had a `defaultMinimizeTarget()` returning the work area's bottom-left
+corner, which was a stand-in nobody had replaced.
+
+Asked at minimize time rather than cached, and era-neutral by construction — the WM
+never learns *why* the rect is where it is, exactly as it never learns why the work
+area is shorter. XP's taskbar will use the identical hook.
+
+### 4.25 The menu controller notifies on open and close
+
+**Call.** New `MenuController.subscribe(fn: (open: boolean) => void)`.
+
+**Reasoning.** A menu bar highlights the title whose menu is open, and the menu can
+close by six routes the bar never sees: Escape, activating an item, a click on the
+desktop, a click on a window, losing the capture layer, or another menu opening.
+Without a notification the highlight goes stale after every one of them, and the
+symptom is a title that looks open when nothing is.
+
+Era-neutral: the Windows eras render their menu bar inside a window and have the
+identical problem. This is the third core change and the smallest.
+
+### 4.26 Generated properties move to the shell root, because menus live there
+
+**Call.** `skin.generatedProperties()` is written on `#chronos-root` rather than on
+`.desktop`.
+
+**Reasoning.** Menus, the switcher and every other overlay are hosted on the **root**,
+outside the desktop element — and custom properties inherit, so writing them on the
+desktop leaves every overlay with undefined variables. The failure is silent and
+total: Tiger's first menu rendered with no background, no border colour, the browser's
+default serif at 16px, a 0px separator and unstyled items.
+
+Windows 3.1 and XP masked it by *also* declaring their variables in a `:root` block,
+so the desktop values were an override and `:root` was the fallback. That works and it
+means every measured value exists twice in the tree, which is precisely what the
+generated-properties mechanism was built to prevent. Writing them once, where
+everything inherits from, removes the need for the duplicate rather than adding a
+third copy.
+
+### 4.27 The opening event must not reach the layer it just created
+
+**Call.** The menu bar's `pointerdown` and `keydown` handlers both call
+`stopPropagation()`.
+
+**Reasoning.** This is DECISIONS 1.9's right-click flash, twice more, in a new shape.
+The dispatcher listens on the root for pointer events and on `window` for keys, both
+in the bubble phase. A press on a menu bar title opens a menu, which pushes a capture
+layer — and then the *same* pointerdown continues bubbling, reaches that new layer,
+lands outside the menu box and dismisses it. The menu opened and closed inside one
+event.
+
+The keyboard case is worse and was found by a hung test: Enter opens the menu and
+highlights its first entry, then the same keydown reaches the layer and is read as
+"activate the highlighted item", so the menu fires its first command instead of
+opening. A menu bar that cannot be used from the keyboard would have failed
+`CLAUDE.md`'s keyboard rule while looking correct in every screenshot.
+
+Stopping the opening event is also what makes the *release* safe: `sawPointerDown`
+stays false, so the controller correctly ignores the matching pointerup — the same
+mechanism 1.9 introduced, now load-bearing in the other direction.
+
+### 4.28 The traffic lights' insets are measured from the outer edge, and the CSS says so
+
+**Call.** `top`/`left` on `.tg-lights` subtract one hairline from the measured inset.
+
+**Reasoning.** Apple's insets are measured from the window's **outer** edge — the frame
+line's own row and column — and the element is positioned inside the frame, so each
+inset loses one border width. The first render put every light 1px right and 1px low,
+which is a silent error in the most-looked-at ornament in the era and would have
+passed any test written against the rendered output rather than against the source.
+
+The subtraction is written as `calc(var(--tg-light-inset-left) - var(--tg-hairline))`
+rather than as a literal `8px`, so the measurement stays the measurement and the frame
+width stays a single value.
+
+### 4.29 The harness status strip adds to the reservation instead of replacing it
+
+**Call.** New `Shell.addReservedEdges()`. `main.ts` calls it instead of writing
+`display.setReservedEdges` directly.
+
+**Reasoning.** The status strip claimed the bottom 24px by calling the display
+directly, which silently discarded whatever the skin's regions had reserved — Tiger's
+menu bar and Dock both vanished from the work area. The shell now owns the total, and
+region elements are offset by the extra claim so the Dock lands *above* the strip
+rather than underneath it. Without that second half the work area is right and the
+pixels are wrong, which is the worst of both.
+
+The strip also gained `data-edge="bottom"`. It already carried
+`data-shell-region="status"`, and that attribute now has structural meaning in
+`base.css` — without an edge it landed at the origin with a region's z-index and
+covered the menu bar.
+
+### 4.30 DejaVu Sans is a bad Tahoma substitute and a good Lucida Grande one
+
+**Call.** DejaVu Sans ships for Lucida Grande, subset to 10.3KB, regular weight only.
+
+**Reasoning.** §7 named the face and the repo owner confirmed it is not to be
+revisited: Luxi Sans is the obvious relative, by the same designers, and its licence
+**prohibits modification**, which blocks subsetting. What was missing was
+`CLAUDE.md`'s other half — the rendered comparison at the sizes the era uses.
+
+Tiger gets a better metric target than XP did. XP's Tahoma row was ranked against
+advance widths parsed from Wine's purpose-built substitute; Tiger's figures are 1:1,
+so they contain **Mac OS X's own rasterisation** of known strings at 13px. Measured
+ink width, first inked column to last, on both sides: `Back` +3.4%, `Enclosing
+Folder` −3.6%, `Recent Folders` −2.1%, `Main but not Key` −2.9%, `Scroll Bars` +6.3%.
+
+That inverts 3.3 without contradicting it. DejaVu was rejected for XP's system font at
++16.8% *because it is a Verdana substitute and Verdana is the wider face*. Lucida
+Grande is itself wide, so the same excess is what fits here.
+
+**The window title's weight was measured, not assumed.** Apple documents no
+window-title font. Regular lands inside the ±6% band; bold is 18–22% out. One trap on
+the way, recorded because it nearly produced the wrong answer: the first pass measured
+`Scroll Bars` at 78px and concluded *bold*, because the ink span it found began at the
+**proxy icon** sitting left of the title rather than at the first letter. Splitting the
+span into runs separated by more than two blank columns gives the text 63px.
+
+Bold is deferred — the two bold roles are alert message text and the About window
+title, and neither exists in phase 4. The precedent is 3.19, and the consequence is
+stated in the skin: nothing may ask for `font-weight: bold` until the bold subset
+exists, or the browser synthesises one by smearing the regular outlines. A fidelity
+test asserts the chrome stays at 400.
+
+### 4.31 Tiger is the first era that does not want the integer-scaled viewport
+
+**Call.** `viewport: { mode: 'native' }`, and none of the pixel-crisp machinery.
+
+**Reasoning.** Apple documents it: *"All user-visible text in your application should
+be anti-aliased"* (HIG p120). Tiger is the first era in the project where soft type is
+the era's own behaviour rather than a defect, so there is no pixel grid to preserve
+and nothing to gain from a fixed logical resolution. The §7 rules about integer font
+sizes and `scale × devicePixelRatio` exist for the bitmap eras and are noted in the
+skin as not applying here.
+
+The type rule that *does* carry over is the one about points: `13pt` in CSS is
+17.33px, so the stylesheet writes `13px`. Mac OS X's 72 DPI makes the conversion the
+identity, which is the inverse of the Windows trap rather than an exception to it.

@@ -16,6 +16,15 @@ strong evidence that Apple embedded unscaled screenshots throughout, but it is
 evidence rather than proof for this figure specifically, so every number here is
 reported as `measured`, never `documented`.
 
+**Corrected 2026-07-30 — the window edge was being found on the drop shadow.** The
+first version located the frame with "the first step greater than 30 in channel sum",
+and an Aqua window sits on a soft shadow which is itself a ramp of 30-to-40-unit
+steps. It locked onto the shadow three pixels out and reported the first traffic light
+**13px** from the window's left edge. The real frame line is the *largest* step in the
+profile — 217 against the shadow's 40 — and measuring from it gives **9px**, which is
+what Figures 13-3, 13-19 and 13-22 all independently report. See
+`tools/pdf-extract/measure-tiger-chrome.py` and `docs/eras/tiger.md`.
+
 Requires: pip install pillow numpy
 Usage: python3 tools/pdf-extract/measure-tiger-window.py <figure.jpeg>
 """
@@ -37,22 +46,54 @@ def main():
     h, w, _ = a.shape
     print(f"figure: {w}x{h}px  ({path})")
 
-    # The figure sits on a white page with a soft shadow under the window, so the
-    # window edge is found by looking for a real step rather than any non-white.
+    # The figure sits on a white page with a soft shadow around the window, and the
+    # shadow is a ramp of steps in the same 30-40 range a threshold would trip on. So
+    # the frame line is the *largest* step in the profile, not the first one over a
+    # threshold — see the module docstring for what the threshold version cost.
     def first_step(vals):
         for i in range(1, len(vals)):
             if abs(int(vals[i].sum()) - int(vals[i - 1].sum())) > EDGE:
                 return i
         return None
 
+    def frame_line(vals, limit=48):
+        """Index of the frame line: largest step, then the darker side of it.
+
+        Correct for the left and right edges, where the client area beyond the frame
+        is flat white and the frame is the only large step in range.
+        """
+        sums = [int(v.sum()) for v in vals[:limit]]
+        best, at = -1, 1
+        for i in range(len(sums) - 1):
+            d = abs(sums[i + 1] - sums[i])
+            if d > best:
+                best, at = d, i
+        cand = [j for j in (at, at + 1) if 0 <= j < len(sums)]
+        return min(cand, key=lambda j: sums[j])
+
+    def first_dark(vals, limit=48, drop=60):
+        """Index of the first material darkening below the page.
+
+        Required for the top and bottom edges rather than `frame_line`: the title
+        bar's separator 22 rows in is *darker* than the top frame line, so a
+        largest-step search finds the separator and reports a 1px title bar.
+        """
+        sums = [int(v.sum()) for v in vals[:limit]]
+        page = sums[0]
+        for i in range(1, len(sums)):
+            if sums[i] < page - drop:
+                cand = [j for j in (i - 1, i, i + 1) if 0 <= j < len(sums)]
+                return min(cand, key=lambda j: sums[j])
+        return 1
+
     mid_y = h // 2
     row = a[mid_y]
-    lx = first_step(row)
-    rx = w - 1 - first_step(row[::-1])
+    lx = frame_line(row)
+    rx = w - 1 - frame_line(row[::-1])
     mid_x = (lx + rx) // 2
     col = a[:, mid_x]
-    ty = first_step(col)
-    by = h - 1 - first_step(col[::-1])
+    ty = first_dark(col)
+    by = h - 1 - first_dark(col[::-1])
     print(f"window box: x {lx}..{rx} (w={rx - lx + 1}), y {ty}..{by} (h={by - ty + 1})")
 
     # ---- title bar: scan down until the stripe gives way to the white client --

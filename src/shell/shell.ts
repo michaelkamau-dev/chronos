@@ -20,6 +20,60 @@ import { CommandRegistry } from '../core/input/commands.js'
 import { Keymap, KeymapStack, type Binding } from '../core/input/keymap.js'
 import { MenuController, type MenuRenderer, type MenuSpec } from '../core/input/menu.js'
 import { asAppId, type ChromeRenderer, type WindowId } from '../core/wm/types.js'
+import type { Rect } from '../core/geometry.js'
+
+/**
+ * What a shell region needs in order to be useful, and deliberately nothing more.
+ *
+ * A menu bar has to open menus and read the window list; a Dock has to list
+ * windows, minimize and restore them, and report where a window's tile sits. All of
+ * that is era-neutral vocabulary — the shell hands it over and never learns what the
+ * region does with it.
+ */
+export interface ShellRegionHost {
+  readonly wm: WindowManager
+  readonly menus: MenuController
+  /**
+   * The command registry, so a region's menu entries route through the same
+   * semantic commands the keymap does rather than reaching for the shell directly.
+   * That is what keeps a menu item and its accelerator provably the same action —
+   * which `test/browser/a11y.spec.ts` asserts across the whole vocabulary.
+   */
+  readonly commands: CommandRegistry
+  /** Open a menu with its top-left at these client coordinates. */
+  openMenu(spec: MenuSpec, clientX: number, clientY: number): boolean
+  /** Ask the shell to re-read every region's minimize targets and geometry. */
+  invalidate(): void
+}
+
+/**
+ * One edge-anchored strip of shell chrome: a menu bar, a taskbar, a Dock, Ledger's
+ * budget bar.
+ *
+ * `reservesSpace` is the whole point of the abstraction. The shell subtracts every
+ * reserving region from the work area and hands the window manager a plain rect, so
+ * the WM knows a Dock exists only as "the work area is 68px shorter" — never as
+ * "this is Tiger". ARCHITECTURE.md §5.
+ */
+export interface ShellRegion {
+  edge: 'top' | 'bottom' | 'left' | 'right'
+  /** A label for CSS and tests, not behaviour. `menubar`, `taskbar`, `dock`, … */
+  kind: string
+  /** Extent along the perpendicular axis, in logical era pixels. */
+  thickness: number
+  /** Does it shrink the window work area? */
+  reservesSpace: boolean
+  /**
+   * Fill the region's element. Returns a teardown, or nothing if there is none.
+   * Called once, after the window manager and menu controller exist.
+   */
+  mount(host: HTMLElement, api: ShellRegionHost): (() => void) | void
+  /**
+   * Where a window shrinks to when minimized, if this region owns that answer.
+   * Consulted at minimize time so a moving Dock tile or taskbar button is current.
+   */
+  minimizeTarget?(id: WindowId): Rect | null
+}
 
 export interface SkinManifest {
   id: string
@@ -27,6 +81,12 @@ export interface SkinManifest {
   menu: MenuRenderer
   keymap: readonly Binding[]
   viewport?: ViewportSpec
+  /**
+   * Edge-anchored shell chrome. Omit for an era with none — Windows 3.1 had no
+   * taskbar at all, and its skin declares no regions rather than declaring an
+   * empty one.
+   */
+  regions?: readonly ShellRegion[]
   /**
    * Custom properties derived from the skin's measured metrics, applied to the
    * desktop element. This is how a stylesheet reads a measurement without keeping
@@ -56,6 +116,12 @@ export class Shell {
   private readonly activeKeymap: Keymap
   private readonly teardowns: Array<() => void> = []
   private readonly providers: ContextMenuProvider[] = []
+  private readonly regionEls = new Map<string, HTMLElement>()
+  private regions: readonly ShellRegion[] = []
+  /** Edges claimed by the skin's reserving regions. */
+  private regionReserved = { top: 0, right: 0, bottom: 0, left: 0 }
+  /** Edges claimed by anything else, currently the harness status strip. */
+  private extraReserved = { top: 0, right: 0, bottom: 0, left: 0 }
   private untitledCount = 0
 
   constructor(root: HTMLElement, skin: SkinManifest) {
@@ -66,8 +132,13 @@ export class Shell {
     // properties carry measured values into the stylesheet.
     this.display.desktop.dataset['skin'] = skin.id
     if (skin.generatedProperties) {
+      // Written on the shell root rather than on the desktop, because custom
+      // properties inherit and menus, the switcher and any other overlay are hosted
+      // on the root — *outside* the desktop. Setting them on the desktop leaves every
+      // overlay with undefined variables, which fails silently and completely: a menu
+      // renders with no background, no border colour and the browser's default serif.
       for (const [prop, value] of Object.entries(skin.generatedProperties())) {
-        this.display.desktop.style.setProperty(prop, value)
+        root.style.setProperty(prop, value)
       }
     }
 
@@ -115,7 +186,31 @@ export class Shell {
     this.keymaps.push(this.activeKeymap)
     this.registerDefaultContextMenus()
     this.teardowns.push(this.registerCommands())
+    this.mountRegions(skin.regions ?? [])
     this.teardowns.push(this.dispatcher.attach())
+  }
+
+  /** The region elements, keyed by `kind`, for tests and for a skin's own lookups. */
+  regionElement(kind: string): HTMLElement | null {
+    return this.regionEls.get(kind) ?? null
+  }
+
+  /**
+   * Reserve edge space on top of whatever the skin's regions already claim.
+   *
+   * The harness status strip is not a skin region — it is scaffolding that every era
+   * shows — so it needs to add to the reservation rather than replace it. Writing
+   * `display.setReservedEdges` directly would silently discard a menu bar or a Dock,
+   * which is exactly the bug this method exists to make impossible.
+   */
+  addReservedEdges(extra: { top?: number; right?: number; bottom?: number; left?: number }): void {
+    this.extraReserved = {
+      top: (this.extraReserved.top ?? 0) + (extra.top ?? 0),
+      right: (this.extraReserved.right ?? 0) + (extra.right ?? 0),
+      bottom: (this.extraReserved.bottom ?? 0) + (extra.bottom ?? 0),
+      left: (this.extraReserved.left ?? 0) + (extra.left ?? 0),
+    }
+    this.applyReservedEdges()
   }
 
   /** Chords in the active keymap that no real KeyboardEvent could match. */
@@ -175,6 +270,85 @@ export class Shell {
   }
 
   // ------------------------------------------------------------------ private
+
+  /**
+   * Build each declared region, reserve the edges they claim, and route minimize
+   * targets to whichever region owns one.
+   *
+   * Regions live inside the desktop element rather than beside it, so they are
+   * inside the display transform: a 512x342 era's menu bar scales with its
+   * integer-scaled viewport instead of floating at device scale beside it.
+   */
+  private mountRegions(regions: readonly ShellRegion[]): void {
+    this.regions = regions
+    if (regions.length === 0) return
+
+    const api: ShellRegionHost = {
+      wm: this.wm,
+      menus: this.menus,
+      commands: this.commands,
+      openMenu: (spec, x, y) => this.menus.open(spec, x, y),
+      invalidate: () => this.wm.setWorkArea(this.display.workArea()),
+    }
+
+    const reserved = { top: 0, right: 0, bottom: 0, left: 0 }
+    for (const region of regions) {
+      const el = document.createElement('div')
+      el.dataset['shellRegion'] = region.kind
+      el.dataset['edge'] = region.edge
+      // The thickness is the skin's measurement, so it is written from the
+      // manifest rather than duplicated in a stylesheet where it could drift.
+      if (region.edge === 'top' || region.edge === 'bottom') {
+        el.style.height = `${region.thickness}px`
+      } else {
+        el.style.width = `${region.thickness}px`
+      }
+      this.display.desktop.appendChild(el)
+      this.regionEls.set(region.kind, el)
+
+      const teardown = region.mount(el, api)
+      this.teardowns.push(() => {
+        teardown?.()
+        el.remove()
+        this.regionEls.delete(region.kind)
+      })
+
+      if (region.reservesSpace) reserved[region.edge] += region.thickness
+    }
+
+    this.regionReserved = reserved
+    this.applyReservedEdges()
+
+    const owners = regions.filter((r) => r.minimizeTarget !== undefined)
+    if (owners.length > 0) {
+      this.wm.setMinimizeTarget((id) => {
+        for (const r of owners) {
+          const target = r.minimizeTarget?.(id)
+          if (target) return target
+        }
+        return null
+      })
+      this.teardowns.push(() => this.wm.setMinimizeTarget(null))
+    }
+  }
+
+  private applyReservedEdges(): void {
+    this.display.setReservedEdges({
+      top: this.regionReserved.top + this.extraReserved.top,
+      right: this.regionReserved.right + this.extraReserved.right,
+      bottom: this.regionReserved.bottom + this.extraReserved.bottom,
+      left: this.regionReserved.left + this.extraReserved.left,
+    })
+    // A region sits inside whatever else has already claimed its edge, so the Dock
+    // lands above the harness status strip rather than underneath it. Without this
+    // the work area is right and the pixels are wrong, which is the worst of both.
+    for (const region of this.regions) {
+      const el = this.regionEls.get(region.kind)
+      if (!el) continue
+      el.style[region.edge] = `${this.extraReserved[region.edge]}px`
+    }
+    this.wm.setWorkArea(this.display.workArea())
+  }
 
   private openContextMenu(hit: HitTarget, logicalX: number, logicalY: number): boolean {
     const spec = this.menuSpecFor(hit)

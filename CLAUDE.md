@@ -229,3 +229,85 @@ Append every correction I make here as a permanent rule. Never delete entries.
   `LayoutDuration / frames`. Frame count and percentiles fall when the host is busy;
   script time per frame does not, because it measures how long our code ran rather than
   when it was allowed to run.
+
+### Mac OS X Tiger — the measurement was wrong before the reading was
+- An Aqua window sits on a **drop shadow**, and the shadow ramps in 30-to-40-unit steps
+  — the same size as the threshold a naive edge finder uses. So "the first step greater
+  than 30" stops on the shadow, three pixels outside the window, and every inset
+  measured from it comes out 3px large. That is where §7's 13px traffic-light inset came
+  from; the real value is 9px and five figures agree. Find a frame line by the
+  **largest** step, not the first one over a threshold: the frame steps by 217 where the
+  shadow steps by 40.
+- A saturation test finds a coloured thing and stops at its dark outline — and cannot
+  see a grey one at all. That is why Tiger's lights measured 12px instead of 14px, and
+  why the disabled state was recorded as unmeasurable when it was sitting in the figure.
+  Test for **contrast against the local background**, which finds every state.
+- An edge must be found on a **median profile across the whole width or height**. A
+  frame line and a separator span the window; a traffic light, a proxy icon, a title
+  string and a toolbar lozenge do not. Probing one column put a separator on the toolbar
+  control and read it as Aqua blue.
+- **A title bar string is not alone in its band.** Measuring the ink span of a window
+  title picked up the proxy icon sitting to its left and made a 63px regular-weight
+  string look like a 78px bold one. Split an ink span into runs before trusting its
+  width.
+
+### When figures disagree, look for the reading that explains the disagreement
+- Two Tiger figures show the title bar with a 4-to-9 unit cool cast and one shows it
+  exactly neutral. The rule from Luna's caption gradient would say ship it `contested`.
+  But three separately cropped specimens agreeing on R = G = B across 23 rows cannot come
+  from a tinted source, so the cast is those two bitmaps' compression and the bar is
+  neutral. `contested` is the answer when no reading explains both, not the default when
+  two numbers differ.
+- **A 4-unit alternation in a JPEG is exactly what you would dismiss as noise**, and
+  dismissing it is what every flat-fill Aqua recreation does. JPEG works in 8×8 blocks,
+  so it gives an 8px period and a spread of values; Aqua's pinstripe is a 2-row period
+  with exactly two greys. One figure in the Tiger HIG is a **lossless PNG**, and it shows
+  the same construction — that is what licenses reading it out of the lossy ones. Look
+  for a lossless bitmap in the source before calling a fine pattern an artefact.
+
+### A point is a pixel on a Mac, and that is not an exception to the rule
+- Mac OS X drew at a nominal 72 DPI, so Lucida Grande 13pt is 13px exactly — the inverse
+  of the Windows trap where 8pt at 96 DPI is 10.667px and the era rasterised it at 11.
+  The rule is unchanged: resolve to the integer pixel the era rendered and never write
+  `pt` in a stylesheet, because CSS `13pt` still means 17.33px. Check the conversion
+  against the source rather than assuming either direction — the measured 10px
+  caps-and-ascenders band rules out the 96 DPI reading.
+- **Antialiased type can be the era's own behaviour rather than a defect.** Apple
+  documents that all interface text is anti-aliased, so Tiger is the first era that does
+  not want the integer-scaled viewport, and §7's pixel-crisp rules do not apply to it.
+  Do not carry a bitmap era's constraints into a vector era.
+
+### The event that opens something must not reach what it opened
+- DECISIONS 1.9 recorded this for right-click. It recurred twice in one menu bar: the
+  pointerdown that opens a menu keeps bubbling to the capture layer that menu just
+  pushed, lands outside the menu box, and dismisses it — and the Enter that opens it
+  reaches the same layer and is read as "activate the highlighted item", so the menu
+  fires its first command instead of opening. Stop the opening event. The keyboard case
+  was found by a hung test and would otherwise have shipped a menu bar that looked
+  correct in every screenshot and could not be used from the keyboard.
+- **Set the open-state highlight after the menu opens, never before.** `MenuController.open`
+  closes any existing menu first, and that close notifies watchers — which clears the
+  attribute just written.
+
+### Custom properties must be set where everything inherits from
+- Generated properties were written on `.desktop`. Menus, the switcher and every overlay
+  are hosted on the **root**, outside it — so a Tiger menu rendered with no background,
+  no border colour, the browser's default serif at 16px and a 0px separator. Silent and
+  total. The two Windows skins masked the same bug by also declaring every variable in a
+  `:root` block, which means each measured value existed twice in the tree — exactly
+  what generating them was meant to prevent. Write them once, on the root.
+
+### An offset measured from an outer edge is not an offset from an inner one
+- Apple's traffic-light insets are measured from the window's outer edge — the frame
+  line's own row and column — and the element is positioned inside the frame, so each
+  inset loses one border width. The first render put every light 1px right and 1px low.
+  Write the subtraction as `calc(measured - hairline)` so the measurement stays the
+  measurement, and check a render against the *source*, not against itself.
+
+### A region that reserves space has to reserve it once
+- The harness status strip claimed the bottom 24px by writing the display's reserved
+  edges directly, which discarded everything the skin's regions had claimed — a menu bar
+  and a Dock vanished from the work area. Reservations accumulate; one writer owns the
+  total. And the elements need the same treatment: without offsetting regions by the
+  other claims, the work area is right and the pixels are wrong, which is the worst of
+  both.
