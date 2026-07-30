@@ -15,6 +15,11 @@ Eras: System 1 (1984), Windows 3.1, Mac OS 8, Windows XP, Mac OS X Tiger, and
 - Every judgement call made without stopping to ask, with its reasoning, is in
   [`DECISIONS.md`](DECISIONS.md).
 
+**Picking this up cold?** Start at
+[`docs/ARCHITECTURE.md` §13, "State of play"](docs/ARCHITECTURE.md#13-state-of-play--read-this-first).
+It carries what is merged, the contract additions phase 4 has made, where the font
+sheets live, how the performance gate is instrumented, and what is still unresolved.
+
 ## Running it
 
 ```
@@ -27,8 +32,47 @@ Vanilla TypeScript and Vite. The only runtime dependency is `idb-keyval`.
 
 ## Status
 
-**Phases 1–3 complete.** Window manager and focus model, the filesystem with proven
-reload survival, and Windows XP Luna as the reference implementation.
+**Phases 1–3 complete. Phase 4 in progress: two of six eras built.**
+
+Window manager and focus model, the filesystem with proven reload survival, Windows XP
+Luna as the reference implementation, and Windows 3.1 measured from 1:1 VGA captures.
+Both are merged to `main`. 137 tests green — 11 invariant, 7 budget, 119 browser.
+
+Remaining eras, in order: System 1, Mac OS 8, Mac OS X Tiger, Ledger. The reasoning for
+that order is in §13.
+
+### Phase 4 — Windows 3.1, measured from VGA captures
+
+Selected with `?era=win31`; skins load behind `import()` so exactly one era reaches the
+browser. Renders in a fixed 640×480 viewport at an integer scale, which is not a
+preference — the disabled-text stipple below is a one-pixel checkerboard, and at a
+fractional scale it averages into exactly the flat grey it exists to disprove.
+
+Windows 3.1 is not Windows 95 with a different palette, and five measurements say so:
+
+| | Windows 3.1, measured | What a 95-lineage recreation produces |
+|---|---|---|
+| Inactive caption | **white, black text** | grey |
+| Menu bar | **white** | grey |
+| Active caption | **flat `#0000A8`** | a gradient |
+| Edit field | **plain 1px black, no bevel** | sunken two-tone |
+| Disabled text | **50% checkerboard knocked out of the glyph** | grey fill with a white shadow |
+| Palette | 6-bit VGA DAC values — `#C0C4C8`, `#84888C` | `#C0C0C0`, `#808080` |
+
+The stipple is the strongest measurement in the project, and it is a fact about **two**
+eras: System 1's `notPatBic` and 3.1's `GrayString` are the same construction, two
+competing vendors eight years apart, because on a 1-bit or 4-bit display there is no
+lighter black to reach for. It is proven by parity rather than by eye — the disabled `OK`
+label is 37 ink pixels with all 37 on one `(x + y)` parity, while the `Cancel` label
+beside it is 140 split 71/69 — and the test applies that same discriminator to our render
+that the measurement script applies to Microsoft's pixels. Written up in §7 under its own
+heading.
+
+Also corrected against §7: the push-button bevel is **2px** highlight and shadow, not
+1px, with a notched outline that cannot be a `border`. One face for the whole era —
+`SYSTEM.FON`, substituted by Pixel Operator Bold at exactly 16px, where 1600 upm as
+ascent 1300 plus descent 300 yields a 9px cap height with no fraction and zero
+antialiasing.
 
 ### Phase 3 — Windows XP Luna, built to the primary source
 
