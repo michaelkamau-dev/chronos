@@ -1804,3 +1804,8 @@ nothing, and it should have exactly one implementation.
 
 A test in Tiger's suite now asserts the split, mirroring System 1's. Both eras' bars are
 held to one rule instead of one era's suite happening to check it.
+
+Mac OS 8's bar arrived on main mid-change already reading `accelFor` — and with its own
+third copy of the same four-line helper, which is the duplication this entry is about
+arriving independently in a third era. It points at the shared one too. Three copies of
+a rule is how the rule stops being one.

@@ -20,23 +20,9 @@
  *   below — not a flat inversion, and measured from Figure 4-1.
  */
 
-import type { ShellRegion, ShellRegionHost } from '../../shell/shell.js'
+import { accelFrom, type ShellRegion, type ShellRegionHost } from '../../shell/shell.js'
 import type { MenuSpec } from '../../core/input/menu.js'
-import type { Command } from '../../core/input/commands.js'
 import { MACOS8 } from './metrics.js'
-
-/**
- * Spreads an `accel` field only when the active skin actually binds the command.
- *
- * The chord comes from `ShellRegionHost.accelFor`, never from a literal: a menu that
- * writes `Meta+W` into its own spec is advertising a chord it has no way of knowing is
- * still bound, and the accelerator column is the most visible place a label can
- * disagree with the keyboard. `menu.ts` turns the chord into the era's glyph notation.
- */
-function accel(api: ShellRegionHost, command: Command): { accel: string } | Record<string, never> {
-  const chord = api.accelFor(command)
-  return chord === undefined ? {} : { accel: chord }
-}
 
 class MenuBar {
   private readonly host: HTMLElement
@@ -161,7 +147,7 @@ class MenuBar {
         kind: 'item',
         label: 'New Window',
         command: 'shell.newWindow',
-        ...accel(this.api, 'shell.newWindow'),
+        ...accelFrom(this.api, 'shell.newWindow'),
         enabled: true,
         // Through the command registry, not by reaching for the shell: a menu item and
         // its accelerator have to be provably the same action.
@@ -172,7 +158,7 @@ class MenuBar {
         kind: 'item',
         label: 'Close Window',
         command: 'window.close',
-        ...accel(this.api, 'window.close'),
+        ...accelFrom(this.api, 'window.close'),
         enabled: s !== undefined && s.closable,
         onActivate: () => {
           if (id !== null) void wm.close(id)
@@ -211,7 +197,7 @@ class MenuBar {
         kind: 'item',
         label: shaded ? 'Expand Window' : 'Collapse Window',
         command: 'window.minimize',
-        ...accel(this.api, 'window.minimize'),
+        ...accelFrom(this.api, 'window.minimize'),
         enabled: s !== undefined,
         onActivate: () => {
           if (id === null) return
@@ -233,7 +219,7 @@ class MenuBar {
         kind: 'item',
         label: 'Next Window',
         command: 'window.cycleNext',
-        ...accel(this.api, 'window.cycleNext'),
+        ...accelFrom(this.api, 'window.cycleNext'),
         enabled: wm.list().length > 1,
         onActivate: () => void this.api.commands.run('window.cycleNext'),
       },
