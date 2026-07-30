@@ -12,7 +12,7 @@
  * has no idea what goes inside them.
  */
 
-import type { ShellRegion, ShellRegionHost } from '../../shell/shell.js'
+import { accelFrom, type ShellRegion, type ShellRegionHost } from '../../shell/shell.js'
 import type { MenuSpec } from '../../core/input/menu.js'
 import type { WindowId, WindowState } from '../../core/wm/types.js'
 import { rect, type Rect } from '../../core/geometry.js'
@@ -154,10 +154,19 @@ class MenuBar {
     return [
       { kind: 'item', label: 'About This Mac', enabled: false },
       { kind: 'separator' },
+      /*
+       * No accelerator, and its absence is the point.
+       *
+       * This item used to read `Cmd+Opt+Esc`, which is the real Mac OS X chord and is
+       * bound to nothing here — the command vocabulary has no force-close, and the
+       * chord is intercepted by the host OS before a page could ever see it. An
+       * **enabled** item's accelerator has to come from the keymap, so an item with no
+       * command has none to show. Give it a command and a binding and
+       * `accelFrom` will print it.
+       */
       {
         kind: 'item',
         label: 'Force Quit…',
-        accel: 'Meta+Alt+Escape',
         enabled: wm.focusedId() !== null,
         onActivate: () => {
           const id = wm.focusedId()
@@ -180,7 +189,7 @@ class MenuBar {
         kind: 'item',
         label: 'New Finder Window',
         command: 'shell.newWindow',
-        accel: 'Meta+N',
+        ...accelFrom(this.api, 'shell.newWindow'),
         enabled: true,
         // Through the command registry, not by reaching for the shell: a menu item
         // and its accelerator have to be provably the same action.
@@ -191,7 +200,7 @@ class MenuBar {
         kind: 'item',
         label: 'Close Window',
         command: 'window.close',
-        accel: 'Meta+W',
+        ...accelFrom(this.api, 'window.close'),
         enabled: s !== undefined && s.closable,
         onActivate: () => {
           if (id !== null) void wm.close(id)
@@ -201,7 +210,7 @@ class MenuBar {
         kind: 'item',
         label: 'Minimize',
         command: 'window.minimize',
-        accel: 'Meta+M',
+        ...accelFrom(this.api, 'window.minimize'),
         enabled: s !== undefined && !s.minimized,
         onActivate: () => {
           if (id !== null) void wm.minimize(id)
@@ -211,6 +220,7 @@ class MenuBar {
         kind: 'item',
         label: 'Zoom',
         command: 'window.toggleMaximize',
+        ...accelFrom(this.api, 'window.toggleMaximize'),
         enabled: s !== undefined && s.resizable,
         onActivate: () => {
           if (id !== null) wm.toggleMaximize(id)
@@ -231,7 +241,7 @@ class MenuBar {
         kind: 'item',
         label: 'Minimize',
         command: 'window.minimize',
-        accel: 'Meta+M',
+        ...accelFrom(this.api, 'window.minimize'),
         enabled: focused !== null,
         onActivate: () => {
           if (focused !== null) void wm.minimize(focused)

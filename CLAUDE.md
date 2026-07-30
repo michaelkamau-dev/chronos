@@ -541,3 +541,13 @@ Append every correction I make here as a permanent rule. Never delete entries.
 - Raising it was still right; stopping at "shared, therefore untouchable" was not. Ask
   whether every consumer actually wanted the thing before concluding that only one is
   complaining.
+
+### Adding an accessor is half the fix; the call sites are the other half
+- `ShellRegionHost.accelFor` was added for System 1's menu bar and Tiger's bar was left on
+  its literals because they were right for Tiger. Correct-today is not what the accessor
+  provides — four of the five were right only until a binding moved, which happened one era
+  later. When a fix's *reason* applies to an existing call site, switch it then, not when
+  it finally breaks.
+- The switch is also what audits the literals. `Force Quit… ⌘⌥Esc` was an enabled item
+  advertising a chord nothing binds, in an era whose own suite had been green for weeks;
+  routing it through the accessor is what made the absence visible.

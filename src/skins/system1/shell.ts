@@ -28,9 +28,8 @@
  *    menu pulled down.
  */
 
-import type { ShellRegion, ShellRegionHost } from '../../shell/shell.js'
+import { accelFrom, type ShellRegion, type ShellRegionHost } from '../../shell/shell.js'
 import type { MenuSpec } from '../../core/input/menu.js'
-import type { Command } from '../../core/input/commands.js'
 import { SYSTEM1 } from './metrics.js'
 
 /**
@@ -222,7 +221,7 @@ class MenuBar {
         kind: 'item',
         label: 'Open',
         command: 'shell.newWindow',
-        ...accel(this.api, 'shell.newWindow'),
+        ...accelFrom(this.api, 'shell.newWindow'),
         enabled: true,
         // Through the command registry rather than reaching for the window manager,
         // so a menu item and its accelerator are provably the same action.
@@ -232,7 +231,7 @@ class MenuBar {
         kind: 'item',
         label: 'Close',
         command: 'window.close',
-        ...accel(this.api, 'window.close'),
+        ...accelFrom(this.api, 'window.close'),
         enabled: s !== undefined && s.closable,
         onActivate: () => {
           if (id !== null) void wm.close(id)
@@ -292,16 +291,6 @@ class MenuBar {
       { kind: 'item', label: 'Set Startup', enabled: false },
     ]
   }
-}
-
-/**
- * `exactOptionalPropertyTypes` forbids `accel: undefined`, so an unbound command has
- * to contribute no key at all. A skin that binds nothing therefore shows nothing,
- * which is the behaviour `Shell.accelFor` exists to guarantee.
- */
-function accel(api: ShellRegionHost, command: Command): { accel?: string } {
-  const chord = api.accelFor(command)
-  return chord === undefined ? {} : { accel: chord }
 }
 
 export function system1Regions(): readonly ShellRegion[] {

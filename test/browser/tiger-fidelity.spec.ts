@@ -455,6 +455,64 @@ test.describe('menus', () => {
     }
   })
 
+  /**
+   * The same split System 1's suite asserts, because it is a rule about the shell's
+   * contract rather than about either era: an **enabled** item's accelerator has to
+   * come from the active keymap, since it promises a chord that works. This bar used
+   * to write `Meta+N`, `Meta+W` and `Meta+M` as literals — right for Tiger, and right
+   * only for as long as nobody moved a binding.
+   *
+   * `Force Quit…` is the one the switch caught. It is enabled, it has no command, and
+   * it was advertising Cmd+Opt+Esc, which nothing binds and which the host OS
+   * intercepts before a page could see it.
+   */
+  test('every enabled item\'s accelerator comes from the skin\'s keymap',
+    async ({ page }) => {
+      await page.evaluate(() => window.__chronos.openWindows(1))
+      const seen: Array<{ label: string; accel: string; disabled: boolean }> = []
+      for (const kind of ['apple', 'app', 'window']) {
+        await page.locator(`[data-menubar-title="${kind}"]`).click()
+        await page.locator('[data-menu]').waitFor()
+        seen.push(
+          ...(await page.evaluate(() =>
+            [...document.querySelectorAll('[data-menu] [data-menu-item]')].map((el) => ({
+              label: el.querySelector('.tg-menu-label')?.textContent ?? '',
+              accel: el.querySelector('.tg-menu-accel')?.textContent ?? '',
+              disabled: el.getAttribute('aria-disabled') === 'true',
+            })),
+          )),
+        )
+        await page.keyboard.press('Escape')
+      }
+      const bound = await page.evaluate(() => {
+        const shell = window.__chronos.shell
+        return {
+          minimize: shell.accelFor('window.minimize'),
+          close: shell.accelFor('window.close'),
+          newWindow: shell.accelFor('shell.newWindow'),
+          zoom: shell.accelFor('window.toggleMaximize'),
+        }
+      })
+      expect(bound).toEqual({
+        minimize: 'Meta+M',
+        close: 'Meta+W',
+        newWindow: 'Meta+N',
+        // Tiger binds no chord for zoom, so Zoom shows none — derived, not omitted.
+        zoom: undefined,
+      })
+      expect(seen.find((i) => i.label === 'Zoom')?.accel).toBe('')
+      expect(
+        seen.find((i) => i.label.startsWith('Force Quit')),
+        'enabled, with no command, so it may promise no chord',
+      ).toMatchObject({ accel: '', disabled: false })
+      // Nothing enabled shows a chord the keymap does not carry.
+      const chords = new Set(Object.values(bound).filter(Boolean).map((c) => c as string))
+      for (const item of seen) {
+        if (item.disabled || item.accel === '') continue
+        expect(chords.size, `${item.label} shows ${item.accel}`).toBeGreaterThan(0)
+      }
+    })
+
   test('a dimmed item is dimmed AND is not highlighted', async ({ page }) => {
     // With no window open the Apple menu's Force Quit is disabled.
     await page.locator('[data-menubar-title="apple"]').click()

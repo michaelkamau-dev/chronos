@@ -57,6 +57,25 @@ export interface ShellRegionHost {
 }
 
 /**
+ * A menu entry's accelerator, spread into the entry, or nothing when the active skin
+ * binds no chord to the command.
+ *
+ * A three-line helper with a reason to exist. `exactOptionalPropertyTypes` forbids
+ * `accel: undefined`, so an unbound command has to contribute no key *at all* rather
+ * than an absent one — which is exactly the behaviour that makes a skin binding nothing
+ * show nothing. Written out at each call site that is one more place a literal can
+ * creep back in, and written out per skin it is one more copy to drift, so it lives
+ * here beside the interface it reads.
+ *
+ *     { kind: 'item', label: 'Close', command: 'window.close',
+ *       ...accelFrom(api, 'window.close'), enabled: true, onActivate }
+ */
+export function accelFrom(api: ShellRegionHost, command: Command): { accel?: string } {
+  const chord = api.accelFor(command)
+  return chord === undefined ? {} : { accel: chord }
+}
+
+/**
  * One edge-anchored strip of shell chrome: a menu bar, a taskbar, a Dock, Ledger's
  * budget bar.
  *

@@ -1771,3 +1771,36 @@ The useful part is the shape of the mistake: "this is shared, so changing it is
 narrowing" was a claim about *ownership* standing in for a claim about *correctness*.
 Ownership decides who changes it; whether every era wanted the character decides whether
 it should change at all, and that question had not been asked.
+
+### 4.50 Tiger's menu bar reads its accelerators from the keymap, and one of them was wrong
+
+**Call.** `accelFrom(api, command)` is exported from `src/shell/shell.ts` beside
+`ShellRegionHost`. Tiger's five literal accelerators become calls; System 1's local copy
+of the helper is deleted in favour of it. `Force Quit…` loses its accelerator.
+
+**Reasoning.** 4.44 added `ShellRegionHost.accelFor` and left Tiger's bar on the literals
+it already had, because they were correct for Tiger. Correct-today is not the property
+the accessor exists to provide: four of those five strings were right only for as long
+as nobody moved a binding, which 4.46 then did in the era next door.
+
+The fifth was already wrong. `Force Quit… ⌘⌥Esc` is an **enabled** item, and by 4.47's
+split an enabled item's accelerator must come from the keymap. It has no `command` at
+all — it calls `wm.close(id, { force: true })` directly, because the vocabulary has no
+force-close and `commands.ts` says in as many words that it lists only what is
+implemented and bound. So there was nothing to look up, and the chord it advertised was
+bound to nothing and is intercepted by the host OS before a page could ever see it. It
+now shows no accelerator, which is the honest state; giving it a command and a binding
+would print one again with no further change here.
+
+`Zoom` gains a call that resolves to nothing, and that is the point of routing it: Tiger
+binds no chord for `window.toggleMaximize`, so the blank is now derived rather than an
+omission that happened to look the same.
+
+The helper moved out of the skin for the reason the stipple instrument did. Written per
+skin it is one more copy to drift, and what it encodes is not era knowledge — it is that
+`exactOptionalPropertyTypes` forbids `accel: undefined`, so an unbound command has to
+contribute no key at all. That is the mechanism by which a skin binding nothing shows
+nothing, and it should have exactly one implementation.
+
+A test in Tiger's suite now asserts the split, mirroring System 1's. Both eras' bars are
+held to one rule instead of one era's suite happening to check it.
