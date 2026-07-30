@@ -224,3 +224,69 @@ renders the sheets. It fails loudly if every candidate in a role measures
 identically, which is the signature of the fonts not having loaded — canvas
 `measureText` does not trigger a CSS `@font-face` fetch, so an earlier version of
 this comparison silently rendered six copies of the same fallback.
+
+## Windows 3.1 — the System font, unresolved
+
+Windows 3.1 needs **one** face for the whole era. The VGA captures show captions, the
+menu bar, menu items, dialog labels and button labels all drawn in the same bold
+proportional bitmap at one size: `SYSTEM.FON`, the System font.
+
+This splits §7's substitution row, which listed "Win 3.1 System / MS Sans Serif →
+W95FA" as a single need. They are two faces, 3.1 shipped both, and our chrome uses
+only the first.
+
+### Target
+
+Measured from `docs/sources/win31-*.png`; reproduce with
+`tools/captures/measure-win31.py docs/sources`.
+
+| | Value |
+|---|---|
+| Cap height | 9px |
+| Ink height (ascender to descender) | 13px |
+| Stem width | **2px** — the face is bold |
+| `Minimize` per-glyph ink widths | 10, 2, 6, 2, 10, 2, 6, 6 (total 58px) |
+| `Minimize` ink-start deltas | 12, 4, 8, 4, 12, 4, 8 |
+| `Cancel` per-glyph ink widths | 7, 6, 6, 6, 6, 2 (total 38px) |
+| `Cancel` ink-start deltas | 8, 7, 7, 7, 7 |
+
+### Candidates tested — all six rejected
+
+`node tools/font-compare/win31-system.mjs` prints this table with reasons.
+
+| Face | Licence | Verdict |
+|---|---|---|
+| W95FA | OFL | Wrong face by construction — a recreation of the **Windows 95** MS Sans Serif bitmap |
+| DotGothic16 | OFL | 9px cap reachable, but 1px stems and far too narrow (40px against 58) |
+| Silkscreen Bold | OFL | 9px cap reachable, but 3px stems and far too wide (81px against 58) |
+| Pixelify Sans | OFL | Cannot reach a 9px cap height at any integer size |
+| Handjet | OFL | Cannot reach a 9px cap height at any integer size |
+| VT323 | OFL | Cannot reach a 9px cap height, and monospaced where System is proportional |
+
+Two of those rejections are ordinary metric mismatches. The other three are a
+**structural** failure worth naming, because it rules out most of the field and no
+amount of searching within that field helps: a pixel font designed on a different cell
+steps its cap height 8, 10, 12 … as the font size rises, and simply has no size that
+yields 9. Forcing a fractional size to land on 9 reintroduces the antialiasing that
+the integer-scaled viewport decision exists to eliminate — and both faces that *did*
+reach 9px rendered antialiased greys there anyway, so neither was on the grid.
+
+### What would resolve it
+
+Any one of these, in descending order of preference:
+
+1. **A bold proportional pixel face designed on a 16px cell**, OFL or CC0. Pixel
+   Operator Bold (CC0, Jayvee Enaguas) is the strongest candidate by design intent —
+   16px cell, bold, proportional — but it is distributed via dafont and itch.io, and
+   neither host is reachable from the build sandbox. A copy dropped into
+   `docs/sources/fonts/` would let it be tested in one pass.
+2. **Any other bold 16px-cell pixel face** reachable from `raw.githubusercontent.com`,
+   which is allowlisted. `cdn.jsdelivr.net` and the GitHub API are not.
+3. **Accepting a stated fidelity loss**, as with Trebuchet's double-storey `g`: pick
+   the closest reachable face, record the mismatch in this table, and ship it. This is
+   the fallback and it is worse here than it was for XP, because the mismatch is
+   weight and width rather than one glyph's letterform — every string in the era would
+   be the wrong length.
+
+`era/win31` is complete through measurement and stops before the chrome, because
+`CLAUDE.md` forbids building on an unresolved font and this one is unresolved.
