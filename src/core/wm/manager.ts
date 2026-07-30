@@ -60,6 +60,19 @@ export class WindowManager {
   private focused: WindowId | null = null
   private work: Rect
   private cascadeIndex = 0
+  /**
+   * Where a window shrinks to when minimized, asked per window.
+   *
+   * §2 requires "era-correct minimize animation — XP shrinks toward the taskbar
+   * button, Tiger genies to the Dock", and both of those targets are owned by a
+   * shell region rather than by the window manager: only the Dock knows where a
+   * given window's tile ended up. So the WM asks, and falls back to the work
+   * area's bottom-left corner when nothing answers.
+   *
+   * Era-neutral by construction — the WM never learns *why* the rect is where it
+   * is, exactly as it never learns why the work area is shorter.
+   */
+  private minimizeTarget: ((id: WindowId) => Rect | null) | null = null
 
   /** Reused across every geometry operation so moves and resizes allocate nothing. */
   private readonly scratchA: Rect = rect(0, 0, 0, 0)
@@ -318,6 +331,17 @@ export class WindowManager {
   }
 
   /** Work area shrinks for menu bars, taskbars and docks that reserve space. */
+  /**
+   * Supply where minimized windows shrink to. Returning null for a window falls
+   * back to the work area's bottom-left corner.
+   *
+   * The provider is asked at minimize time rather than cached, because a Dock tile
+   * or a taskbar button moves as windows open and close.
+   */
+  setMinimizeTarget(fn: ((id: WindowId) => Rect | null) | null): void {
+    this.minimizeTarget = fn
+  }
+
   setWorkArea(r: Rect): void {
     this.work = cloneRect(r)
     for (const id of this.order) {
@@ -401,7 +425,7 @@ export class WindowManager {
     // forgot the check would ship an era that animates anyway, and the only
     // symptom is motion a viewer asked not to see — nothing would fail.
     if (!prefersReducedMotion()) {
-      await this.chrome.minimizeTo(entry.handle, target ?? this.defaultMinimizeTarget())
+      await this.chrome.minimizeTo(entry.handle, target ?? this.resolveMinimizeTarget(id))
     }
     entry.handle.el.style.display = 'none'
     this.emit('minimized', id)
@@ -548,6 +572,10 @@ export class WindowManager {
 
   private defaultMinimizeTarget(): Rect {
     return rect(this.work.x, this.work.y + this.work.h, 160, 24)
+  }
+
+  private resolveMinimizeTarget(id: WindowId): Rect {
+    return this.minimizeTarget?.(id) ?? this.defaultMinimizeTarget()
   }
 
   /**

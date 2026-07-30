@@ -141,14 +141,22 @@ Tiger HIG Figure 13-2, "Standard window parts". Apple published **no** window,
 title bar, scroll bar or menu specification section — only figures — so this is the
 only source for Tiger's chrome geometry.
 
-| Metric | Measured |
-|---|---|
-| Title bar height | **22px**, plus a 1px separator (23px to the client area) |
-| Traffic light diameter | **~12px** |
-| Traffic light spacing | **21px** centre to centre, twice, consistent |
-| First light inset from window left | **13px** |
-| Scroll bar width | **~15px** |
-| Top corner radius | ~6–8px (JPEG-noisy; the shadow interferes) |
+> **Two values in this table were corrected in phase 4.** The window's edges were
+> being found on its *drop shadow* rather than its frame, which put every inset 3px
+> out — the first light is **9px** from the window's left edge, not 13px. And the
+> 12px diameter is a light's saturated core, found by a test that cannot see its 1px
+> ring: the light is **14px**. Five more figures were also found in the same two
+> chapters. See [`docs/eras/tiger.md`](../../eras/tiger.md) and
+> `tools/pdf-extract/measure-tiger-chrome.py`.
+
+| Metric | Measured | Phase 4 |
+|---|---|---|
+| Title bar height | **22px**, plus a 1px separator (23px to the client area) | confirmed in six figures |
+| Traffic light diameter | ~12px | **14px** incl. its ring |
+| Traffic light spacing | **21px** centre to centre, twice, consistent | confirmed in four figures |
+| First light inset from window left | 13px | **9px** |
+| Scroll bar width | **~15px** | 15px exactly |
+| Top corner radius | ~6–8px (JPEG-noisy; the shadow interferes) | arc 4,3,2,1,1,0 → 6px |
 
 ### The scale argument, stated because it matters
 

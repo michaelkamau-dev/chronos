@@ -775,36 +775,71 @@ which is reachable from here.
 | Menu bar translucency | **Tiger did not have it** — that is 10.5 Leopard | measured |
 
 **Apple never published the window chrome in prose** — there is no Window, Title
-Bar, Scroll Bar or Menu specification section anywhere in the HIG, only figures.
-Figure 13-2 has now been extracted and measured, which converts most of that gap:
+Bar, Scroll Bar or Menu specification section anywhere in the HIG, only figures. The
+phase-4 extraction is done, and it found **five more figures** beyond the Figure 13-2
+this table originally rested on. Full derivation, the calibration argument and the
+list of what remains unknown: [`docs/eras/tiger.md`](eras/tiger.md).
 
-| Metric | Measured |
-|---|---|
-| Title bar height | **22px** + a 1px separator (23px to the client area) |
-| Traffic light diameter | ~12px |
-| Traffic light spacing | **21px** centre to centre |
-| First light inset from window left | **13px** |
-| Scroll bar width | ~15px |
-| Top corner radius | ~6–8px (JPEG-noisy) |
+| Metric | Measured | From |
+|---|---|---|
+| Title bar height | **22px** + a 1px separator (23px to the client area) | six figures |
+| Traffic light diameter | **14px** incl. a 1px ring (12px coloured core) | 40+ instances |
+| Traffic light spacing | **21px** centre to centre | four figures |
+| First light inset from the window's left edge | **9px** | five figures |
+| Light inset from the top frame line | **5px** — one pixel **below** centre | fifteen specimens |
+| Active title bar gradient | 21 rows, `#F9F9F9` → `#CACACA`, exactly neutral | three specimens agreeing |
+| Inactive title bar | nearly flat, ink `#4D5B5F` | Figure 13-19 |
+| Window frame | **1px hairline** on left / right / bottom | Figure 13-22 |
+| Top corner | a 5-row arc, insets **4,3,2,1,1,0** → a 6px radius | Figure 13-3 |
+| Menu bar height | **22px** incl. its 1px `#BDBDBD` rule | Figure 12-12 |
+| Menu item height | **19px**; separator slot 12px | Figure 12-11 |
+| Menu highlight | `#3262B4`, white text; dimmed ink `#808080` | Figure 12-11 |
+| Menu background | a **4px pinstripe**: 2px `#F3F3F3`, 2px `#EFEFEF` | Figure 12-11, proven in a lossless PNG |
+| Aqua focus ring | `#C5D5E2` / `#A8C8E2` / `#8ABCE3` outward-in | Figure 7-1 — **lossless PNG** |
+| Scroll bar width | **15px**, proportional scroller, arrows together at one end | Figure 13-22 |
+| Utility window | 16px title bar, 11px lights on 18px centres | Figure 13-19 |
 
 The scale is argued rather than assumed: Figure 14-1's three push buttons measure
 16/22/19px including shadows against documented heights of 15/20/17px "not
-including the shadow", so this document embeds 1:1 bitmaps. The 22px title bar also
-matches the independent `NSStatusBar.system.thickness == 22` datum. Details and
-caveats in `docs/sources/figures/README.md`; everything stays tagged `measured`.
+including the shadow", so this document embeds 1:1 bitmaps. That argument is now much
+stronger — **six separately cropped, separately compressed figures all reproduce the
+22px title bar plus its 1px separator**, and Figure 12-12 puts the *menu bar* at the
+same 22px, which is what the independent `NSStatusBar.system.thickness == 22` datum
+actually describes. Everything stays tagged `measured`; Apple published none of it.
 
-Still unverified: window shadow parameters, title bar gradient stops, menu item
-height, the Aqua selection highlight, and the lozenge thumb geometry. The
-widely-circulated traffic-light *colours* (`#FF5F57`…) remain **modern macOS values
-from CSS clones, not Tiger**.
+**Two values above correct this table's own earlier entries, and both had one cause.**
+`tools/pdf-extract/measure-tiger-window.py` located the window's edges with "the first
+step greater than 30 in channel sum", and an Aqua window sits on a soft drop shadow
+that ramps in 30-to-40-unit steps — so it stopped on the shadow, three pixels outside
+the window, and every inset measured from it came out 3px large. The frame line is the
+*largest* step in the row by a factor of five (217 against the shadow's 40). Measuring
+from it gives **9px, not 13px**. Separately, the 12px diameter came from a saturation
+test that finds only a light's coloured core and cannot see its ring — or a grey light
+at all, which is why the disabled state was recorded as unmeasurable. Both scripts are
+fixed and carry notes saying what the threshold version cost.
 
-**But this gap has a clean fix that works from here.** The HIG PDF embeds its
-figures as 1:1 screenshots — Figure 13-2 "Standard window parts" is a full
-standard document window at native resolution, and Figures 14-1/14-2 are
-*dimensioned* drawings whose documented 20px button height calibrates the ruler.
-Extracting those XObjects and measuring them yields **Apple's own pixels**, which
-is a better provenance than any third-party clone. That is a phase-4 task and it
-is fully in scope.
+**Figure 13-3 is what made the difference**, and it is the same lesson the Luna
+caption-button figure taught: *before recording something as unresolvable, check
+whether another figure in the same chapter shows it.* "Title bar buttons for standard
+windows" is **fifteen separate embedded bitmaps**, each placed at exactly
+`px/pt = 1.000` — 72 DPI, the resolution Mac OS X itself drew at. It is the Tiger
+analogue of Microsoft's caption-button specimen sheet, and it settled the lights'
+artwork in both the enabled and the disabled state in one pass.
+
+Still unverified, with the cause stated in each case: the traffic lights' **hover,
+pressed and glyph artwork** (no figure shows a glyph and no prose describes a
+rollover), the **Dock shelf's fill and height** (the figure crops the translucent
+shelf onto the white page, so it composited against the paper), and the **window
+shadow's full depth** (the crop ends while the shadow is still ramping). The
+widely-circulated traffic-light *colours* (`#FF5F57`…) are confirmed **modern macOS
+values from CSS clones, not Tiger** — Tiger's close button bodies around `#C1362F`.
+
+**A point is a pixel in this era.** Mac OS X drew at a nominal 72 DPI, so Lucida
+Grande 13pt is 13px exactly — the inverse of the Windows trap recorded above, where
+8pt at 96 DPI is 10.667px. The rule is unchanged (integer pixels, never `pt` in a
+stylesheet, because CSS `13pt` means 17.33px); the conversion is the identity. Checked
+against the figures rather than assumed: the menu bar title inks a 10px
+caps-and-ascenders band, which 13px predicts and a 96 DPI reading does not.
 
 ### The Apple sources arrived, and they close more than expected
 
@@ -1272,33 +1307,41 @@ is fact about the repository as it stands, not plan.
 
 | Branch | Contents | Status |
 |---|---|---|
-| `main` | phases 1–3 plus Windows 3.1 | the trunk; both era branches are merged into it |
+| `main` | phases 1–3, Windows 3.1, Mac OS X Tiger | the trunk; every era branch merges into it |
 | `claude/new-session-aej4gm` | phases 1–3 (WM, FS, Windows XP Luna) | **merged to `main`** |
 | `era/win31` | Windows 3.1 | **merged to `main`** via pull request #1 |
+| `era/tiger` | Mac OS X Tiger | **merged to `main`** |
 
-Branch the next era off `main`, not off either merged branch. The convention is
+Branch the next era off `main`, not off any merged branch. The convention is
 `era/<id>`, one per era, each merging back to `main`: `era/system1`, `era/macos8`,
-`era/tiger`, `era/ledger`.
+`era/ledger`.
 
 **Order, and why.** Windows XP first because it is the reference implementation.
 Windows 3.1 second because it had 1:1 captures and is XP's closest structural sibling,
-so it stress-tested the contract cheaply. Remaining: **System 1 and Mac OS 8** next, on
-the Apple prose in §7 — both are substantially sourced. Then **Tiger** on the measured
-figures. Then **Ledger** last, because it is the era most hostile to the contract and it
-is the only one that needs `suspend()`/`resume()` to be visible and the render-budget
-governor to exist.
+so it stress-tested the contract cheaply. Tiger third because it is the first era whose
+*shell* is more than a desktop — a menu bar and a Dock, both reserving space — so it
+was the one that forced §5's `ShellLayout` to exist rather than remain a design.
+Remaining: **System 1 and Mac OS 8**, on the Apple prose in §7; both are substantially
+sourced, and both inherit Tiger's shell regions for their own menu bars. Then **Ledger**
+last, because it is the era most hostile to the contract and the only one that needs
+`suspend()`/`resume()` to be visible and the render-budget governor to exist.
 
 ### Test counts, so a regression is obvious
 
-`npm test` runs all three suites. As of the Windows 3.1 merge: **137 green** — 11
-invariant, 7 budget, 119 browser. The browser suites are `wm`, `a11y`, `fs`, `perf`,
-`xp-fidelity` (28) and `win31-fidelity` (20).
+`npm test` runs all three suites. As of the Tiger merge: **171 green** — 11 invariant,
+7 budget, 153 browser. The browser suites are `wm`, `a11y`, `fs`, `perf`,
+`xp-fidelity` (28), `win31-fidelity` (20) and `tiger-fidelity` (34).
+
+The fidelity suites each assert `window.__chronos.era` in a `beforeEach`. Without that a
+suite passes vacuously against whichever era is default, which is how four suites
+silently tested XP when XP became the default in phase 3.
 
 ### The contract additions phase 4 has made so far
 
-Four, all era-neutral, all in core. §11 says a core change a later era demands is a
-contract bug to be fixed in core rather than patched in the skin; these are the record
-of that happening.
+Seven, all era-neutral. §11 says a core change a later era demands is a contract bug to
+be fixed in core rather than patched in the skin; these are the record of that happening.
+Items 5–7 came from Tiger and are the reason `era/system1` and `era/macos8` should rebase
+onto `main` before building their menu bars — all three are things a Mac shell needs.
 
 1. **`ChromeMetrics.cornerTop` is a discriminated union**, not a number.
    ```ts
@@ -1335,13 +1378,54 @@ of that happening.
    below 60. Era-neutral by construction — it belongs in `core/input`, and only Ledger
    sets a rate below 60. Build it when Ledger is built, not before.
 
+5. **`SkinManifest.regions` — edge-anchored shell chrome.** §5's `ShellLayout`, finally
+   implemented, because Tiger is the first era whose shell is more than a desktop.
+   ```ts
+   interface ShellRegion {
+     edge: 'top' | 'bottom' | 'left' | 'right'
+     kind: string            // 'menubar' | 'taskbar' | 'dock' | 'budgetbar'
+     thickness: number
+     reservesSpace: boolean
+     mount(host: HTMLElement, api: ShellRegionHost): (() => void) | void
+     minimizeTarget?(id: WindowId): Rect | null
+   }
+   ```
+   The shell builds each element, positions it from `data-edge` in `base.css`, sums the
+   reserving ones and hands the window manager a plain rect — so the WM knows a Dock
+   exists only as "the work area is 68px shorter". Regions live **inside** the desktop
+   element, so they sit inside the display transform and a 512×342 era's menu bar scales
+   with its integer-scaled viewport instead of floating beside it. An era with no shell
+   chrome declares no regions; Windows 3.1 had no taskbar and says so by omission.
+
+   Two traps this exposed, both now handled in the shell and both worth knowing before
+   adding a region: **reservations accumulate**, so use `Shell.addReservedEdges()` rather
+   than writing the display's reserved edges directly — the harness status strip did the
+   latter and silently erased Tiger's menu bar and Dock from the work area. And a region
+   element is offset by the *other* claims on its edge, or the work area is right while
+   the pixels overlap.
+
+6. **`WindowManager.setMinimizeTarget(fn)`.** §2 requires an era-correct minimize target
+   — "XP shrinks toward the taskbar button, Tiger genies to the Dock" — and neither is
+   knowable by the window manager: only the Dock knows where a given window's tile ended
+   up, and tiles move as windows open and close. So the WM asks, per window, at minimize
+   time, and falls back to the work area's bottom-left corner when nothing answers. It
+   never learns *why* the rect is where it is. XP's taskbar will use the same hook.
+
+7. **`MenuController.subscribe(fn: (open: boolean) => void)`.** A menu bar highlights the
+   title whose menu is open, and a menu closes by six routes the bar never sees: Escape,
+   activating an item, a click on the desktop, a click on a window, losing the capture
+   layer, or another menu opening. Without the notification the highlight goes stale after
+   every one of them. Era-neutral — the Windows eras render their menu bar inside a window
+   and have the identical problem.
+
 Also worth knowing, though they are shell rather than core:
 
 - **`src/shell/base.css`** holds every structural rule that must be true in every era —
   frame positioning and `contain`, the title bar's `touch-action`/`user-select`, resize
   handle positioning, handle suppression on non-resizable and maximized windows,
-  pointer-event suppression mid-gesture, and the overlay z-index constants
-  `--layer-menu` / `--layer-switcher`. Before writing a rule into a skin, ask whether a
+  pointer-event suppression mid-gesture, shell-region positioning keyed off `data-edge`,
+  and the overlay z-index constants `--layer-region` / `--layer-switcher` /
+  `--layer-menu`. Before writing a rule into a skin, ask whether a
   skin that omitted it would be wrong. Seven tests in `wm.spec.ts` assert all of it
   against the contract vocabulary, so they hold for a new era without being rewritten.
 - **Menus carry `data-menu`, `data-menu-item`, `data-menu-separator` and
@@ -1351,6 +1435,14 @@ Also worth knowing, though they are shell rather than core:
 - **`src/shell/display.ts` exposes `scale()`.** The bitmap eras render in a fixed logical
   viewport at an integer scale, and a fidelity test that measures a one-pixel pattern has
   to convert device pixels back to logical ones.
+- **`skin.generatedProperties()` is written on the shell root, not on `.desktop`.**
+  Custom properties inherit, and menus, the switcher and every overlay are hosted on the
+  root — *outside* the desktop element. Writing them on the desktop leaves every overlay
+  with undefined variables, and the failure is silent and total: Tiger's first menu
+  rendered with no background, no border colour, the browser's default serif at 16px and
+  a 0px separator. The two Windows skins had masked it by *also* declaring every variable
+  in a `:root` block, which means each measured value existed twice in the tree — exactly
+  what generating them was meant to prevent. Those duplicate `:root` blocks can now go.
 - **Era selection is `?era=<id>`** in `src/main.ts`, which holds an `ERAS` registry of
   thunks so Vite emits one chunk per era and the browser fetches exactly one.
   `main.ts` is the only module that names an era; the invariant test enforces that by
@@ -1359,7 +1451,7 @@ Also worth knowing, though they are shell rather than core:
   it is testing the era it thinks it is — without it, a suite passes vacuously against
   whichever era is default.
 
-### Fonts are resolved for the two built eras
+### Fonts are resolved for the three built eras
 
 The scrutiny sheets, the substitution table with its stated losses, and the metric
 targets all live in **[`docs/fonts/`](../docs/fonts/README.md)**. Source faces are
@@ -1372,6 +1464,7 @@ committed there too, so a subset can be rebuilt without a network fetch.
 | Windows XP | Verdana Bold 8pt, palettes only | DejaVu Sans Bold | Bitstream Vera | deferred; not on the critical path |
 | Windows XP | Franklin Gothic Medium 14pt+, headers only | Libre Franklin | OFL | deferred; direct revival |
 | Windows 3.1 | `SYSTEM.FON` — the whole era | **Pixel Operator Bold @ 16px** | CC0 | advances diverge per glyph; 2px descender against 4px |
+| Mac OS X Tiger | Lucida Grande, 13/12/11/10/9pt — the whole era | **DejaVu Sans** | Bitstream Vera | ±6.3% against Apple's own rasterisation; narrower, rounder face; **bold deferred** |
 
 Two things about the 3.1 row that a fresh session will otherwise rediscover the hard
 way. **W95FA is not a candidate** — it is an OFL recreation of the *Windows 95* MS Sans
@@ -1418,7 +1511,7 @@ that a new instrument *can* fail before trusting it.
 
 ### What is still open
 
-Neither blocks an era, and both are recorded with notes rather than guessed at.
+None of these blocks an era, and each is recorded with notes rather than guessed at.
 
 1. **`luna.msstyles` `[SysMetrics]`** would settle three XP values in one file: the
    caption gradient colours, the disabled caption-button artwork, and the real sizing
@@ -1431,6 +1524,12 @@ Neither blocks an era, and both are recorded with notes rather than guessed at.
    command line has content — so it gave the disabled state and left this open. The
    stylesheet deliberately does not move the label, so the unverified behaviour is
    absent rather than invented.
+3. **A 1:1 Tiger screenshot** would settle three things at once: the traffic lights'
+   hover and pressed artwork and their glyphs — Apple's fifteen-state specimen sheet
+   shows no glyph in any state and the prose never describes a rollover — plus the Dock
+   shelf's fill and height, which the source figure composited against the white page.
+   All are tagged in `src/skins/tiger/metrics.ts`, and `docs/eras/tiger.md` §11 lists
+   them with what each would resolve.
 
 ### The tools, and what each is for
 
@@ -1441,6 +1540,9 @@ Neither blocks an era, and both are recorded with notes rather than guessed at.
 | `tools/pdf-extract/measure-xp-titlebars.py` | the caption gradient, per-row median |
 | `tools/pdf-extract/measure-xp-capbuttons.py` | caption button geometry and the four state faces |
 | `tools/pdf-extract/measure-tiger-window.py` | Tiger Figure 13-2 |
+| `tools/pdf-extract/measure-tiger-titlebuttons.py` | Tiger Figure 13-3 — fifteen 1:1 specimens; the traffic lights' artwork |
+| `tools/pdf-extract/measure-tiger-chrome.py` | Tiger Figures 13-19, 13-22, 12-11, 12-12, 10-1 and 7-1 |
+| `tools/font-compare/tiger-lucida.mjs` | Lucida Grande substitute, against Apple's own 13px ink widths |
 | `tools/captures/measure-win31.py` | all three Windows 3.1 VGA captures, including the stipple parity proof |
 | `tools/font-compare/build.mjs` | renders candidate faces against a metric target |
 | `tools/font-compare/win31-system.mjs` | the 3.1 System font candidate verdicts |

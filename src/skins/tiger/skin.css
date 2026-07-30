@@ -1,0 +1,747 @@
+/*
+ * Mac OS X Tiger (10.4), Aqua, Blue appearance.
+ *
+ * Every colour and dimension here arrives as a custom property generated from
+ * `./metrics.ts` by `./index.ts`, so the stylesheet reads the measurement rather than
+ * keeping a second copy that could drift. Nothing below invents a number.
+ *
+ * Three constructions are worth reading before the rules:
+ *
+ * 1. **Every gradient is a stack of 1px hard bands**, one per measured row, not an
+ *    interpolation between two endpoints. An Aqua gradient is not linear: the title
+ *    bar has a bright first row and a plateau, the menu bar has two highlights and a
+ *    trough, and a traffic light brightens toward its bottom. Interpolating would be
+ *    visibly wrong *and* would discard the measurement.
+ * 2. **Aqua has pinstripes**, and they are real rather than an artefact — proven in a
+ *    lossless PNG in the source document. 2px of each grey, a 4px period, in menus
+ *    and in window bodies. Almost every recreation ships a flat fill.
+ * 3. **Antialiasing is correct here.** This is the first era in the project where soft
+ *    type is the era's own behaviour — Apple documents that all interface text is
+ *    antialiased — so none of the pixel-crisp machinery the bitmap eras need applies,
+ *    and the viewport is native 1:1.
+ */
+
+@font-face {
+  /*
+   * DejaVu Sans standing in for Lucida Grande. Within +/-6.3% of Apple's own
+   * rasterisation across five measured strings; see docs/fonts/tiger-README.md.
+   *
+   * Regular only. Nothing in this file may ask for a bold weight until
+   * lucida-bold-sub.woff2 exists, because the browser would synthesise a fake bold
+   * by smearing these outlines. A fidelity test asserts the chrome stays at 400.
+   */
+  font-family: 'Lucida Sub';
+  src: url('./fonts/lucida-sub.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+
+/* ---------------------------------------------------------------- desktop */
+
+.desktop[data-skin='tiger'] {
+  /*
+   * Tiger's default desktop was the "Aqua Blue" gradient wallpaper. The wallpaper
+   * image itself is Apple's artwork and is not reproduced; this is a plain blue
+   * gradient in its place, which is the one deliberately non-measured surface in the
+   * era and is called out rather than passed off.
+   */
+  background: linear-gradient(180deg, #4a6f9c 0%, #2f5480 55%, #23415f 100%);
+  color: var(--tg-titlebar-ink);
+  font-family: var(--tg-font);
+  font-size: var(--tg-font-system);
+  font-weight: 400;
+}
+
+/* ----------------------------------------------------------------- window */
+
+/*
+ * The frame is a 1px hairline, not a sizing border. Aqua carries a window's weight in
+ * its drop shadow — the opposite of Luna's 4px four-step frame, and the reason
+ * `shadowInsets` is non-zero here where XP measured zero.
+ */
+.tg-win {
+  display: flex;
+  flex-direction: column;
+  background: var(--tg-body);
+  border: 1px solid var(--tg-frame);
+  border-top: none;
+  border-radius: var(--tg-corner) var(--tg-corner) 0 0;
+  /* Measured: ~12px of ramp on the sides, deeper below. Two layers because an Aqua
+   * shadow is both a tight contact shadow and a broad ambient one. */
+  box-shadow:
+    0 2px 5px rgb(0 0 0 / 28%),
+    0 10px 26px rgb(0 0 0 / 22%);
+  overflow: hidden;
+}
+
+/* An inactive window's shadow contracts — it sits behind, so it casts less. */
+.tg-win[data-state='blurred'] {
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 18%),
+    0 6px 16px rgb(0 0 0 / 12%);
+}
+
+/*
+ * The title bar is **exactly 22px, frame line included**, and the separator sits
+ * outside it. That split matters because it is what the measurement says and what
+ * `ChromeMetrics` encodes: the window's outer top edge is the 1px frame line, 21
+ * gradient rows follow, and the 1px separator below them is `border.top` — so the
+ * window manager's `titleBarHeight + border.top` arrives at the measured 23px to the
+ * client area without either value being fudged.
+ *
+ * The gradient is 21 hard 1px bands and the padding box under the 1px border is
+ * exactly 21px, so band `n` lands on row `n` with nothing to interpolate. If the
+ * border were outside the height, or the gradient smooth, both would drift.
+ */
+.tg-titlebar {
+  position: relative;
+  flex: 0 0 auto;
+  height: var(--tg-titlebar-h);
+  display: flex;
+  align-items: center;
+  background: var(--tg-titlebar);
+  border-top: 1px solid var(--tg-titlebar-line);
+  border-radius: var(--tg-corner) var(--tg-corner) 0 0;
+  cursor: default;
+}
+
+.tg-win[data-state='blurred'] .tg-titlebar {
+  background: var(--tg-titlebar-inactive);
+  border-top-color: var(--tg-titlebar-line-inactive);
+}
+
+/* A maximized (zoomed) window loses its rounded corners, as Aqua's did. */
+.tg-win[data-maximized='true'],
+.tg-win[data-maximized='true'] .tg-titlebar {
+  border-radius: 0;
+}
+
+/*
+ * The title. Centred in the bar, and it must not overlap the lights — so the text is
+ * centred over the whole bar and the lights are absolutely positioned on top, which is
+ * how a long title ends up ellipsised without pushing the buttons.
+ */
+.tg-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  padding: 0 var(--tg-titlebar-h);
+  font-size: var(--tg-font-system);
+  font-weight: 400;
+  color: var(--tg-titlebar-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* The one place a fractional offset is right: the measured ink band sits 1px above
+   * the bar's centre because the bar itself is 1px taller below the text. */
+  line-height: calc(var(--tg-titlebar-h) - 1px);
+}
+
+.tg-win[data-state='blurred'] .tg-title {
+  color: var(--tg-titlebar-ink-inactive);
+}
+
+/*
+ * The client area, and the 1px separator that closes the title bar. The separator
+ * belongs here rather than on the title bar because it *is* `ChromeMetrics.border.top`
+ * — the client area's own top edge — and putting it here keeps the title bar's height
+ * exactly the measured 22px.
+ */
+.tg-content {
+  flex: 1 1 auto;
+  background: #ffffff;
+  border-top: 1px solid var(--tg-titlebar-sep);
+  overflow: auto;
+}
+
+.tg-win[data-state='blurred'] .tg-content {
+  border-top-color: var(--tg-titlebar-sep-inactive);
+}
+
+/* ------------------------------------------------------ the traffic lights */
+
+/*
+ * Placement is measured, not centred: 5px down from the top frame line and 4px clear
+ * of the separator, in all fifteen of Apple's specimens. Centring 14px in 22px would
+ * give 4 and 4 — the lights genuinely sit one pixel low, exactly as Luna's caption
+ * buttons genuinely sit off-centre.
+ */
+.tg-lights {
+  position: absolute;
+  /*
+   * Both insets are measured from the window's **outer** edge — the frame line's own
+   * row and column — and this element is positioned inside the frame, so each loses
+   * one hairline. Getting this wrong is a silent 1px error in the most-looked-at
+   * ornament in the era, which is exactly what the first render did.
+   */
+  top: calc(var(--tg-light-inset-top) - var(--tg-hairline));
+  left: calc(var(--tg-light-inset-left) - var(--tg-hairline));
+  display: flex;
+  /* 21px centre to centre on a 14px light is a 7px gap. Written as the measured
+   * pitch minus the measured diameter so neither can drift from the other. */
+  gap: calc(var(--tg-light-pitch) - var(--tg-light-d));
+  z-index: 1;
+}
+
+.tg-light {
+  width: var(--tg-light-d);
+  height: var(--tg-light-d);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: default;
+  /*
+   * The measured vertical gradient plus a measured 1px ring.
+   *
+   * What this does not reproduce: the lights are shaded horizontally as well as
+   * vertically — the close button's middle row runs #411316 at the ring, #B42A27,
+   * up to #D96058 at the centre and back down — so the centre of each light here is
+   * up to ~20 units darker than Apple's. Reproducing the second axis needs a radial
+   * layer whose centre and falloff are not derivable from a 14px JPEG crop.
+   */
+  background: var(--tg-light-off);
+  box-shadow: inset 0 0 0 1px var(--tg-ring-off);
+}
+
+.tg-win[data-state='focused'] .tg-light-close:not(:disabled) {
+  background: var(--tg-light-close);
+  box-shadow: inset 0 0 0 1px var(--tg-ring-close);
+}
+
+.tg-win[data-state='focused'] .tg-light-minimize:not(:disabled) {
+  background: var(--tg-light-minimize);
+  box-shadow: inset 0 0 0 1px var(--tg-ring-minimize);
+}
+
+.tg-win[data-state='focused'] .tg-light-maximize:not(:disabled) {
+  background: var(--tg-light-zoom);
+  box-shadow: inset 0 0 0 1px var(--tg-ring-zoom);
+}
+
+/*
+ * hover and active are UNVERIFIED; focus is measured.
+ *
+ * Apple's specimen sheet has fifteen states and not one shows a glyph — no x, no
+ * minus, no plus — and the HIG's prose never describes a rollover or a pressed state.
+ * `CLAUDE.md` requires all five states on every interactive element, so all five
+ * exist; these two are derived and say so here and in docs/eras/tiger.md §4. A 1:1
+ * Tiger screenshot with the pointer over the button group resolves them.
+ *
+ * The derivation, stated so it can be replaced rather than trusted: the glyph is
+ * revealed on hover of the *group* rather than of the individual button, because a
+ * Mac reveals all three at once; pressed darkens and saturates.
+ *
+ * **Focus is deliberately not a glyph trigger.** Focus gets the measured Aqua ring
+ * and nothing else, which keeps the one state that has a source (Figure 7-1, and
+ * Apple's prose at p99) distinct from the two that do not. It also matches the era:
+ * Apple documents that in default keyboard access mode "focus moves only between
+ * fields that receive keyboard input", so a Tiger traffic light showing its glyph
+ * merely because the window was activated would be wrong twice over.
+ */
+.tg-lights:hover .tg-light:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* The glyph, drawn from rules rather than from a font: a font glyph scaled into a
+   * 14px circle lands off-centre and the shapes are simple enough to draw. */
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.tg-light {
+  position: relative;
+}
+
+.tg-lights:hover .tg-light-close:not(:disabled)::after {
+  /* A 7px x, as two 1px bars crossed. */
+  background-image:
+    linear-gradient(45deg, transparent 46%, rgb(0 0 0 / 62%) 46%, rgb(0 0 0 / 62%) 54%, transparent 54%),
+    linear-gradient(-45deg, transparent 46%, rgb(0 0 0 / 62%) 46%, rgb(0 0 0 / 62%) 54%, transparent 54%);
+  background-size: 8px 8px, 8px 8px;
+}
+
+.tg-lights:hover .tg-light-minimize:not(:disabled)::after {
+  /* A single horizontal bar. */
+  background-image: linear-gradient(
+    to bottom,
+    transparent 46%,
+    rgb(0 0 0 / 62%) 46%,
+    rgb(0 0 0 / 62%) 54%,
+    transparent 54%
+  );
+  background-size: 8px 8px;
+}
+
+.tg-lights:hover .tg-light-maximize:not(:disabled)::after {
+  /* A plus: the same bar, twice, crossed square. */
+  background-image:
+    linear-gradient(to bottom, transparent 46%, rgb(0 0 0 / 62%) 46%, rgb(0 0 0 / 62%) 54%, transparent 54%),
+    linear-gradient(to right, transparent 46%, rgb(0 0 0 / 62%) 46%, rgb(0 0 0 / 62%) 54%, transparent 54%);
+  background-size: 8px 8px, 8px 8px;
+}
+
+/* Pressed: darkens without changing the artwork's hue. Unverified. */
+.tg-light:active:not(:disabled) {
+  filter: brightness(0.82) saturate(1.15);
+}
+
+/*
+ * Focus. The measured Aqua ring, from the document's one lossless bitmap — three
+ * rings of the measured colours rather than an invented glow.
+ */
+.tg-light:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px var(--tg-ring-off),
+    0 0 0 1px var(--tg-focus-2),
+    0 0 0 2px var(--tg-focus-1),
+    0 0 0 3px var(--tg-focus-0);
+}
+
+.tg-win[data-state='focused'] .tg-light-close:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px var(--tg-ring-close),
+    0 0 0 1px var(--tg-focus-2),
+    0 0 0 2px var(--tg-focus-1),
+    0 0 0 3px var(--tg-focus-0);
+}
+
+.tg-win[data-state='focused'] .tg-light-minimize:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px var(--tg-ring-minimize),
+    0 0 0 1px var(--tg-focus-2),
+    0 0 0 2px var(--tg-focus-1),
+    0 0 0 3px var(--tg-focus-0);
+}
+
+.tg-win[data-state='focused'] .tg-light-maximize:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px var(--tg-ring-zoom),
+    0 0 0 1px var(--tg-focus-2),
+    0 0 0 2px var(--tg-focus-1),
+    0 0 0 3px var(--tg-focus-0);
+}
+
+/*
+ * Disabled is measured, and it is the same artwork an inactive window shows — which
+ * is itself a measured finding rather than a convenience: Apple's "all three
+ * disabled" specimen and the inactive window in Figure 13-19 carry identical greys.
+ */
+.tg-light:disabled {
+  background: var(--tg-light-off);
+  box-shadow: inset 0 0 0 1px var(--tg-ring-off);
+  cursor: default;
+}
+
+/*
+ * "When a document has unsaved changes, the close button should display a dot."
+ * Apple documents the dot on the close button specifically — not as a title-bar-wide
+ * dirty mark, which is what a Windows era would use.
+ */
+.tg-light-close[data-dot='true']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgb(0 0 0 / 55%) 0 2.5px,
+    transparent 2.5px
+  );
+}
+
+/* --------------------------------------------------------- resize handles */
+
+/*
+ * Sizes and cursors stay with the skin — a 1px hairline needs different grab slop
+ * from a 4px Luna frame — while positioning is structural and lives in base.css.
+ */
+.tg-resize {
+  --grab: 4px;
+}
+
+.tg-resize-n { top: 0; left: var(--grab); right: var(--grab); height: var(--grab); cursor: ns-resize; }
+.tg-resize-s { bottom: 0; left: var(--grab); right: var(--grab); height: var(--grab); cursor: ns-resize; }
+.tg-resize-e { right: 0; top: var(--grab); bottom: var(--grab); width: var(--grab); cursor: ew-resize; }
+.tg-resize-w { left: 0; top: var(--grab); bottom: var(--grab); width: var(--grab); cursor: ew-resize; }
+.tg-resize-ne { top: 0; right: 0; width: var(--grab); height: var(--grab); cursor: nesw-resize; }
+.tg-resize-nw { top: 0; left: 0; width: var(--grab); height: var(--grab); cursor: nwse-resize; }
+.tg-resize-sw { bottom: 0; left: 0; width: var(--grab); height: var(--grab); cursor: nesw-resize; }
+
+/*
+ * The resize control. Tiger only resized from the bottom-right corner and drew a
+ * ribbed box there, so that handle is bigger than the others and visible.
+ */
+.tg-resize-se {
+  right: 0;
+  bottom: 0;
+  width: 15px;
+  height: 15px;
+  cursor: nwse-resize;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    #8a8a8a 0 1px,
+    transparent 1px 3px
+  );
+  background-position: right 2px bottom 2px;
+  background-size: 11px 11px;
+  background-repeat: no-repeat;
+}
+
+.tg-win[data-state='blurred'] .tg-resize-se {
+  background-image: repeating-linear-gradient(-45deg, #bcbcbc 0 1px, transparent 1px 3px);
+}
+
+/* ---------------------------------------------------------------- menu bar */
+
+.tg-menubar {
+  display: flex;
+  align-items: stretch;
+  padding-left: var(--tg-menubar-inset);
+  background: var(--tg-menubar);
+  /* The bar's own 1px rule, plus the 1px it casts onto the desktop below. */
+  box-shadow:
+    inset 0 -1px 0 0 var(--tg-menubar-rule),
+    0 1px 0 0 var(--tg-menubar-shadow);
+  font-family: var(--tg-font);
+  font-size: var(--tg-font-system);
+  color: var(--tg-menubar-ink, #000000);
+}
+
+.tg-menubar-title {
+  padding: 0 var(--tg-menubar-pad);
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+  /* Sits above the bar's own bottom rule so an open title's highlight covers it,
+   * which is what the measured figure shows. */
+  margin-bottom: -1px;
+}
+
+/*
+ * A menu title is never dimmed, even when every item inside it is unavailable. Apple
+ * states this twice (HIG p144 and p154): the user can always open a menu and see why
+ * nothing applies. So there is no disabled rule for a title, deliberately.
+ */
+.tg-menubar-title:hover,
+.tg-menubar-title[data-open='true'] {
+  background: var(--tg-menu-hl);
+  color: var(--tg-menu-hl-ink);
+}
+
+.tg-menubar-title:active {
+  background: var(--tg-menu-hl);
+  color: var(--tg-menu-hl-ink);
+}
+
+.tg-menubar-title:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px var(--tg-focus-2),
+    inset 0 0 0 2px var(--tg-focus-1);
+}
+
+/* The Apple menu: a glyph, so its width comes from its artwork rather than a label. */
+.tg-menubar-title[data-menubar-title='apple'] {
+  width: 26px;
+  padding: 0;
+  position: relative;
+}
+
+.tg-menubar-title[data-menubar-title='apple']::before {
+  /*
+   * Apple's logo is a trademark and is not reproduced. A filled lozenge substitutes
+   * for it — the one shape in this skin standing in for artwork we may not ship, and
+   * it is called out here rather than passed off as measured.
+   */
+  content: '';
+  position: absolute;
+  inset: 7px 9px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+/* ------------------------------------------------------------------- menus */
+
+.tg-menu {
+  min-width: 160px;
+  padding: 4px 0;
+  background: var(--tg-menu-bg);
+  border: 1px solid var(--tg-menu-border);
+  border-radius: var(--tg-menu-radius);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 26%);
+  font-family: var(--tg-font);
+  font-size: var(--tg-font-system);
+  color: var(--tg-menu-ink);
+}
+
+.tg-menu-item {
+  display: flex;
+  align-items: center;
+  height: var(--tg-menu-item-h);
+  padding: 0 var(--tg-menu-accel) 0 0;
+  white-space: nowrap;
+}
+
+.tg-menu-check {
+  width: var(--tg-menu-gutter);
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.tg-menu-label {
+  flex: 1 1 auto;
+}
+
+.tg-menu-accel {
+  flex: 0 0 auto;
+  padding-left: 24px;
+  /* A Mac accelerator is modifier glyphs, not words: the renderer converts
+   * `Meta+W` to the four-glyph sequence Apple uses. */
+  text-align: right;
+}
+
+.tg-menu-sub {
+  flex: 0 0 auto;
+  width: 12px;
+  text-align: right;
+  font-size: 8px;
+}
+
+/* A separator: a 1px measured rule inside a 12px slot. */
+.tg-menu-separator {
+  height: var(--tg-menu-sep-h);
+  background-image: linear-gradient(to bottom, var(--tg-menu-sep) 0 1px, transparent 1px);
+  background-position: 0 5px;
+  background-repeat: no-repeat;
+}
+
+.tg-menu-item[data-highlight='true'][aria-disabled='false'] {
+  background: var(--tg-menu-hl);
+  color: var(--tg-menu-hl-ink);
+}
+
+/*
+ * A dimmed item is dimmed AND is not highlighted. Apple: "the item should appear
+ * dimmed (gray) in the menu and is not highlighted when the user moves the pointer
+ * over it" (HIG p146). The menu controller highlights disabled entries — every
+ * Windows era did, and it is how keyboard navigation shows you where you are — so the
+ * second half of Apple's rule is enforced here, by refusing the highlight background
+ * on an `aria-disabled` item rather than by changing the controller.
+ */
+.tg-menu-item[aria-disabled='true'] {
+  color: var(--tg-menu-off);
+  background: none;
+}
+
+/* --------------------------------------------------------------------- Dock */
+
+/*
+ * A FLAT 2D SHELF. This is the correction §7 records and Figure 10-1 confirms: the 3D
+ * glass shelf with the reflective floor is 10.5 Leopard, two years after Tiger.
+ *
+ * The shelf's fill and height are the era's honest gap — the source figure crops the
+ * Dock onto a white page and Tiger's shelf is translucent, so it composited against
+ * the paper. Only the 1px divider and 1px edging survive, and both are measured. The
+ * fill below is the derived value from metrics.ts and is tagged unverified there.
+ */
+.tg-dock {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.tg-dock-shelf {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--tg-dock-gap);
+  padding: 4px 8px 3px;
+  margin-bottom: 2px;
+  background: var(--tg-dock-fill);
+  border: 1px solid var(--tg-dock-edge);
+  border-radius: 6px;
+  pointer-events: auto;
+  max-width: calc(100% - 24px);
+}
+
+.tg-dock-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--tg-dock-gap);
+  overflow: hidden;
+}
+
+.tg-dock-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--tg-dock-divider);
+  margin: 2px 2px;
+}
+
+.tg-dock-tile {
+  position: relative;
+  width: var(--tg-dock-icon);
+  height: var(--tg-dock-icon);
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: default;
+}
+
+.tg-dock-icon {
+  position: absolute;
+  inset: 2px;
+  border-radius: 5px;
+  /* Application icons are Apple's artwork. A generic Aqua-ish tile stands in, and
+   * that substitution is stated rather than presented as measured. */
+  background:
+    linear-gradient(180deg, #fdfdfd 0%, #dfe7ef 48%, #b9c6d6 52%, #eaf0f6 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 70%),
+    0 1px 2px rgb(0 0 0 / 30%);
+}
+
+.tg-dock-tile[data-minimized='true'] .tg-dock-icon {
+  /* A minimized window's tile is the window itself, shrunk — so it reads differently
+   * from an application tile. Derived, not measured. */
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffffff 0%, #d8dee6 100%);
+}
+
+/* The running-application indicator: a small mark below the tile. */
+.tg-dock-running {
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--tg-dock-running);
+}
+
+/* The label is the help tag Tiger showed above a tile on hover, at the small size. */
+.tg-dock-label {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 92%);
+  border: 1px solid #9a9a9a;
+  font-size: var(--tg-font-small);
+  color: #000000;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tg-dock-tile:hover .tg-dock-label,
+.tg-dock-tile:focus-visible .tg-dock-label {
+  opacity: 1;
+}
+
+.tg-dock-tile:active .tg-dock-icon {
+  filter: brightness(0.9);
+}
+
+.tg-dock-tile:focus-visible {
+  outline: none;
+}
+
+.tg-dock-tile:focus-visible .tg-dock-icon {
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 70%),
+    0 0 0 1px var(--tg-focus-2),
+    0 0 0 2px var(--tg-focus-1),
+    0 0 0 3px var(--tg-focus-0);
+}
+
+.tg-dock-tile:disabled .tg-dock-icon {
+  filter: grayscale(1) brightness(1.1);
+}
+
+.tg-dock-trash {
+  position: relative;
+  width: var(--tg-dock-icon);
+  height: var(--tg-dock-icon);
+}
+
+.tg-dock-trash::after {
+  content: '';
+  position: absolute;
+  inset: 8px 12px 4px;
+  border: 1px solid #8f9aa3;
+  border-top-width: 2px;
+  border-radius: 2px 2px 4px 4px;
+  background: linear-gradient(180deg, #e8edf2 0%, #c3ccd6 100%);
+}
+
+/* ------------------------------------------------------------ scroll bars */
+
+/*
+ * 15px, a proportional scroller, and both arrows together at one end — the direct
+ * opposite of System 1's fixed 16x16 square thumb and split arrow pairs, in the same
+ * codebase and against the same widget contract.
+ */
+.desktop[data-skin='tiger'] [data-content] {
+  scrollbar-width: auto;
+}
+
+.desktop[data-skin='tiger'] [data-content]::-webkit-scrollbar {
+  width: var(--tg-scroll-w);
+  height: var(--tg-scroll-w);
+}
+
+.desktop[data-skin='tiger'] [data-content]::-webkit-scrollbar-track {
+  background: var(--tg-scroll-track);
+}
+
+.desktop[data-skin='tiger'] [data-content]::-webkit-scrollbar-thumb {
+  background: var(--tg-scroll-thumb);
+  border-radius: 7px;
+  border: 1px solid #215eb8;
+}
+
+/* --------------------------------------------------- switcher and overlays */
+
+/*
+ * Mac OS X has no Alt+Tab card overlay — Command+Tab shows an application row, and
+ * Chronos has one application. So the switcher here is deliberately plain: an Aqua
+ * panel listing window titles, which is the honest reading of "this era's switcher
+ * does not exist in the form the shell wants".
+ */
+[data-switcher] {
+  padding: 10px 14px;
+  background: rgb(240 240 240 / 94%);
+  border: 1px solid var(--tg-menu-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 26px rgb(0 0 0 / 34%);
+  font-family: var(--tg-font);
+  font-size: var(--tg-font-system);
+  color: var(--tg-menu-ink);
+}
+
+/*
+ * The modal-rejection flash. Apple's response to clicking a blocked window is a
+ * *sheet-style* bounce rather than Windows' three caption flashes; the shell drives
+ * the animation and this only styles the reduced-motion fallback it holds instead.
+ */
+.tg-titlebar[data-alert='true'] {
+  background: var(--tg-menu-hl);
+}
+
+.tg-titlebar[data-alert='true'] .tg-title {
+  color: var(--tg-menu-hl-ink);
+}
+
+/* A suspended window dims. Only Ledger surfaces this as a real look; Tiger keeps it
+ * quiet because nothing in the era ever showed it. */
+.tg-win[data-suspended='true'] .tg-content {
+  filter: grayscale(0.4) brightness(0.97);
+}
