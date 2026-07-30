@@ -845,7 +845,8 @@ conversion, so it falls outside the licence.
 | Chicago (System 1, OS 8.0/8.1) | **ChicagoFLF** | public domain per Robin Casady |
 | Chicago alt / bitmap-truer | ChiKareGo2 | CC-BY (verify deed on download) |
 | Geneva 9 (icon labels) | FindersKeepers | free; **terms unconfirmed** |
-| Win 3.1 System / MS Sans Serif | **W95FA** | **SIL OFL** |
+| Win 3.1 **System** (`SYSTEM.FON`) — the entire era's chrome | **unresolved** — see below | — |
+| Win 3.1 MS Sans Serif (`SSERIFE.FON`), unused by our chrome | W95FA | SIL OFL |
 | DOS/VGA text (Win 3.1 terminal) | Px437 IBM VGA (Oldschool PC Font Pack) | CC BY-SA 4.0 — see below |
 | Tahoma 8/9/11pt (XP system default) | **Source Sans 3** | SIL OFL |
 | Trebuchet MS Bold 10pt (XP captions only) | **Cabin** | SIL OFL |
@@ -859,7 +860,14 @@ README states it is *a conversion of the original MS Sans Serif* — Microsoft's
 actual bitmaps, not a clean-room design. 98.css's MIT licence covers its CSS and
 says nothing about the font binaries inside it. `system.css` has the same problem
 and additionally ships Apple's Monaco. **We will not inherit a font just because
-a popular library does.** W95FA is the clean answer for the Windows bitmap eras.
+a popular library does.** W95FA is licensed cleanly — an OFL recreation by Alina
+Sava — but it is a recreation of the **Windows 95** MS Sans Serif bitmap, which is
+the wrong face for 3.1's chrome and one era too late. Measurement from the VGA
+captures settles this: 3.1 draws its captions, menu bar, menu items, dialog labels
+and button labels in a *single* face, the bold `SYSTEM.FON`, with 2px stems at a 9px
+cap height. MS Sans Serif is the lighter dialog face 3.1 also shipped and our chrome
+never uses. The row above therefore splits in two, and the one we need is open.
+The metric target is in `docs/sources/win31-metrics.md`.
 
 Two licence nuances I want on the record: the Oldschool PC Font Pack is CC
 **BY-SA**, and subsetting produces a derivative that must stay BY-SA and carry

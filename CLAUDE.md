@@ -172,3 +172,30 @@ Append every correction I make here as a permanent rule. Never delete entries.
   base artwork at reduced opacity. The disabled specimens give 0.23 on the red and
   1.57 on the blue, which means separate artwork over an unknown background — so the
   values are `contested`, exactly like the caption gradient.
+
+### Windows 3.1 (from the VGA captures)
+- Disabled text is a **50% checkerboard knocked out of the black glyph**, for menu
+  items and button labels alike. Not a grey fill, and not a grey fill with a white
+  shadow — that is the Windows 95 treatment and it is what nearly every recreation
+  uses. Same mechanism as System 1's `notPatBic`.
+- Prove a stipple by parity, not by eye: ink on one `(x + y)` parity only means a
+  checkerboard. The disabled OK label is 37 pixels all on one parity; the Cancel label
+  beside it is 140 split 71/69.
+- A greyed button in a captured dialog is not necessarily pressed. 3.1's Run dialog
+  disables OK until the command line has content, so that capture gives the disabled
+  state and leaves the 1px-depress question open.
+- The 3.1 push-button bevel is **2px** highlight and **2px** shadow, not 1px, and its
+  black outline has notched corners so it is not a plain `border`.
+- A 3.1 edit field is a plain 1px black rectangle with a white fill. The sunken
+  two-tone field is a Windows 95 feature.
+- A 3.1 modal dialog has its own frame, not the window sizing frame: 1px black + 4px
+  navy + 1px white on the sides, 3px of navy on top, and no white line at the bottom.
+- **Windows 3.1 uses one face for the whole era** — `SYSTEM.FON`, bold, 2px stems, 9px
+  cap height — for captions, the menu bar, menu items, dialog labels and button
+  labels. MS Sans Serif is a separate face 3.1 also shipped and our chrome never
+  touches. W95FA is an OFL recreation of the **Windows 95** MS Sans Serif bitmap:
+  right licence, wrong face, one era too late. §7's single "System / MS Sans Serif"
+  row was two needs collapsed into one.
+- Two equal-width strings cannot tell a right-aligned column from a fixed left one.
+  `Ctrl+F4` and `Ctrl+F6` are the same width, so the menu accelerator column's
+  alignment is a standard-behaviour assumption, not a measurement.

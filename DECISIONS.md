@@ -845,3 +845,74 @@ definition a task that occupied the main thread. Adding the p95 bound makes the 
 strictly stronger in the direction that matters — a drag hitting vsync only half the
 time would have passed a median bound — while no longer failing on host noise. Four
 subsequent runs: median 16.70, p95 16.70–16.80, p99 16.80, over50 0.
+
+## Phase 4, era/win31 — measurement
+
+### 4.7 Windows 3.1's disabled text is a stipple, and it is proven by parity
+
+**Call.** `WIN31.disabledText = { mode: 'checkerboard', cell: 1 }`. Disabled menu
+items and disabled button labels both render as a 50% checkerboard knocked out of the
+black glyph. No grey fill anywhere.
+
+**Reasoning.** The captures show it and a parity test proves it: ink on only one
+`(x + y)` parity is a checkerboard, ink on both is a solid glyph. The disabled OK
+label is 37 pixels with all 37 on one parity; the Cancel label beside it is 140 split
+71/69. That is not a judgement call, and it is in the measurement script so it stays
+checkable.
+
+This is the fifth correction to the assumption that 3.1 is Windows 95 with a
+different palette. The grey-fill-plus-white-shadow disabled style is a 95 feature, as
+are the sunken edit field, the gradient caption, the grey menu bar and the grey
+inactive caption.
+
+It also constrains the implementation. CSS cannot knock a pattern out of live text, so
+this ships as a 1-logical-pixel `repeating-conic-gradient` mask — which only survives
+at an integer display scale. That is already the phase-1 decision for the bitmap eras,
+and this is the first place it becomes load-bearing rather than merely correct.
+
+### 4.8 The 3.1 bevel is 2px, correcting §7
+
+**Call.** `bevel: { outline: 1, highlight: 2, shadow: 2 }`.
+
+**Reasoning.** §7 has the construction right — three colours, no `COLOR_3DDKSHADOW`
+— and the widths wrong. Both buttons in the Run dialog measure 2px of `#FCFCFC` on the
+top and left and 2px of `#84888C` on the bottom and right. The outline's corners are
+also notched, so it is not expressible as a `border` and ships as a clip path, the
+same construction XP's 1px command-button indent uses.
+
+### 4.9 The Run dialog's OK button is disabled, not pressed
+
+**Call.** The 1px-label-shift-on-depress claim for Windows 3.1 stays `unverified`.
+
+**Reasoning.** The capture was taken to settle it, and it does not: 3.1 disables OK
+until the Run dialog's command line has content, so what looks like a pressed button
+is a disabled one. Reporting this as settled because a button looked unusual would
+have been exactly the invention the fidelity rules exist to prevent. The capture is
+still valuable — it is where the disabled state came from. A capture with the mouse
+held down on Cancel closes the remaining gap.
+
+### 4.10 Windows 3.1 needs the System font, and W95FA is the wrong face
+
+**Call.** `era/win31` stops at measurement. No chrome is built, because
+`CLAUDE.md` forbids building on an unresolved font, and the font this era needs is
+unresolved. §7's substitution row is split and corrected.
+
+**Reasoning.** Measurement showed 3.1 uses **one** face for the whole era — captions,
+menu bar, menu items, dialog labels, button labels — bold, 2px stems, 9px cap height.
+That is `SYSTEM.FON`. §7 lists "Win 3.1 System / MS Sans Serif → W95FA" as a single
+row, which collapses two different faces into one need: 3.1 shipped MS Sans Serif too,
+as the lighter dialog face, and our chrome never uses it.
+
+W95FA is an OFL recreation by Alina Sava of the **Windows 95** MS Sans Serif bitmap.
+The licence is clean, unlike 98.css's converted binary, but the face is wrong and the
+era is one step late — the same lineage mistake §7 already warns about, made
+differently.
+
+So this is the XP four-face gate again, and the phase-3 precedent applies: name a
+specific face, show a rendered comparison at the sizes the era uses, then build. The
+target is measured and objective — per-glyph ink widths and ink-start deltas for
+`Minimize` and `Cancel`, plus the 2px stem, which is the constraint that rules out
+most pixel fonts regardless of how well their widths match.
+
+Everything that does not depend on the font is finished and committed: the metrics
+module with full provenance, the reproducible measurement script, and the source doc.
