@@ -1,0 +1,755 @@
+/*
+ * Macintosh System 1, 1984. 512x342, one bit deep.
+ *
+ * Every value is measured from the Macintosh HIG's own figures in logical Macintosh
+ * pixels; see src/skins/system1/metrics.ts and
+ * tools/pdf-extract/measure-mac-system1.py. The era renders in a 512x342
+ * integer-scaled viewport, so 1 CSS pixel here is 1 Macintosh pixel.
+ *
+ * **There are two colours and no others.** Every tone in this era is a dither of
+ * black and white — the desktop is a 1px 50% checkerboard, the scroll bar track a 25%
+ * one, and disabled text is a 50% checkerboard knocked out of the glyph. That is why
+ * the viewport scale must be a whole number: at a fractional scale a one-pixel
+ * checkerboard averages into exactly the flat grey it exists to disprove.
+ *
+ * Three things here are deliberately *absences* rather than styles, because the era
+ * has no such state and inventing one would be the fidelity bug:
+ *
+ * - **No hover.** Pre-OS 8 there is no rollover feedback anywhere in the system; the
+ *   Appearance Manager introduces it in 1997. The hover state is declared and is
+ *   identical to rest, and the fidelity suite asserts that it is identical rather than
+ *   asserting a difference.
+ * - **No gradient, no bevel, no shadow softness.** A 1-bit display has none available.
+ * - **No dirty indicator.** Unsaved state lived in the Save Changes alert, never in
+ *   the chrome.
+ *
+ * Measured values arrive as custom properties generated from metrics.ts (see
+ * index.ts), so the stylesheet holds no second copy of any number.
+ */
+
+@font-face {
+  font-family: 'S1 Chicago';
+  src: url('./fonts/chicago-sub.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+
+:root {
+  --s1-ink: #000000;
+  --s1-paper: #FFFFFF;
+
+  /*
+   * One face at one size for the whole era, exactly as Windows 3.1 has one.
+   *
+   * 16px is the only size that works: ChiKareGo2 is a 1024-upm face on a 64-unit
+   * pixel grid, so at 16px every coordinate and every advance lands on a whole pixel
+   * and nothing antialiases. It also puts the cap height at exactly 9px and the
+   * descender at exactly 3px, which is Chicago 12.
+   *
+   * `--s1-line` is 15px, not 16. At 16px the font's content box is exactly 15px and
+   * its baseline sits 12px down, so a 15px line box has zero half-leading and lands
+   * the cap top on row 3. A 16px line-height would half-lead by 0.5px and push every
+   * glyph in the era off the pixel grid.
+   */
+  --s1-fs: 16px;
+  --s1-line: 15px;
+  --s1-title-h: 19px;
+  --s1-menu-item-h: 16px;
+}
+
+/* ---------------------------------------------------------------- desktop */
+
+/*
+ * The desktop is a 1px 50% checkerboard, and the screen has a 1px black border with
+ * 2px rounded corners. Both are measured from the 512x342 bitmap: 1661 ink pixels of
+ * 3321 over a clear region, all on one (x + y) parity, and a top-left corner whose
+ * first ink column steps 2, 1, 0.
+ *
+ * The corner is a clip-path staircase rather than a border-radius for the usual
+ * reason — a radius antialiases, and there is no grey in this era to absorb it.
+ */
+.desktop[data-skin='system1'] {
+  background-color: var(--s1-paper);
+  background-image: repeating-conic-gradient(
+    var(--s1-ink) 0% 25%,
+    var(--s1-paper) 0% 50%
+  );
+  background-size: var(--s1-stipple, 2px) var(--s1-stipple, 2px);
+  background-position: 0 0;
+  box-shadow: inset 0 0 0 1px var(--s1-ink);
+  clip-path: var(--s1-gen-screen-clip);
+  color: var(--s1-ink);
+  font-family: 'S1 Chicago', monospace;
+  font-size: var(--s1-fs);
+  line-height: var(--s1-line);
+}
+
+/* ----------------------------------------------------------------- window */
+
+/*
+ * The frame element is transparent and exists only to be the box the window manager
+ * sizes. `.s1-frame` is 1px smaller on each axis so its own drop shadow — a real
+ * `box-shadow`, offset (+1, +1) — fits inside, which is what makes the element
+ * exactly rect.w x rect.h including the shadow.
+ *
+ * That single `box-shadow` is what reproduces the era's signature: a shadow that is
+ * the frame's right column and bottom row translated one pixel, so the top-right and
+ * bottom-left corners are notched by exactly one pixel. Drawing the second pixel as
+ * border instead would square those corners off, which is what nearly every classic
+ * Mac recreation does.
+ *
+ * The four 1px frame lines are inset shadows on the same element, so a child with a
+ * transparent background — the title bar — lets them show through and the title bar
+ * can be exactly 19px including the frame's top line.
+ */
+.s1-win {
+  background: transparent;
+}
+
+.s1-frame {
+  width: calc(100% - 1px);
+  height: calc(100% - 1px);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--s1-paper);
+  box-shadow:
+    inset 1px 0 0 0 var(--s1-ink),
+    inset -1px 0 0 0 var(--s1-ink),
+    inset 0 1px 0 0 var(--s1-ink),
+    inset 0 -1px 0 0 var(--s1-ink),
+    1px 1px 0 0 var(--s1-ink);
+  /* Square. Rounded window corners are three eras away. */
+  border-radius: 0;
+  font-family: 'S1 Chicago', monospace;
+  font-size: var(--s1-fs);
+  line-height: var(--s1-line);
+  color: var(--s1-ink);
+}
+
+/* --------------------------------------------------------------- titlebar */
+
+/*
+ * Six racing stripes on rows 4..14, 1px on / 1px off, spanning left+2 to right-2.
+ *
+ * The stripes are the title bar's background image rather than a child element, which
+ * is what lets the close box and the title knock them out by painting over them —
+ * the same thing the Window Manager did by erasing a rect around the title before
+ * drawing it.
+ *
+ * `background-color` stays unset so the frame's inset lines show through rows 0 and
+ * the side pixels.
+ */
+.s1-titlebar {
+  flex: 0 0 auto;
+  height: var(--s1-title-h);
+  position: relative;
+  border-bottom: 1px solid var(--s1-ink);
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--s1-ink) 0 1px,
+    transparent 1px 2px
+  );
+  background-repeat: no-repeat;
+  background-size: calc(100% - var(--s1-stripe-inset) * 2) var(--s1-stripe-band);
+  background-position: var(--s1-stripe-inset) var(--s1-stripe-top);
+  cursor: default;
+}
+
+/*
+ * An inactive window loses its stripes entirely. Apple's words, HIG p164: "The close
+ * box, zoom box, size box, scroll box, and stripes in the title bar disappear." Not a
+ * dim, not a lighter pattern — gone.
+ */
+.s1-win[data-state='blurred'] .s1-titlebar {
+  background-image: none;
+}
+
+/*
+ * The title's white clearance is the string width plus 12, centred — 6px each side,
+ * measured twice (145px of clearance around 132px of ink, and 62px around 50px).
+ * `flex: 0 1 auto` makes the span hug its text so the padding is the clearance and
+ * the stripes survive either side of it.
+ */
+.s1-title {
+  /*
+   * Absolutely positioned, with `left` written by the chrome renderer as a whole
+   * number. CSS centring distributes the free space without rounding, so a title
+   * whose width has the opposite parity to its bar lands on a half pixel and every
+   * glyph in it antialiases — see `centreTitle` in chrome.ts, and the two-tones-only
+   * test that catches it.
+   */
+  position: absolute;
+  top: var(--s1-title-cell-top);
+  max-width: 100%;
+  height: var(--s1-line);
+  padding: 0 var(--s1-title-clear);
+  background: var(--s1-paper);
+  color: var(--s1-ink);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------- close box */
+
+/*
+ * 11x11 hollow square, 9px in from the frame's left line, on the stripe rows.
+ *
+ * The two outset paper shadows are the 1px of white the figure shows either side of
+ * it: the stripes are the title bar's background, so the box has to knock them out
+ * rather than sit between them.
+ */
+.s1-close {
+  position: absolute;
+  left: var(--s1-close-inset);
+  top: var(--s1-stripe-top);
+  width: var(--s1-close);
+  height: var(--s1-close);
+  padding: 0;
+  border: 0;
+  background: var(--s1-paper);
+  box-shadow:
+    inset 0 0 0 1px var(--s1-ink),
+    -1px 0 0 0 var(--s1-paper),
+    1px 0 0 0 var(--s1-paper);
+  cursor: default;
+  font: inherit;
+}
+
+/* No hover state. Pre-OS 8 the system tracked none, so this is declared and left
+ * identical to rest — see the file header. */
+
+/*
+ * Pressed inverts. Documented rather than chosen: the HIG's rule for highlighting is
+ * "reversing the background with the foreground" (p284), and a 1-bit display has no
+ * other way to show a press. The close box's own pressed *artwork* was not in any
+ * figure, so inversion is the documented general rule applied, and that is recorded
+ * in docs/eras/system1.md rather than presented as measured.
+ */
+.s1-close:active:not(:disabled) {
+  background: var(--s1-ink);
+  box-shadow:
+    inset 0 0 0 1px var(--s1-ink),
+    -1px 0 0 0 var(--s1-paper),
+    1px 0 0 0 var(--s1-paper);
+}
+
+/*
+ * The focus indicator is the era's own: "a rectangular border of two black pixels,
+ * which is separated from the list by one pixel of white space" (HIG p222). System 1
+ * had no keyboard focus for chrome at all, so this is an accessibility obligation
+ * being met with the era's own construction rather than with a modern ring.
+ */
+.s1-close:focus-visible,
+.s1-button:focus-visible,
+.s1-textbox:focus-visible,
+.s1-check:focus-visible,
+.s1-radio:focus-visible {
+  outline: 2px solid var(--s1-ink);
+  outline-offset: 1px;
+}
+
+/* A window that cannot be closed shows no close box at all — the era had no greyed
+ * one, which is the same distinction goAwayFlag makes. The disabled rule exists so
+ * the state is defined if the control is ever reached in that state. */
+.s1-win[data-state='blurred'] .s1-close {
+  display: none;
+}
+
+.s1-close:disabled::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  background-image: repeating-conic-gradient(
+    var(--s1-paper) 0% 25%,
+    transparent 0% 50%
+  );
+  background-size: var(--s1-stipple, 2px) var(--s1-stipple, 2px);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------- content */
+
+.s1-content {
+  flex: 1 1 auto;
+  overflow: auto;
+  background: var(--s1-paper);
+  /* Inside the frame's left, right and bottom lines. */
+  margin: 0 1px 1px 1px;
+}
+
+/*
+ * A suspended window is dithered rather than dimmed, because there is no dim
+ * available. The 50% checkerboard over the content is the only "half" this era has —
+ * and it is the same pattern the desktop and the disabled glyphs use.
+ */
+.s1-win[data-suspended='true'] .s1-content {
+  background-image: repeating-conic-gradient(
+    var(--s1-ink) 0% 25%,
+    var(--s1-paper) 0% 50%
+  );
+  background-size: var(--s1-stipple, 2px) var(--s1-stipple, 2px);
+}
+
+/* -------------------------------------------------------------- grow box */
+
+/*
+ * The 16x16 corner the era resized from, with the measured 11x11 two-square icon
+ * inset 3px from its top-left. The icon is a box-shadow bitmap, so every pixel lands
+ * on the grid; `currentColor` means it inverts with the frame if anything ever needs
+ * it to.
+ */
+.s1-grow {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: var(--s1-size-box);
+  height: var(--s1-size-box);
+  background: var(--s1-paper);
+  color: var(--s1-ink);
+}
+
+.s1-grow::before {
+  content: '';
+  position: absolute;
+  left: var(--s1-size-icon-left);
+  top: var(--s1-size-icon-top);
+  width: 1px;
+  height: 1px;
+  box-shadow: var(--s1-gen-grow);
+}
+
+/* Gone when the window is inactive or cannot be resized — the size box "disappears",
+ * per the same HIG sentence as the stripes and the close box. */
+.s1-win[data-state='blurred'] .s1-grow,
+.s1-win[data-resizable='false'] .s1-grow {
+  display: none;
+}
+
+/* --------------------------------------------------------- resize handles */
+
+/*
+ * Positioning, and the suppression on non-resizable windows, come from base.css.
+ *
+ * The authentic era resized from the grow box and nowhere else, which is why the `se`
+ * handle is exactly the 16x16 grow box rather than a corner slop square. The other
+ * seven are the affordance ARCHITECTURE.md §2 specifies for this era in as many words
+ * — "with `metrics.resizeGrab` slop so a 1px System 1 border is still grabbable" —
+ * and the divergence is recorded in docs/eras/system1.md rather than left implied.
+ */
+.s1-resize-n { top: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+.s1-resize-s { bottom: 0; left: 8px; right: 16px; height: 4px; cursor: ns-resize; }
+.s1-resize-w { left: 0; top: 8px; bottom: 8px; width: 4px; cursor: ew-resize; }
+.s1-resize-e { right: 0; top: 8px; bottom: 16px; width: 4px; cursor: ew-resize; }
+.s1-resize-nw { top: 0; left: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+.s1-resize-ne { top: 0; right: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+.s1-resize-sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+.s1-resize-se {
+  bottom: 0;
+  right: 0;
+  width: var(--s1-size-box);
+  height: var(--s1-size-box);
+  cursor: nwse-resize;
+}
+
+/* --------------------------------------------------------------- controls */
+
+/*
+ * Push button: 59x20 with a 3-row corner arc.
+ *
+ * Both numbers are Apple's prose — "the standard width for OK and Cancel buttons is
+ * 59 pixels" (p228), "Standard button height is 20 pixels" (p229) — and both measure
+ * exactly that in the figure. The corner is a hand-drawn arc with x-insets 3,1,1, so
+ * it is a clip-path staircase and not a `border-radius`: every segment is
+ * axis-aligned on an integer boundary, so there is no partial coverage to antialias.
+ *
+ * The outline is the difference between two clipped shapes — an ink silhouette and a
+ * paper one a pixel further in — because a `border` cannot follow a diagonal step. The
+ * paper layer sits at `z-index: -1` so it paints above the ink background and below
+ * the label.
+ */
+.s1-button {
+  position: relative;
+  z-index: 0;
+  min-width: var(--s1-btn-w);
+  height: var(--s1-btn-h);
+  padding: 0 var(--s1-btn-pad);
+  border: 0;
+  background: var(--s1-ink);
+  clip-path: var(--s1-gen-btn-clip);
+  font-family: 'S1 Chicago', monospace;
+  font-size: var(--s1-fs);
+  line-height: var(--s1-line);
+  color: var(--s1-ink);
+  cursor: default;
+}
+
+.s1-button::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  background: var(--s1-paper);
+  clip-path: var(--s1-gen-btn-inner);
+}
+
+/* No hover state — see the file header. */
+
+/*
+ * Pressed inverts the whole button, which is documented: "When the user clicks a
+ * button, the button highlights (inverts)" (p229). The label inverts with it, so the
+ * paper layer becomes ink and the text becomes paper.
+ */
+.s1-button:active:not(:disabled) {
+  color: var(--s1-paper);
+}
+
+.s1-button:active:not(:disabled)::before {
+  background: var(--s1-ink);
+}
+
+/*
+ * Disabled: the notPatBic knockout, in Windows 3.1's construction unchanged.
+ *
+ * A checkerboard of the *background* colour is painted over the glyph, removing half
+ * its pixels — which is what `notPatBic` and `GrayString` both did, and the only
+ * construction that works on arbitrary text content. A CSS `mask` on the element
+ * would stipple the button's outline along with its label; masking a child would
+ * silently do nothing for a label that is a bare text node. See DECISIONS.md 4.12.
+ *
+ * The cell is one logical pixel, which survives only at an integer display scale.
+ */
+/* The close box is already absolutely positioned in the title bar and must stay that
+ * way — it is not in the flex flow. Its own knockout layer resolves against it. */
+.s1-button,
+.s1-menu-item {
+  position: relative;
+}
+
+.s1-button:disabled::after,
+.s1-menu-item[aria-disabled='true']::after {
+  content: '';
+  position: absolute;
+  /* Inside the 1px outline, so the outline is never stippled. */
+  inset: 1px;
+  background-image: repeating-conic-gradient(
+    var(--s1-knockout, var(--s1-paper)) 0% 25%,
+    transparent 0% 50%
+  );
+  background-size: var(--s1-stipple, 2px) var(--s1-stipple, 2px);
+  /* Anchored to the element's own box, which at an integer scale is on the era's
+   * pixel grid, so the checkerboard phase is stable across repaints. */
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+/* The label keeps its ink colour. Changing it would be the Windows 95 treatment. */
+.s1-button:disabled,
+.s1-menu-item[aria-disabled='true'] {
+  color: var(--s1-ink);
+}
+
+/*
+ * The default button's ring: 3px of ink separated from the button by 1px of white,
+ * documented at p230 and measured at exactly that.
+ *
+ * The gap layer reuses the button's own 3,1,1 arc on a box inset 3px inside the ring.
+ * That is not an approximation — the figure shows the white gap carrying the button's
+ * arc profile around the corners and 1px on the straight edges, which is what a box
+ * one pixel larger than the button with the same arc produces.
+ */
+.s1-default {
+  display: inline-block;
+  padding: calc(var(--s1-btn-ring) + var(--s1-btn-ring-gap));
+  position: relative;
+  background: var(--s1-ink);
+  clip-path: var(--s1-gen-ring-clip);
+}
+
+.s1-default::before {
+  content: '';
+  position: absolute;
+  inset: var(--s1-btn-ring);
+  background: var(--s1-paper);
+  clip-path: var(--s1-gen-btn-clip);
+}
+
+/*
+ * A text field is a plain rectangle: 1px black frame, white fill, 22px tall. No
+ * bevel, because there is nothing to bevel with — and no focus border either, since
+ * the era showed a field's focus with the caret.
+ */
+.s1-textbox {
+  height: var(--s1-textbox-h);
+  padding: 2px 4px;
+  border: 1px solid var(--s1-ink);
+  background: var(--s1-paper);
+  font-family: 'S1 Chicago', monospace;
+  font-size: var(--s1-fs);
+  line-height: var(--s1-line);
+  color: var(--s1-ink);
+}
+
+.s1-textbox:disabled {
+  background: var(--s1-paper);
+  color: var(--s1-ink);
+  background-image: repeating-conic-gradient(
+    var(--s1-paper) 0% 25%,
+    var(--s1-ink) 0% 50%
+  );
+  background-size: var(--s1-stipple, 2px) var(--s1-stipple, 2px);
+}
+
+/*
+ * 12x12, measured six times across two figures. The checkbox mark is an x drawn
+ * corner to corner from inside the frame — "an x appears in the box" (p235) — and it
+ * is the measured bitmap rather than a font character or a border trick.
+ *
+ * The radio button shares the 12x12 envelope. Its mark is documented as "a dot in the
+ * middle of the button" (p234); the dot's exact bitmap was not isolable from any
+ * figure, so that one shape is unverified and says so in metrics.ts.
+ */
+.s1-check,
+.s1-radio {
+  width: var(--s1-check);
+  height: var(--s1-check);
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--s1-ink);
+  background: var(--s1-paper);
+  appearance: none;
+  position: relative;
+  color: var(--s1-ink);
+}
+
+.s1-radio {
+  border-radius: 50%;
+}
+
+.s1-check:checked::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  box-shadow: var(--s1-gen-checkbox);
+}
+
+.s1-radio:checked::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--s1-ink);
+}
+
+.s1-check:active:not(:disabled),
+.s1-radio:active:not(:disabled) {
+  background: var(--s1-ink);
+}
+
+.s1-check:disabled,
+.s1-radio:disabled {
+  background-image: repeating-conic-gradient(
+    var(--s1-paper) 0% 25%,
+    var(--s1-ink) 0% 50%
+  );
+  background-size: var(--s1-stipple, 2px) var(--s1-stipple, 2px);
+}
+
+/* ------------------------------------------------------------------ menus */
+
+/*
+ * A pull-down menu: 1px black frame plus a 1px black drop shadow offset (+1, +1) —
+ * the same construction as the window frame, so it carries the same 1px notch at the
+ * top-right and bottom-left.
+ *
+ * Positioning and z-index come from base.css, keyed off [data-menu].
+ */
+.s1-menu {
+  min-width: 80px;
+  padding: 0;
+  background: var(--s1-paper);
+  border: 1px solid var(--s1-ink);
+  box-shadow: 1px 1px 0 0 var(--s1-ink);
+  font-family: 'S1 Chicago', monospace;
+  font-size: var(--s1-fs);
+  line-height: var(--s1-line);
+  color: var(--s1-ink);
+  user-select: none;
+}
+
+/*
+ * 16px items, confirmed nine times: every cap top lands on item + 3. The columns are
+ * the measured interior offsets — the mark at +3, the label origin at +14, the
+ * accelerator block at 22px from the interior's right edge.
+ *
+ * `align-items: start` rather than `center`: a 15px line box centred in a 16px row
+ * would sit at a half-pixel offset and take every glyph off the grid.
+ */
+.s1-menu-item {
+  display: grid;
+  grid-template-columns: var(--s1-menu-label) 1fr var(--s1-menu-accel);
+  align-items: start;
+  height: var(--s1-menu-item-h);
+  cursor: default;
+}
+
+.s1-menu-mark,
+.s1-menu-trail {
+  position: relative;
+  height: var(--s1-menu-item-h);
+}
+
+/* The checkmark, 9x8, at the measured offset inside the mark column. */
+.s1-menu-mark[data-glyph='check']::before {
+  content: '';
+  position: absolute;
+  left: var(--s1-menu-mark);
+  top: 5px;
+  width: 1px;
+  height: 1px;
+  box-shadow: var(--s1-gen-check);
+}
+
+/* The submenu arrow, 6x11, right-aligned to the measured gutter, spanning from one
+ * row above the cap top to one row below the baseline — which is where the figure
+ * puts it. */
+.s1-menu-trail[data-glyph='submenu']::before {
+  content: '';
+  position: absolute;
+  right: calc(var(--s1-menu-submenu) + 5px);
+  top: 2px;
+  width: 1px;
+  height: 1px;
+  box-shadow: var(--s1-gen-submenu);
+}
+
+/*
+ * The accelerator: the measured 9x9 command symbol, then the key letter 11px after
+ * its start. U+2318 is absent from every Chicago substitute that holds the pixel
+ * grid, so it is drawn.
+ */
+.s1-menu-cmd {
+  position: absolute;
+  left: 0;
+  top: var(--s1-cap-top);
+  width: 1px;
+  height: 1px;
+  box-shadow: var(--s1-gen-command);
+}
+
+.s1-menu-key {
+  position: absolute;
+  left: calc(9px + var(--s1-menu-key-gap));
+  top: 0;
+  height: var(--s1-line);
+}
+
+/*
+ * Highlight is inversion — the whole interior row goes to ink and everything on it
+ * to paper. Because the glyph bitmaps are drawn in `currentColor`, the checkmark and
+ * the command symbol invert with the text and need no separate rule.
+ *
+ * Driven by the menu controller's attribute rather than `:hover`, so keyboard and
+ * pointer navigation land on exactly the same visual state.
+ */
+.s1-menu-item[data-highlight='true'] {
+  background: var(--s1-ink);
+  color: var(--s1-paper);
+}
+
+/* A highlighted disabled item knocks its stipple out against the ink, so the
+ * surviving pixels read white on black — the same variable trick the Windows 3.1 skin
+ * uses for a highlighted greyed item. */
+.s1-menu-item[aria-disabled='true'][data-highlight='true'] {
+  --s1-knockout: var(--s1-ink);
+  color: var(--s1-paper);
+}
+
+/*
+ * A separator is a full 16px item whose ninth row carries a 1px grey rule spanning
+ * the menu's whole interior width. On 1-bit hardware "grey" means alternating pixels,
+ * which is what the figure shows: 56 ink pixels across a 111px interior, every one on
+ * the same parity. A solid line would be the wrong weight and the wrong mechanism.
+ */
+.s1-menu-separator {
+  height: var(--s1-menu-item-h);
+  padding: 0;
+  border: 0;
+  background-image: repeating-conic-gradient(
+    var(--s1-ink) 0% 25%,
+    transparent 0% 50%
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  background-position: 0 var(--s1-menu-sep-rule);
+}
+
+/* --------------------------------------------------------------- switcher */
+
+/*
+ * The window-cycling overlay. System 1 had no such thing — window cycling is the
+ * knowing anachronism ARCHITECTURE.md §12 conflict 1 settles — so the overlay is
+ * built from the era's own parts rather than invented: the frame and shadow of a
+ * window, and inversion for the selected entry.
+ */
+.s1-switcher,
+.switcher {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: var(--s1-paper);
+  box-shadow:
+    inset 0 0 0 1px var(--s1-ink),
+    1px 1px 0 0 var(--s1-ink);
+  font-family: 'S1 Chicago', monospace;
+  font-size: var(--s1-fs);
+  line-height: var(--s1-line);
+  color: var(--s1-ink);
+  max-width: 90%;
+  overflow: hidden;
+}
+
+.switcher-item {
+  padding: 0 4px;
+  height: var(--s1-line);
+  white-space: nowrap;
+}
+
+.switcher-item[aria-selected='true'] {
+  background: var(--s1-ink);
+  color: var(--s1-paper);
+}
+
+/* --------------------------------------------------------- keyboard modes */
+
+.s1-win.is-keyboard-moving .s1-titlebar,
+.s1-win.is-keyboard-resizing .s1-titlebar {
+  outline: 1px dotted var(--s1-ink);
+  outline-offset: -3px;
+}
+
+/*
+ * The era animated nothing at all, so there is nothing here to suppress: the one
+ * animation in the contract is the minimize collapse, and this era has no minimize —
+ * the window manager refuses it before the renderer is reached. This block exists so
+ * a future addition cannot slip past the query.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .s1-frame,
+  .s1-close,
+  .s1-button {
+    transition: none !important;
+    animation: none !important;
+  }
+}

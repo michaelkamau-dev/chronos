@@ -16,7 +16,7 @@ import { WindowManager } from '../core/wm/manager.js'
 import { GestureController } from '../core/wm/drag.js'
 import { Dispatcher, type HitTarget } from '../core/input/dispatcher.js'
 import { CaptureStack } from '../core/input/capture.js'
-import { CommandRegistry } from '../core/input/commands.js'
+import { CommandRegistry, type Command } from '../core/input/commands.js'
 import { Keymap, KeymapStack, type Binding } from '../core/input/keymap.js'
 import { MenuController, type MenuRenderer, type MenuSpec } from '../core/input/menu.js'
 import { asAppId, type ChromeRenderer, type WindowId } from '../core/wm/types.js'
@@ -75,7 +75,17 @@ export class Shell {
     this.gestures = new GestureController(this.wm)
     this.switcher = new Switcher(this.wm, this.capture, this.display.desktop)
     this.keyboardGeometry = new KeyboardGeometry(this.wm, this.capture)
-    this.menus = new MenuController(skin.menu, this.capture, root)
+    /*
+     * Menus are hosted by the scaled desktop, not by the page root.
+     *
+     * Parented to the root they escaped the display transform: on System 1, which
+     * renders 512x342 at an integer scale, every menu came out at half the size of
+     * the era around it and inherited none of the skin's generated custom properties,
+     * because those are written onto the desktop element. Both symptoms are one cause.
+     * `MenuController.position` divides by the host's own scale, so the client
+     * coordinates it is handed still work.
+     */
+    this.menus = new MenuController(skin.menu, this.capture, this.display.desktop)
 
     this.dispatcher = new Dispatcher({
       root,
@@ -121,6 +131,24 @@ export class Shell {
   /** Chords in the active keymap that no real KeyboardEvent could match. */
   unreachableChords(): string[] {
     return this.activeKeymap.unknownKeys()
+  }
+
+  /**
+   * The chord the active skin binds to a command, for a menu's accelerator column.
+   *
+   * The chrome menu used to carry the literal strings `Alt+F7`, `Alt+F4` and friends.
+   * That is era knowledge in `shell/`: it happens to be right for Windows XP and
+   * Windows 3.1 and is flatly wrong for a Macintosh menu, where the same items are
+   * Command chords — so the label would have advertised a chord the active keymap
+   * does not even bind. Reading it back out of the skin's own keymap means the label
+   * and the binding cannot disagree.
+   *
+   * The chord is passed through verbatim. Formatting it is the skin's job, because
+   * `Meta+W` renders as `Alt+F4`-style text on Windows and as a symbol on a Mac.
+   */
+  accelFor(command: Command): string | undefined {
+    for (const b of this.skinKeymap) if (b.command === command) return b.chord
+    return undefined
   }
 
   /**
@@ -222,19 +250,24 @@ export class Shell {
         const s = wm.get(id)
         if (!s) return null
         const hasModal = wm.modalsOwnedBy(id).length > 0
+        // An era that has no maximize gesture must not offer one here either. The WM
+        // already refuses the command; leaving the items enabled would advertise a
+        // control that does nothing, which is the same lie as a resize cursor on an
+        // edge that will not resize.
+        const canZoom = wm.metrics.maximizeSemantics !== 'none'
         return [
           {
             kind: 'item',
             label: 'Restore',
             command: 'window.toggleMaximize',
-            enabled: s.maximized && !hasModal,
+            enabled: canZoom && s.maximized && !hasModal,
             onActivate: () => wm.toggleMaximize(id),
           },
           {
             kind: 'item',
             label: 'Move',
             command: 'window.beginKeyboardMove',
-            accel: 'Alt+F7',
+            ...accel(this, 'window.beginKeyboardMove'),
             enabled: !s.maximized && !hasModal,
             onActivate: () => {
               wm.focus(id)
@@ -245,7 +278,7 @@ export class Shell {
             kind: 'item',
             label: 'Size',
             command: 'window.beginKeyboardResize',
-            accel: 'Alt+F8',
+            ...accel(this, 'window.beginKeyboardResize'),
             enabled: s.resizable && !s.maximized && !hasModal,
             onActivate: () => {
               wm.focus(id)
@@ -256,7 +289,7 @@ export class Shell {
             kind: 'item',
             label: 'Minimize',
             command: 'window.minimize',
-            accel: 'Alt+F9',
+            ...accel(this, 'window.minimize'),
             enabled: wm.metrics.minimizeStyle !== 'none' && !s.minimized && !hasModal,
             onActivate: () => void wm.minimize(id),
           },
@@ -264,8 +297,8 @@ export class Shell {
             kind: 'item',
             label: 'Maximize',
             command: 'window.toggleMaximize',
-            accel: 'Alt+F10',
-            enabled: s.resizable && !s.maximized && !hasModal,
+            ...accel(this, 'window.toggleMaximize'),
+            enabled: canZoom && s.resizable && !s.maximized && !hasModal,
             onActivate: () => wm.toggleMaximize(id),
           },
           { kind: 'separator' },
@@ -295,7 +328,7 @@ export class Shell {
             kind: 'item',
             label: 'Close',
             command: 'window.close',
-            accel: 'Alt+F4',
+            ...accel(this, 'window.close'),
             enabled: s.closable && !hasModal,
             onActivate: () => void wm.close(id),
           },
@@ -308,7 +341,7 @@ export class Shell {
             kind: 'item',
             label: 'New Window',
             command: 'shell.newWindow',
-            accel: 'Ctrl+N',
+            ...accel(this, 'shell.newWindow'),
             enabled: true,
             onActivate: () => {
               this.openWindow()
@@ -383,4 +416,13 @@ export class Shell {
       },
     })
   }
+}
+
+/**
+ * `exactOptionalPropertyTypes` forbids writing `accel: undefined`, so the property is
+ * spread in only when the active skin actually binds the command.
+ */
+function accel(shell: Shell, command: Command): { accel?: string } {
+  const chord = shell.accelFor(command)
+  return chord === undefined ? {} : { accel: chord }
 }

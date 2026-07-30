@@ -145,10 +145,26 @@ export class MenuController {
     el.style.top = '0px'
     const box = el.getBoundingClientRect()
     const hostBox = this.host.getBoundingClientRect()
-    let x = clientX - hostBox.left
-    let y = clientY - hostBox.top
-    if (x + box.width > hostBox.width) x = Math.max(0, x - box.width)
-    if (y + box.height > hostBox.height) y = Math.max(0, y - box.height)
+    /*
+     * The host may be scaled. `left`/`top` are written in the host's own coordinate
+     * space, while `getBoundingClientRect` reports device space, so every measured
+     * value has to be divided by the factor between them or the menu lands at the
+     * wrong place and clamps against the wrong edge.
+     *
+     * This is not hypothetical: System 1 renders 512x342 at an integer scale, so on
+     * an ordinary display the factor is 2. Before this, menus were parented to the
+     * page root and escaped the display transform entirely, which is why the bug was
+     * invisible for two eras — Windows 3.1's 640x480 happens to fit a 1024x768
+     * viewport at scale 1.
+     */
+    const rendered = this.host.offsetWidth
+    const scale = rendered > 0 ? hostBox.width / rendered : 1
+    const hostW = hostBox.width / scale
+    const hostH = hostBox.height / scale
+    let x = (clientX - hostBox.left) / scale
+    let y = (clientY - hostBox.top) / scale
+    if (x + box.width / scale > hostW) x = Math.max(0, x - box.width / scale)
+    if (y + box.height / scale > hostH) y = Math.max(0, y - box.height / scale)
     el.style.left = `${Math.round(x)}px`
     el.style.top = `${Math.round(y)}px`
   }

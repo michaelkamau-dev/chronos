@@ -352,6 +352,11 @@ export class WindowManager {
   toggleMaximize(id: WindowId): void {
     const entry = this.entries.get(id)
     if (!entry || !entry.state.resizable) return
+    // An era with no maximize gesture refuses here rather than in each skin, for the
+    // same reason the reduced-motion check lives in `minimize`: a skin can omit the
+    // button and still leave the behaviour reachable from the title bar's
+    // double-click and from the chrome menu, and nothing would fail.
+    if (this.chrome.metrics.maximizeSemantics === 'none') return
     const s = entry.state
 
     if (s.maximized) {

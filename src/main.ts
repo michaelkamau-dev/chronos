@@ -61,6 +61,17 @@ const ERAS: Record<string, () => Promise<EraBundle>> = {
       decorate: paths.win31NameDecorator,
     }
   },
+  system1: async () => {
+    const [{ system1Skin }, paths] = await Promise.all([
+      import('./skins/system1/index.js'),
+      import('./skins/system1/paths.js'),
+    ])
+    return {
+      skin: system1Skin,
+      codec: paths.createSystem1Codec,
+      decorate: paths.system1NameDecorator,
+    }
+  },
 }
 
 const DEFAULT_ERA = 'winxp'
