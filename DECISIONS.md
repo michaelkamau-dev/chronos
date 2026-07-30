@@ -6,6 +6,31 @@ departs from it, that is stated explicitly and the doc is updated.
 
 Newest phase last. Nothing is deleted from this log.
 
+## Picking this up cold
+
+Read **`docs/ARCHITECTURE.md` §13, "State of play"** first — it is written for a session
+with none of the preceding conversation and it carries what is merged, what the contract
+additions were, where the font sheets live, how the perf gate is instrumented now, and
+what is still open. Then `CLAUDE.md`'s mistake log, which is the accumulated list of
+things that cost time to learn and must not be re-learned.
+
+This file is the reasoning behind individual calls. If a decision looks arbitrary, the
+entry explaining it is here; if a *rule* looks arbitrary, it is in `CLAUDE.md`.
+
+Where the entries are, by phase:
+
+| Entries | Phase |
+|---|---|
+| 1.1 – 1.14 | window manager, focus model, the `plain` harness skin |
+| 2.1 – 2.16 | filesystem, persistence, reload survival |
+| 3.1 – 3.14 | phase-3 preconditions: fonts, figure extraction, source conflicts |
+| 3.15 – 3.21 | Windows XP Luna |
+| 4.1 – 4.6 | phase-4 preparation: the caption-button figure, the base.css and test-suite audits, the reduced-motion contract fix |
+| 4.7 – 4.10 | Windows 3.1 measurement, and the font gate that blocked its chrome |
+| 4.11 – 4.16 | Windows 3.1 chrome, era selection, the budget and perf instruments |
+
+The next entries are **4.17 onward**, for System 1.
+
 ---
 
 ## Phase 1 — window manager and focus model
@@ -1030,6 +1055,40 @@ our JavaScript ran rather than when it was allowed to run. Measured 0.55–0.69m
 throttling against a 3ms bound, and `LayoutDuration / frames` at 0.001ms against 0.5ms.
 A regression that adds a per-frame allocation or forces a reflow moves both; a busy
 container moves neither.
+
+---
+
+## Handoff at the Windows 3.1 merge
+
+Not a decision — a marker, so the next session knows exactly where the boundary is.
+
+`era/win31` merged to `main` via pull request #1. `claude/new-session-aej4gm`, carrying
+phases 1–3, was already merged. `main` is the trunk and the next era branches off it.
+
+Green at the merge: **137** — 11 invariant, 7 budget, 119 browser.
+
+Two eras are built. Four remain, in this order and for these reasons:
+
+1. **System 1** — fully sourced from Apple's shipped `StandardWDEF.a` listing, cross-checked
+   against Executor. It also reuses the Windows 3.1 stipple assertion verbatim, since
+   `notPatBic` and `GrayString` are the same construction (§7). Two flagged conflicts to
+   resolve at build time, both already reasoned through in §12: System 1 had no
+   application switching and no minimize, and it had no terminal.
+2. **Mac OS 8** — the Platinum gap narrowed considerably once `macintosh-hig.pdf` arrived,
+   because the OS 8 addendum defers window, scroll bar and text field specs to it by
+   name. §7 records what that closed and what is still open.
+3. **Tiger** — chrome geometry from the measured figures, since Apple published no window
+   specification at all. The calibration argument is in §7 and must be restated in the
+   skin's provenance, not assumed.
+4. **Ledger** — last, deliberately. It is the era most hostile to the contract, and it is
+   the only one that needs the render-budget governor built and `suspend()`/`resume()`
+   made visible. If a premise that hostile drops into the same `Skin` manifest with only
+   those additions, the contract is real. That is the test, and it is worth keeping until
+   the end rather than softening by doing it early.
+
+Nothing is half-finished at this boundary. The two open external items — `luna.msstyles`
+and a pressed-button Windows 3.1 capture — are recorded in §13 with notes, and neither
+blocks a skin.
 
 ## Phase 4, era/tiger — measurement
 
