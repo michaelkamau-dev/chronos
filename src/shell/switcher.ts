@@ -45,9 +45,21 @@ export class Switcher {
   /** Advance the selection, opening the overlay if it is not already up. */
   cycle(dir: 1 | -1): void {
     if (!this.isOpen) {
+      /*
+       * Candidates are windows that are actually on the screen — not windows that are
+       * merely un-minimized.
+       *
+       * `!s.minimized` was the same test until an era declared `collapse`. A
+       * windowshade is minimized *and* on screen: its title bar is visible, it can be
+       * dragged, and clicking it activates it. Filtering it out here would make it the
+       * one window a user can see and cannot reach from the keyboard, which is the
+       * "every mouse action has a keyboard path" rule failing in the direction nothing
+       * would catch. The WM owns the distinction so this and its four sites cannot
+       * drift.
+       */
       this.order = this.wm.mruOrder().filter((id) => {
         const s = this.wm.get(id)
-        return s !== undefined && !s.minimized
+        return s !== undefined && !this.wm.isOffScreen(s)
       })
       // Fewer than two candidates: there is nothing to switch between.
       if (this.order.length < 2) return
