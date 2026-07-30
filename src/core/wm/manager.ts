@@ -202,12 +202,19 @@ export class WindowManager {
   /**
    * Is this window minimized *away* — not merely collapsed?
    *
-   * Every place the window manager used to ask "is it minimized?" meant "is it gone
-   * from the screen?", which were the same question until an era arrived whose
-   * minimize leaves the frame in place. They are now different questions and this is
-   * the one the WM actually wants.
+   * Every place that used to ask "is it minimized?" meant "is it gone from the
+   * screen?", which were the same question until an era arrived whose minimize leaves
+   * the frame in place. They are now different questions and this is the one callers
+   * almost always want.
+   *
+   * Public because the shell asks it too. The switcher's candidate list is the case
+   * that matters: a collapsed window is on screen, draggable and activatable, so
+   * excluding it from Alt+Tab would make it the one window you can see and cannot
+   * reach. Exposing the predicate rather than letting each caller recompute
+   * `minimized && minimizeHidesFrame(wm.metrics.minimizeStyle)` is what stops the two
+   * from drifting apart.
    */
-  private isOffScreen(s: WindowState): boolean {
+  isOffScreen(s: WindowState): boolean {
     return s.minimized && minimizeHidesFrame(this.chrome.metrics.minimizeStyle)
   }
 
@@ -265,7 +272,14 @@ export class WindowManager {
     return this.focused
   }
 
-  /** Most-recently-focused first, excluding minimized windows. Drives Alt+Tab. */
+  /**
+   * Most-recently-focused first. Drives Alt+Tab.
+   *
+   * Every live window, including minimized ones — the comment here used to claim it
+   * excluded them and it never did, which mattered once "minimized" stopped implying
+   * "off screen". Callers that want on-screen windows only filter with `isOffScreen`,
+   * so the choice is visible at the call site rather than buried in this list.
+   */
   mruOrder(): WindowId[] {
     return this.mru.filter((id) => this.entries.has(id))
   }
