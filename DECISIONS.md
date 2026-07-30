@@ -1759,7 +1759,15 @@ run off the pixel grid — the text still appears, it is just no longer 1-bit. M
 the harness's own title: `Files — Macintosh HD:` is 311.28px wide, `Files - Macintosh HD:`
 is 306px.
 
-One instance is **not** fixed and is flagged rather than quietly changed: `src/main.ts`
-builds every window title with an em dash. That is harness text shared by six eras, four
-of which have a face that covers it, and narrowing it to fix one era is the kind of
-change CLAUDE.md says to raise instead of make.
+The second instance was raised rather than changed quietly, and raising it was what
+found the real answer: `src/main.ts` built every window title with an em dash, which
+looked like harness text that only this era had trouble with. It is not. **No** era in
+this project used U+2014 in a window title — the classic Mac, Windows 3.1 and XP all
+used " - " or nothing — so the em dash was wrong in all six and its removal is a harness
+correction, not five eras narrowed to suit one. It happens to remove this era's last
+fallback.
+
+The useful part is the shape of the mistake: "this is shared, so changing it is
+narrowing" was a claim about *ownership* standing in for a claim about *correctness*.
+Ownership decides who changes it; whether every era wanted the character decides whether
+it should change at all, and that question had not been asked.

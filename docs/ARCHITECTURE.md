@@ -882,35 +882,69 @@ Caveat kept rather than glossed: `macintosh-hig.pdf` is the 1992 edition describ
 System 7. The `documentProc` chrome was visually unchanged from 1984 through System
 6, so 19px carries back to System 1, but the source is System 7-era.
 
-### The remaining Platinum gap
+### The Platinum gap is closed — and it closed better than XP's or Tiger's
 
-**Platinum's *appearance* is still unverifiable in this environment.** The Platinum
-Appearance chapter of the Mac OS 8 HIG is the authoritative source, and every
-mirror of it — `dev.os9.ca`, `preterhuman.net`, `interface.free.fr` — plus
-`web.archive.org` is blocked by this sandbox's network policy at the proxy, by
-direct fetch and by tool. `developer.apple.com` and `github.com` are reachable,
-which is precisely why System 1 came back well-sourced and Platinum did not.
+Option 1 happened: the Mac OS 8 HIG is in `docs/sources/`, and everything the section
+below used to list as unverified is now measured from Apple's own bitmaps. Full
+per-value evidence, the reproduction commands and the remaining open items are in
+**[`docs/eras/macos8.md`](eras/macos8.md)**; the figures are committed as
+`docs/sources/figures/macos8-*.png`.
 
-So essentially every Platinum number — title bar height, frame widths, the
-pinstripe period and its two grays, the chiselled bevel layer order, the
-close/zoom/collapse box geometry, the grayscale palette — is currently
-unverified. The existing CSS recreations are not usable as sources: the
-best-known one targets Mac OS **9**, not 8, and makes an accuracy claim with no
-stated methodology.
+Two things make this the best-sourced era in the project, both worth knowing before
+anyone measures another Apple document.
 
-Three ways forward, and I would like your call at the phase-4 gate rather than now:
+**The figures are lossless.** XP's and Tiger's are JPEG, which is why their colours are
+`measured` rather than exact and why boundaries had to be found by change detection.
+This document embeds PNG and *raw indexed* bitmaps with declared palettes, so a hex
+value out of it is Apple's exact byte — and several palette entries were read out of the
+PDF's own colourspace objects rather than sampled from pixels at all.
 
-1. **You drop the HIG PDF into the repo** (it is freely available outside this
-   sandbox) and I extract the real numbers. Best outcome by far.
-2. **Measure from a 1:1 emulator screenshot** — Infinite Mac runs 8.1 in-browser
-   at native resolution. Needs a screenshot I can pixel-inspect, which means you
-   capturing it or allowing that domain.
-3. **Ship Platinum with metrics explicitly tagged `unverified`**, each carrying a
-   note naming what is unknown. Honest, and the type system already supports it,
-   but it means one of the six eras does not meet the fidelity bar the brief sets.
+**The figures that carry the unresolved values are inline images, and the existing tool
+could not see them.** `page.get_images()` reports only a page's `/Resources /XObject`
+entries. Figure 2-26 (the scroll bar), Figure 5-5 (the tool palette) and Figure 5-7 (the
+zoom box) are `BI/ID/EI` inline images, so pages 40, 103 and 105 reported *zero* images
+and the scroll bar width looked unavailable from the document.
+`tools/pdf-extract/extract-inline.py` reads them.
 
-I am not going to invent plausible Platinum numbers to paper over this. Options
-1 and 2 both fully solve it; option 3 is the fallback I would rather not take.
+| Was unverified | Now |
+|---|---|
+| Frame widths | **6px**, six 1px steps, and the highlight and shadow **swap** between left/top and bottom/right |
+| Window shadow geometry | **1px, right and bottom only**, offset two rows down — System 1's shadow, notched corner and all |
+| Title bar | **19px**, and it kept System 1's **six racing stripes**, re-lit as white over `#777777` on `#CCCCCC` |
+| Close / zoom / collapse box | **13×13** over an 11×11 body, inset 4px, `3 + 13 + 3 = 19` |
+| Scroll bar width | **16px** in two assembled windows; the 19px standalone specimen is `contested` |
+| Menu bar height | **20px**, on a `#DDDDDD` face — lighter than the title bar's `#CCCCCC` |
+| Grayscale palette | exact, and mostly declared rather than sampled |
+| Pinstripe period and its two grays | see below — the premise was wrong |
+| Chiselled bevel layer order | partly; per-control stacks are the main open item |
+
+**The pinstripe question was mis-framed, and that is the most useful correction here.**
+This section asked for "the pinstripe period and its two grays" on the assumption that
+Platinum's title bar is a fine pinstripe like Aqua's. It is not. It is **System 7's six
+racing stripes, chiselled** — six pairs of a white highlight over a `#777777` shadow,
+occupying twelve consecutive rows, stopping 4px clear of the title text. The period is
+2 rows and the count is 6, but "pinstripe" was the wrong word and it would have produced
+the wrong artwork: a repeating 2px pattern across the whole bar rather than six discrete
+bands with a clear zone. Platinum's continuity with System 1 runs much deeper than the
+19px title bar.
+
+**Two things Platinum does *not* keep**, both of which a plausible recreation gets wrong:
+
+- **The disabled-text stipple is gone.** §7's own cross-era heading below says the 50%
+  checkerboard governs System 1 and Windows 3.1 — and it stops there. Platinum draws
+  disabled text as a solid `#888888`, proven by parity rather than by eye: the disabled
+  `Undo` label is 127 ink pixels split **64/63** across `(x + y)`, its accelerator 66
+  split 33/33, and the glyph artwork is identical to the enabled one. Same reason
+  Windows 95 dropped it — by 1997 8-bit colour is assumed. A Mac OS 8 skin that
+  inherited System 1's stipple would read as four years out of date.
+- **Charcoal is not Chicago, and the figures prove it.** Apple states Charcoal is based
+  on Chicago's metrics (p17). Measured: Figure 5-3's title differs from Figures 5-1 and
+  5-6 on exactly two glyphs — `t` and `v`, each 1px wider — with cap height, x-height,
+  stem width and every other glyph identical. So three figures are Chicago, one is
+  Charcoal, and Apple's claim is confirmed by measurement rather than taken on faith.
+  ChicagoFLF at 12px reproduces the Chicago figures to a mean ink-width error of
+  **0.02px** and renders `Active window` at exactly the 95px extent measured in
+  Figure 5-1.
 
 **Windows 3.1 has the same problem, for a different reason.** Its metrics were
 runtime values derived from the display driver and were never published as a
@@ -1352,10 +1386,12 @@ silently tested XP when XP became the default in phase 3.
 
 ### The contract additions phase 4 has made so far
 
-Seven, all era-neutral. §11 says a core change a later era demands is a contract bug to
+Eight, all era-neutral. §11 says a core change a later era demands is a contract bug to
 be fixed in core rather than patched in the skin; these are the record of that happening.
 Items 5–7 came from Tiger and are the reason `era/system1` and `era/macos8` should rebase
-onto `main` before building their menu bars — all three are things a Mac shell needs.
+onto `main` before building their menu bars — all three are things a Mac shell needs. Item 8
+came from Mac OS 8, the first era to declare a minimize style the WM had never been asked
+to perform.
 
 1. **`ChromeMetrics.cornerTop` is a discriminated union**, not a number.
    ```ts
@@ -1431,6 +1467,31 @@ onto `main` before building their menu bars — all three are things a Mac shell
    layer, or another menu opening. Without the notification the highlight goes stale after
    every one of them. Era-neutral — the Windows eras render their menu bar inside a window
    and have the identical problem.
+
+8. **A `collapse` minimize must not hide the frame.** `MinimizeStyle` has carried
+   `'collapse'` since phase 1, but no era had declared it, so the minimize path was
+   written for the two styles that existed: it hides the frame with `display: none`,
+   moves focus to the next window, and re-expands the window on `focus()`. All three are
+   right for `shrink` and `genie`, where the window travels to a taskbar button or a Dock
+   tile and stops being on the desktop. All three are wrong for a windowshade, which
+   hides the *content region* and leaves the title bar visible and active — Mac OS 8's
+   own words are that a collapsed window "may be moved, closed, activated, or made
+   inactive" (HIG p103–104).
+
+   Every site that asked "is it minimized?" meant "is it gone from the screen?", and
+   those were the same question until now. `minimizeHidesFrame(style)` in
+   `core/wm/types.ts` is the distinction — a property of the *style*, so it cannot be set
+   inconsistently with a skin's own `minimizeStyle` — and `WindowManager.isOffScreen()`
+   is what the four branch sites ask. It is public because the shell asks it too:
+   `switcher.ts` filtered `!s.minimized`, which would have made a collapsed window the
+   one window a user can see and cannot reach from the keyboard.
+
+   This also adds **`data-minimized`** to the frame vocabulary, written by the *window
+   manager* rather than by each skin's `applyState`. For `shrink` and `genie` the frame is
+   hidden and there is nothing to style, so only a `collapse` era needs the hook — which
+   means leaving it to the skins would make the one era that depends on it the one era
+   that could omit it. Same failure mode as the reduced-motion check in four copies, same
+   answer.
 
 Also worth knowing, though they are shell rather than core:
 

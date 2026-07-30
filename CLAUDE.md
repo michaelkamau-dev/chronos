@@ -311,6 +311,103 @@ Append every correction I make here as a permanent rule. Never delete entries.
   total. And the elements need the same treatment: without offsetting regions by the
   other claims, the work area is right and the pixels are wrong, which is the worst of
   both.
+
+### Mac OS 8 Platinum — the figures a PDF tool cannot see
+- `page.get_images()` reports only a page's `/Resources /XObject` entries and **misses
+  inline images entirely**. Three of the Mac OS 8 HIG figures carrying values no prose
+  states are `BI/ID/EI` inline, so pages 40, 103 and 105 reported *zero* images and the
+  scroll bar looked unavailable from the document. Before concluding a value is not in a
+  source, check for inline images. `tools/pdf-extract/extract-inline.py`.
+- **Lossless is not the same as authentic.** A PNG or raw-indexed figure gives the exact
+  byte the PDF stores, which is a real advantage over XP's and Tiger's JPEGs — but one
+  Mac OS 8 figure declares `#DEDEDE` and `#737373`, off the Mac 8-bit ramp of `0x11`
+  multiples that every chrome figure uses. Check a palette against the era's ramp before
+  quoting it; a lossless read of a colour-converted bitmap is as wrong as a lossy read of
+  an authentic one.
+- **The distinct-colour test cannot see a nearest-neighbour stretch.** Counting distinct
+  colours proves a bitmap was not resampled with interpolation. Whole-row *duplication*
+  introduces no new colours at all, and that is exactly what Figure 2-26 is: the 16px
+  scroll bar stretched to 19 across the track only. The discriminator is **anisotropy** —
+  it matches along the track to the pixel and gains on every layer across it — plus the
+  extra rows landing *inside* the black outlines, where no framing could put them.
+- **`contested` is for when no reading explains both numbers.** 16-versus-19 looked like
+  the Luna caption gradient and was not: a stretch explains both, so the level is
+  `measured` with the stretch recorded. Reaching for `contested` because two numbers
+  differ is the failure this rule already warns about, run in the other direction.
+- **A magnified figure is not a useless figure.** Figure 5-7 is exactly 2×, every era
+  pixel a clean 2×2 block, so dividing by two makes it a fifth confirmation of the box
+  footprint. Dismissing it as "artwork usable, dimensions not" threw away a free
+  cross-check. Test the magnification factor before discarding; its *colours* are a
+  different family and those genuinely are unusable.
+- **Enumerating a bevel per side describes the pixels and hides the model.** Platinum's
+  frame read as "six 1px steps whose highlight and shadow swap between left/top and
+  bottom/right" — true, and it implies four hand-maintained lists. It is two closed bevel
+  rings, one outset and one inset, lit from a single top-left source, which generates all
+  four sides from two variable sets.
+- **A drop shadow notches both of its free ends.** System 1's is remembered for the
+  top-right notch, so that is the one that gets looked for. Platinum's bottom-left arm is
+  inset by the same 2px in every figure, and its colour tracks the frame line — black
+  when active, `#555555` when inactive — so an unconditional black shadow draws one under
+  a deactivated window that never had it.
+- **Prose and pixels can both be right and still not be the same claim.** Apple documents
+  a 19px title bar three ways; the figures measure a 22px band and a 20px interior, and
+  *both* 19-row candidates inside it cut through a bevel ring while both sum to 22. The
+  arithmetic cannot choose, so 19 is `documented`, 20 is `measured`, and the placement is
+  `derived`. Counting the same white pixel row as frame on one edge and as title bar on
+  another is what made the wrong sum appear to close.
+- **"Identical" needs a byte-diff, not an impression.** The close, zoom and collapse
+  boxes share a chisel, an inner bevel and a ramp and differ by 11, 18 and 15 pixels —
+  the glyph, which is the entire point of the widget. Same for the layer count: the two
+  layers a three-layer reading omits are 16 pixels of a 167-pixel box, and without them
+  the dark ring lands straight on the ramp.
+- **An empty control still draws its parts.** A Platinum scroll bar with nothing to
+  scroll draws both arrows in `#888888` — the same glyph artwork recoloured — and has two
+  distinct empty states, active and inactive. "No arrows" was the reading that looked
+  obvious and was wrong in the direction nothing would catch.
+- **A slot one variant fills with colour and another fills with grey is not a ramp step.**
+  Platinum's accent is four steps by role. The apparent fifth is a 4px grip cap that is
+  `#CCFFCC` in the green thumb and a **grey** in the lavender one.
+
+### The stipple ends at Platinum
+- System 1's `notPatBic` and Windows 3.1's `GrayString` knock a 50% checkerboard out of
+  the glyph. **Mac OS 8 does not**: disabled text is a solid `#888888`, the same glyph
+  artwork in a different ink, proven by the same parity discriminator — 127 ink pixels
+  split 64/63 across `(x + y)`, against the 37-on-one-parity that proved the checkerboard
+  in Microsoft's bitmap. So the mechanism governs **System 1 and Windows 3.1 only**, and
+  a Platinum skin that inherited it would read four years out of date. Same reason Windows
+  95 dropped it: by 1997 8-bit colour is assumed.
+
+### Fonts carry history their licence does not
+- **A font's embedded copyright notice can predate its licence.** ChicagoFLF's name ID 0
+  reads `(c)1990-92 by Richard A. Ware. All Rights Reserved.` — the original Fluent Laser
+  Fonts line. Robin Casady placed it in the public domain after Casady & Greene closed and
+  rights reverted, and never wrote that back into the name table. The file looks encumbered
+  and is not. **Retain the notice in the subset rather than stripping it**: it is the
+  evidence a licence audit needs to explain the discrepancy.
+- **Score a substitute against the era's own rasterisation, not against a specimen sheet.**
+  ChicagoFLF at 12px matches Apple's figures to a mean 0.02px ink-width error — and doing
+  the comparison that way is what revealed that one figure is Charcoal rather than Chicago.
+- **Apple's "based on Chicago's metrics" does not mean the advances match.** Charcoal
+  diverges on four metrics, two of them advances, netting 2px over six glyphs. Shared
+  design size and vertical metrics is not metric interchangeability.
+- **`document.fonts.ready` does not load a face that only `<canvas>` uses.** Nothing in the
+  DOM renders with it, so it is never fetched. The first comparison sheet silently
+  rasterised every specimen in the fallback serif and reported the candidate 23px too
+  narrow — a wrong measurement that looked like a real result. Use `document.fonts.load()`
+  and assert `document.fonts.check()` before drawing.
+
+### A union member no era has declared is untested code
+- `MinimizeStyle` carried `'collapse'` from phase 1, so the window manager's minimize path
+  was written for the two styles that existed and got all three of its decisions wrong for
+  the third: it hid the frame, moved focus off it, and re-expanded it on focus. When a
+  union gains a member, every site that switches on it is unverified until an era declares
+  it. The distinction the WM actually wanted was never "is it minimized?" but "is it gone
+  from the screen?" — the same question until it wasn't.
+- **Verification has to fit the machine.** Workflow concurrency is `min(16, cores − 2)`,
+  which is **2** on a 4-core container, so a 15-agent extraction plan cannot finish. Four
+  adversarial lenses plus a critic did, and refuted 29 of 57 claims. Also: interrupting a
+  turn kills the workflow agents it spawned, and the journal keeps saying `started`
+  forever — check transcript mtimes before concluding a run is merely slow.
 ### Two agreeing secondary sources still lose to the era's own pixels (System 1)
 - `StandardWDEF.a` plus Executor agreeing exactly is a real corroboration and it was still
   wrong in five places, because both describe the *drawing code* and a reader
@@ -433,3 +530,14 @@ Append every correction I make here as a permanent rule. Never delete entries.
   the same defect one layer down from the one already fixed in the shell. Check whether a
   fix's *reason* applies to every surface that does the same job, not just the one that
   showed the symptom.
+
+### "It is shared" answers who changes it, not whether it should change
+- The em dash in the harness's window titles was flagged as not-mine-to-change because five
+  other eras rendered it fine. That was a claim about ownership standing in for a claim
+  about correctness, and the correctness question had not been asked: **no** era in this
+  project used U+2014 in a window title — the classic Mac, Win 3.1 and XP all used " - " or
+  nothing. It was wrong in all six, so removing it is a harness fix rather than five eras
+  narrowed to suit one.
+- Raising it was still right; stopping at "shared, therefore untouchable" was not. Ask
+  whether every consumer actually wanted the thing before concluding that only one is
+  complaining.

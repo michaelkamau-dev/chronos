@@ -36,6 +36,24 @@ export type MaximizeSemantics = 'fill' | 'zoom' | 'none'
  *  minimize at all and the skin does not emit the button (System 1). */
 export type MinimizeStyle = 'none' | 'shrink' | 'genie' | 'collapse'
 
+/**
+ * Does this era's minimize take the frame off the screen?
+ *
+ * `shrink` and `genie` do: the window travels to a taskbar button or a Dock tile and
+ * stops being on the desktop, so the window manager hides the frame and moves focus
+ * elsewhere. **`collapse` does not.** A windowshade hides the content region and
+ * leaves the title bar in place, visible and active — Mac OS 8's own words are that a
+ * collapsed window "may be moved, closed, activated, or made inactive" (HIG p104).
+ *
+ * This is a property of the style, not of the era, which is why it lives here rather
+ * than as a second metric a skin could set inconsistently with its own
+ * `minimizeStyle`. The window manager branches on it in four places; a skin never
+ * mentions it.
+ */
+export function minimizeHidesFrame(style: MinimizeStyle): boolean {
+  return style === 'shrink' || style === 'genie'
+}
+
 export interface ChromeMetrics {
   /** Frame-relative title bar height, focused. */
   titleBarHeight: number
@@ -132,6 +150,15 @@ export type ChangeMask = number
  * | `data-win-id` | the frame itself; also the transform-origin hook in base.css |
  * | `data-state` | `focused` / `blurred` |
  * | `data-maximized`, `data-resizable`, `data-dirty`, `data-suspended`, `data-modal` | frame state, as `'true'`/`'false'` |
+ * | `data-minimized` | `'true'`/`'false'`, written by the **window manager** |
+ *
+ * `data-minimized` is the one frame attribute the WM writes rather than the skin, and
+ * deliberately so. For `shrink` and `genie` the WM hides the frame outright and there
+ * is nothing to style; only a `collapse` era needs a rendering hook, because its frame
+ * stays on screen showing just its title bar. Leaving it to each skin's `applyState`
+ * would mean the one era that depends on it is the one era that could omit it — the
+ * same failure mode as the reduced-motion check living in four copies inside the
+ * skins. See `minimizeHidesFrame`.
  *
  * Inside the frame:
  *

@@ -463,12 +463,16 @@ text still appears, it is simply no longer 1-bit. Measured on the harness's own 
 title, which contains an em dash: `Files — Macintosh HD:` renders 311.28px wide,
 `Files - Macintosh HD:` renders 306px.
 
-Fixed where it is this skin's to fix — the Apple menu says `About the Finder...` with
-three periods — and asserted by a new test that runs `document.fonts.check` over every
-string this skin renders. **Still open:** `src/main.ts:146` builds every window title
-with an em dash, which is harness text shared by six eras and not mine to change. It is
-the only remaining fallback in the era, and it is recorded here rather than fixed
-quietly.
+Fixed in two places. The Apple menu says `About the Finder...` with three periods, and
+a test runs `document.fonts.check` over every string this skin renders.
+
+The second was raised rather than changed quietly, and the answer came back that the
+premise was wrong: `src/main.ts` built every window title with an em dash, which looked
+like harness text that only System 1 had a problem with. It is not — **no** era in this
+project used U+2014 in a window title. The classic Mac, Windows 3.1 and XP all used
+" - " or nothing, so the em dash was never right for any of the six. Fixing it is a
+harness correction that happens to remove this era's last fallback, not a narrowing of
+five eras to suit one.
 
 ---
 
