@@ -408,3 +408,136 @@ Append every correction I make here as a permanent rule. Never delete entries.
   adversarial lenses plus a critic did, and refuted 29 of 57 claims. Also: interrupting a
   turn kills the workflow agents it spawned, and the journal keeps saying `started`
   forever — check transcript mtimes before concluding a run is merely slow.
+### Two agreeing secondary sources still lose to the era's own pixels (System 1)
+- `StandardWDEF.a` plus Executor agreeing exactly is a real corroboration and it was still
+  wrong in five places, because both describe the *drawing code* and a reader
+  reconstructing geometry from drawing code fills gaps with plausible arithmetic. Stripes
+  start at `left+2` not `left+1`, the close box is 9px in not 10px, the size box is a 16×16
+  box carrying an 11×11 icon not a 14×14 box, the scroll trough is `ltGray` 25% not the
+  desktop's 50%, and the shadow notches *both* the top-right and the bottom-left corner.
+  Prefer the output of the code running over a description of the code.
+- Collapsing two patterns into one is the commonest classic-Mac error and it is invisible
+  until measured: the desktop and the scroll bar trough are different QuickDraw patterns
+  (50% checkerboard on a 1px cell vs `ltGray` on a 4×2 cell). Measured 50.0% and 25.2%.
+- A two-colour bitmap needs no calibration argument. Any resample introduces a third value,
+  so `#000000` + `#FFFFFF` and nothing else *is* the proof of 1:1 — a stronger argument than
+  XP's placement scale or Tiger's push-button widths. But allow exactly one flat illustrator
+  tone under 5%, reported with its bbox: resampling produces dozens of blend values along
+  every edge, a callout box produces one tone in one rectangle.
+- `box-shadow: 1px 1px 0 0` *is* "the frame's edges translated (+1, +1)", so it reproduces
+  both corner notches for free. `border-right` + `border-bottom` produces neither and the
+  square corners look plausible enough that nobody questions them.
+- Three figures agreeing and a fourth that is structurally incapable of answering is a
+  majority vote, not a measurement. The bottom-left shadow corner ships as a provenance note
+  stating the disagreement, because picking the value that matched the code already written
+  is the exact failure this project exists to avoid.
+
+### An absent button is not a refused command
+- A skin cannot express "this era has no maximize" by emitting no button:
+  `toggleMaximize` is still reachable from the keymap, the window chrome menu and any app
+  call, and each path produced a maximized System 1 window with no way back.
+  `maximizeSemantics: 'none'` in `ChromeMetrics` is what makes the window manager refuse it.
+  Ask "can a skin even express this" before "should a skin express this".
+- Hardcoded accelerator literals in shared code (`accel: 'Alt+F7'`) were a latent lie in
+  every era and a visible one in 1984, where the keyboard has no Control, no Option, no
+  Escape, no arrows and no function keys. `Shell.accelFor` derives the label from the actual
+  binding, so a menu cannot disagree with the keyboard and a skin that binds nothing shows
+  nothing.
+
+### Chromium's LCD text antialiasing is not defeatable, so assert the claim that is true
+- It tints the edge pixels of glyphs that are already exactly on the pixel grid.
+  `-webkit-font-smoothing: antialiased`, `-webkit-font-smoothing: none`, `font-smooth: never`
+  and `text-rendering: optimizeSpeed` are all no-ops on it. "Exactly two colours" is false
+  in this renderer and no CSS makes it true.
+- Loosening a threshold until a false assertion passes yields a test that asserts nothing.
+  Restate the claim instead: **there is no grey in a 1-bit UI** — every pixel luma <40 or
+  >208. A flat grey fill lands at ~128 and fails; a 50% checkerboard sampled at a fractional
+  scale averages to ~128 and fails, which is the failure the integer viewport exists to
+  prevent. The fringe bound is a separate assertion, not a tolerance on the first.
+- Still fix the real bug the false test found: CSS centring distributes free space without
+  rounding, so a title of opposite parity to its bar lands on a half pixel. `Math.floor`,
+  because `StandardWDEF` centres with integer division and that truncates.
+
+### Scale an overlay in place; do not re-parent it to inherit a transform
+- Re-parenting menus into `.desktop` so they inherited the viewport scale worked and was
+  wrong: `.desktop` is inside the scaled, clipped viewport, so an overhanging menu gets
+  clipped by the screen edge and a menu opened from a shell region outside the viewport is
+  positioned in the wrong coordinate space entirely. Publish `--display-scale` on the shell
+  root and `transform: scale()` the overlay where it already lives.
+- Do not "fix" the positioner to compensate. Dividing by the scale in
+  `MenuController.position()` was reverted in full — positioning stays in root coordinates
+  and the transform handles the rest, which is the only version that composes with a sibling
+  session's work without either session knowing about the other.
+- A `:root` fallback block in a skin masks exactly this class of bug. `skin.css` ships with
+  none and carries a comment saying why, because the absence otherwise reads as an omission.
+
+### Extract the shared assertion, do not copy it
+- "Use Win 3.1's stipple construction unchanged" is satisfiable in letter by copying the
+  helper into a second spec, and that breaks it in fact — two copies drift and the one that
+  drifts is the one nobody looks at. `measureParity` moved to `test/browser/stipple.ts` and
+  both eras import it, so one instrument holds two eras and the source to one standard.
+
+### Two measurements that cannot both be true still both ship (the menu bar)
+- The title box is the string plus 10px either side and the stride is the string plus 15
+  — measured separately, each exact on its own figure, and together they mean adjacent
+  boxes overlap by 5px. Rects that partition a bar cannot overlap. Every attempt to solve
+  it produced a half pixel (7.5 from two directions; 5 on one figure and 6 on the other),
+  which no 1984 Toolbox used.
+- Ship both exactly and record the overlap as derived. It is unobservable — only one title
+  is ever inverted — so splitting the difference would make two *visible* measurements
+  wrong to hide one *invisible* inconsistency.
+- A construction beats a number: the title box ends on row 18, so opening the menu at the
+  title's bottom rather than the bar's puts the menu's 1px top border on the bar's rule for
+  free, and the inversion, the rule and the menu's left border become one run of ink.
+- Only a figure with a menu *pulled down* shows a title box at all; an unhighlighted title
+  is just its string. Look for the figure in the interaction state before concluding a
+  value is unmeasurable.
+
+### Coverage is part of verifying a substitute face, and the failure is silent
+- ChiKareGo2 has no U+2026 and no U+2014. The font comparison could not have caught it: it
+  rendered the target strings and measured their shapes and widths, so a character none of
+  them contained was invisible to it.
+- A missing glyph does not fail loudly — it falls back to the browser's default face, whose
+  fractional advance takes every glyph *after* it in the run off the pixel grid. The text
+  still appears; it is just no longer 1-bit. `Files — …` measures 311.28px, `Files - …`
+  measures 306px.
+- `document.fonts.check()` over every string a skin renders is the instrument. Add it when
+  the face is chosen, not after an era gate catches the fringe.
+
+### "Reserved" was one number doing two jobs
+- A shell region is a child of the desktop, so its claim is in logical era pixels: it
+  shrinks the work area and must not move the desktop, which is already around it. Chrome
+  anchored to the host — the harness status strip — is in CSS pixels and *outside* the
+  desktop, so it must also move a fixed-mode desktop clear of itself. Summing them cannot
+  express either, and three device rows of antialiased strip text bled into a 512x342
+  desktop and read as grey in an era that has none.
+- The gate that caught it was diagnosed by running it on the commit before the merge, not
+  by adjusting the number — the same discipline the perf gate needed. It passed there,
+  which is what proved the merge and not the menu bar was the cause.
+- A bug can be created by *correcting* something: the strip only collided once Tiger gave
+  it the `data-edge` that positions it properly. Before that it was painting underneath the
+  desktop, invisible, and nobody had noticed it was misplaced.
+
+### An era's menus may only promise what the keymap binds
+- A **disabled** item promises nothing, so it may carry its historical accelerator — that is
+  how System 1's Edit menu keeps ⌘Z ⌘X ⌘C ⌘V with none of them bound. An **enabled** item's
+  accelerator must come from `accelFor`, and a test asserts that split rather than leaving it
+  to judgement.
+- Where neither works, omit the item. Get Info, Duplicate and Eject are absent from the File
+  menu because showing ⌘I ⌘D ⌘E would advertise unbound chords and showing them bare would
+  misrepresent the era. Omission is the honest third option.
+- `ShellRegionHost` had no `accelFor`, so a region's menus had to write chords as literals —
+  the same defect one layer down from the one already fixed in the shell. Check whether a
+  fix's *reason* applies to every surface that does the same job, not just the one that
+  showed the symptom.
+
+### "It is shared" answers who changes it, not whether it should change
+- The em dash in the harness's window titles was flagged as not-mine-to-change because five
+  other eras rendered it fine. That was a claim about ownership standing in for a claim
+  about correctness, and the correctness question had not been asked: **no** era in this
+  project used U+2014 in a window title — the classic Mac, Win 3.1 and XP all used " - " or
+  nothing. It was wrong in all six, so removing it is a harness fix rather than five eras
+  narrowed to suit one.
+- Raising it was still right; stopping at "shared, therefore untouchable" was not. Ask
+  whether every consumer actually wanted the thing before concluding that only one is
+  complaining.

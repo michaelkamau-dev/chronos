@@ -572,37 +572,103 @@ export const XP_PROVENANCE: Provenance<ChromeMetrics> = {
 A test asserts every `unverified` entry carries a `note`. Unverified values are
 allowed to exist — inventing one silently is not.
 
-### System 1 — measured, and it corrects two assumptions
+### System 1 — measured against Apple's own pixels, correcting five values
 
-Sourced from Apple's own shipped `StandardWDEF.a` assembly listing and
-independently corroborated against Executor's clean-room Toolbox
-reimplementation. The two agree exactly.
+Built. The table below is the *as-shipped* one; the prior version of this
+subsection was sourced from Apple's `StandardWDEF.a` assembly listing plus
+Executor, and five of its rows are now corrected by measurement. Every value is
+reproducible with
+
+```
+python3 tools/pdf-extract/extract-mac-figures.py docs/sources/macintosh-hig.pdf docs/sources/figures
+python3 tools/pdf-extract/measure-mac-system1.py docs/sources/figures
+```
+
+**Why this era is better sourced than XP or Tiger, and needs no calibration
+argument.** `macintosh-hig.pdf` embeds its screen shots as image XObjects, and
+several are *pure two-colour* bitmaps — one of them 512×342, exactly the
+framebuffer of a Macintosh 128K/512K/Plus. A two-tone bitmap cannot have been
+resampled: any scale introduces a third value, and there is none. These are
+Apple's own pixels, at 1:1, in the bit depth the era ran at. XP's and Tiger's
+figures are JPEG and each needed an argument for why the bitmap is 1:1; this one
+does not. Extract the XObject, never rasterise the page (§7, figure rules).
+
+**Era caveat, kept rather than glossed.** The HIG is the 1992 edition and
+describes System 7. `documentProc` chrome was visually unchanged from 1984
+through System 6, and its 19px title bar is independently `minTitleH EQU 19` in
+`StandardWDEF.a`, so the geometry carries back. Anything *later* than System 1 is
+called out and omitted — the zoom box arrives with `zoomDocProc` in 1987 and this
+era has none.
 
 | Metric | Value | Level |
 |---|---|---|
-| Title bar height | **19px** (21px with a SICN icon) | documented — `minTitleH EQU 19` |
-| Frame left / top | 1px black | confirmed |
-| Frame right / bottom | **2px effective** (1px frame + 1px shadow) | confirmed |
-| Racing stripes | **6**, 1px on / 1px off, rows 4–14, `left+1`→`right-2` | confirmed |
-| Title inset | 6px each side; baseline at `top-5` | documented |
-| Close box | 11×11 visible, 10px in from left frame line | confirmed |
+| Title bar height | **19px** = 1px frame + 1px + 16px Chicago cell + 1px rule | documented `minTitleH EQU 19`; measured on 4 figures |
+| Frame left / top | 1px black | measured |
+| Frame right / bottom | **2px effective** (1px frame + 1px shadow) | measured |
+| Drop shadow | 1px, the frame's right column and bottom row translated **(+1, +1)** | measured |
+| Racing stripes | **6**, 1px on / 1px off, rows **4, 6, 8, 10, 12, 14**, `left+2` → `right-3` | measured |
+| Title | centred on a whole pixel; 16px cell at row 2; cap band rows 5–13; 6px clearance | measured |
+| Close box | 11×11, **9px** in from the left frame line, 1px of paper either side | measured |
 | Zoom box | **does not exist in System 1** (`documentProc` has none) | documented |
 | Minimise / collapse | **does not exist** | documented |
-| Grow box | 14×14, bottom-right | confirmed |
-| Scroll bar | 16px wide; thumb a **fixed 16×16 square, not proportional** | documented |
-| Menu bar | 20px (Roman script) | documented — Inside Macintosh |
-| Disabled menu item | gray pattern knocked *out of* drawn text via `notPatBic` | confirmed |
-| System font | Chicago 12 | documented |
+| Size (grow) box | **16×16** box carrying an **11×11** icon inset 3px/3px | measured |
+| Scroll bar | 16px wide; 16px arrow boxes; scroll box a **fixed 16px, not proportional** | measured |
+| Scroll trough | QuickDraw **`ltGray`, 25% on a 4×2 cell** — not the desktop's 50% | measured |
+| Desktop | 50% checkerboard, 1px cell, all ink on one `(x+y)` parity | measured |
+| Menu bar | 20px = 1px screen border + 18px + 1px rule; caps on row 5 | measured |
+| Menu title box | rows 1–18, string + **10px** either side; first box 8px in | measured |
+| Menu title stride | string + **15px** — exact on 4 of 5 Finder transitions | measured |
+| Apple title | 11×14 artwork inside a **17px** advance | measured |
+| Pull-down origin | left border on the title box's left edge, top border on the bar's rule | measured |
+| Menu | 1px border + 1px shadow; 16px items; cap at +3; separator rule at +8 | measured |
+| Menu columns | mark 4px, label 16px, accelerator 23px, submenu 8px — all from the border line | measured |
+| Push button | **59×20**, corner a 3-step indent `[3,1,1]`, not a radius | measured |
+| Default ring | 3px wide, 1px gap, arc `[5,3,2,1,1,0]` | measured |
+| Text field | 1px black rectangle, white fill, 22px high — no sunken bevel | measured |
+| Check box | 12×12 | measured |
+| Pressed | **full invert**, not a bevel swap | documented + measured |
+| Disabled text | 50% checkerboard knocked *out of* the drawn glyph — `notPatBic` | measured, by parity |
+| System font | Chicago 12 — 16px cell, 9px cap height, 3px descender, 14 advances | measured |
 
-Two corrections worth flagging now, because both are strong authenticity tells:
+The five corrections, and what each one was:
 
-- **System 1 windows *did* have a drop shadow** — 1px hard, on the right and
-  bottom only, with the right-hand shadow starting 1px below the frame top. That
-  produces a characteristic notched top-right corner and an asymmetric frame
-  (1px left/top, 2px right/bottom). The common belief that classic Mac windows
-  were unshadowed is wrong.
-- **Classic Mac scroll thumbs are fixed 16×16 squares.** Proportional thumbs are
-  a later Platinum feature. Most web recreations get this wrong.
+- **Stripes start at `left+2`, not `left+1`.** Row 4 of Apple's 512×342 screen
+  runs `(0,0) (2,7) (9,19) (21,96) (242,333) (335,335)` — the frame line at 0, then
+  ink from 2. The gaps at 8 and 20 are the close box's paper surround.
+- **The close box is 9px in from the frame line, not 10px.** Its ink starts at
+  x=9 and the 1px of paper either side is the box knocking the stripes out.
+- **The size box is a 16×16 box, not a 14×14 one.** The 14 figure was the icon's
+  bounding box read as the box; the icon is 11×11, inset 3px and 3px, inside a
+  16×16 corner — which is also why it aligns with the 16px scroll bars.
+- **The scroll bar trough is 25%, not 50%.** Two different QuickDraw patterns are
+  in play and collapsing them is the most common recreation error: the desktop is
+  the 50% checkerboard (measured 50.0%, one parity), the trough is `ltGray` on a
+  4×2 cell (measured 25.2%, ink at cell offsets `(0,0)` and `(2,1)`).
+- **Both corners are notched, not just the top-right.** The shadow is the frame's
+  edges translated (+1, +1), so it is missing a pixel at the top-right *and* the
+  bottom-left. `box-shadow: 1px 1px 0 0` reproduces exactly that, notches included.
+
+Two things the earlier table had right and that recreations get wrong, restated
+because they are the strongest authenticity tells: System 1 windows **did** have a
+drop shadow, and the scroll box **is** fixed rather than proportional.
+
+**A second measurement does not resolve, and it is in the menu bar.** The title box
+(string + 10px either side) and the title stride (string + 15px) are each measured
+directly and each reproduce their figure exactly — and together they mean adjacent
+boxes overlap by 5px, which is impossible for rects that partition the bar. No figure
+can settle it, because only one title is ever highlighted and none of the eight shows
+two boxes; the Menu Manager's own title-rect arithmetic is not in `docs/sources/`.
+Both ship exactly and the overlap is the derived consequence, expressed as a negative
+margin. It is unobservable — the later title wins the shared pixels for hit-testing —
+and it is written down rather than split down the middle.
+
+One measurement did not resolve and ships as recorded variance rather than
+smoothed: the bottom-left shadow corner. The two genuine screen dumps agree
+(notched), the two book-cropped 1-bit figures differ by one pixel from each other
+(0px and 2px), and the 512×342 screen cannot settle it at all because the desktop
+checkerboard's parity paints the same pixel. The dumps are what ships. Full
+working, the font resolution, and the remaining open item are in
+`docs/eras/system1.md`.
 
 Also worth knowing: **`system.css` is not a dimensional reference.** Its author
 states it was recreated from the HIG by eye, and it is measurably off (24px

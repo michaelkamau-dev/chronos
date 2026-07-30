@@ -72,6 +72,17 @@ const ERAS: Record<string, () => Promise<EraBundle>> = {
       decorate: paths.tigerNameDecorator,
     }
   },
+  system1: async () => {
+    const [{ system1Skin }, paths] = await Promise.all([
+      import('./skins/system1/index.js'),
+      import('./skins/system1/paths.js'),
+    ])
+    return {
+      skin: system1Skin,
+      codec: paths.createSystem1Codec,
+      decorate: paths.system1NameDecorator,
+    }
+  },
 }
 
 const DEFAULT_ERA = 'winxp'
@@ -132,7 +143,20 @@ function openDirectoryWindow(startAt?: NodeId): WindowId {
   views.set(id, view)
   void view.start().then(() => {
     void fs.chain(view.currentDir()).then((chain) => {
-      shell.wm.setTitle(id, `Files — ${codec.format(chain)}`)
+      /*
+       * A plain hyphen, not an em dash.
+       *
+       * No era in this project used U+2014 in a window title — the classic Mac,
+       * Windows 3.1 and XP all used " - " or nothing — so the em dash was never right
+       * for any of the six, and it is harness text rather than era text.
+       *
+       * It also breaks one of them outright. ChiKareGo2 carries no U+2014, and a
+       * missing glyph does not fail loudly: it falls back to the browser's default
+       * face, whose fractional advance takes every glyph *after* it in the run off the
+       * pixel grid. `Files — Macintosh HD:` measures 311.28px and `Files - Macintosh
+       * HD:` measures 306px, and in a 1-bit era the difference is the whole thesis.
+       */
+      shell.wm.setTitle(id, `Files - ${codec.format(chain)}`)
     })
   })
   return id

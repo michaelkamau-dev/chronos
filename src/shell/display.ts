@@ -66,6 +66,8 @@ export class Display {
   private observer: ResizeObserver | null = null
   /** Reserved edges, in logical px, contributed by shell regions. */
   private reserved = { top: 0, right: 0, bottom: 0, left: 0 }
+  /** Chrome outside the desktop, in CSS px. Shrinks the area the desktop is laid in. */
+  private hostInsets = { top: 0, right: 0, bottom: 0, left: 0 }
 
   constructor(host: HTMLElement, spec: ViewportSpec) {
     this.host = host
@@ -89,6 +91,32 @@ export class Display {
 
   setSpec(spec: ViewportSpec): void {
     this.spec = spec
+    this.measure()
+  }
+
+  /**
+   * Chrome that lives *outside* the desktop element, in CSS pixels.
+   *
+   * Distinct from `setReservedEdges`, and the distinction is load-bearing. A shell
+   * region is a child of the desktop, so it is inside the display transform and its
+   * reservation is measured in logical era pixels — it shrinks the work area and
+   * nothing else. Anything anchored to the host instead — the harness status strip —
+   * is in CSS pixels and is painted *over* a fixed-mode desktop unless the desktop is
+   * laid out clear of it.
+   *
+   * Found by System 1's one-bit gate: the strip's antialiased text bled three device
+   * rows into the bottom of a 512x342 desktop and showed up as grey in an era that has
+   * none. Summing the two into one number, as the shell did, cannot express it —
+   * subtracting a region's 20 logical pixels from the host area would move the desktop
+   * for chrome that is already inside it.
+   */
+  setHostInsets(edges: { top?: number; right?: number; bottom?: number; left?: number }): void {
+    this.hostInsets = {
+      top: edges.top ?? 0,
+      right: edges.right ?? 0,
+      bottom: edges.bottom ?? 0,
+      left: edges.left ?? 0,
+    }
     this.measure()
   }
 
@@ -152,16 +180,25 @@ export class Display {
       this.desktop.style.transform = ''
     } else {
       const logical = this.spec.logical ?? { w: clientW, h: clientH }
+      /*
+       * A fixed-mode desktop is a box centred in the host, so it has to be centred in
+       * the part of the host nothing else claims. In native mode the desktop *is* the
+       * host area and `workArea()` already subtracts the same chrome, so applying the
+       * insets there would count them twice.
+       */
+      const i = this.hostInsets
+      const availW = Math.max(0, clientW - i.left - i.right)
+      const availH = Math.max(0, clientH - i.top - i.bottom)
       const scale = chooseScale(
         logical.w,
         logical.h,
-        clientW,
-        clientH,
+        availW,
+        availH,
         dpr,
         this.spec.maxScale ?? 4,
       )
-      const offsetX = Math.floor((clientW - logical.w * scale) / 2)
-      const offsetY = Math.floor((clientH - logical.h * scale) / 2)
+      const offsetX = i.left + Math.floor((availW - logical.w * scale) / 2)
+      const offsetY = i.top + Math.floor((availH - logical.h * scale) / 2)
       this.state = { scale, offsetX, offsetY, logicalW: logical.w, logicalH: logical.h }
       this.desktop.style.width = `${logical.w}px`
       this.desktop.style.height = `${logical.h}px`
@@ -173,6 +210,15 @@ export class Display {
   }
 
   private emit(): void {
+    /*
+     * The scale is published on the shell root as a custom property.
+     *
+     * Overlays that must live on the root rather than inside the scaled surface —
+     * menus — cannot inherit the display transform, so they scale themselves from
+     * this. Writing it here rather than in the shell keeps it next to the arithmetic
+     * that produces it: `measure` is the only place the factor is decided.
+     */
+    this.host.style.setProperty('--display-scale', String(this.state.scale))
     for (const fn of this.listeners) fn(this.state)
   }
 }
