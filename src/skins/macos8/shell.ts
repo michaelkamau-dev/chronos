@@ -22,25 +22,20 @@
 
 import type { ShellRegion, ShellRegionHost } from '../../shell/shell.js'
 import type { MenuSpec } from '../../core/input/menu.js'
+import type { Command } from '../../core/input/commands.js'
 import { MACOS8 } from './metrics.js'
 
 /**
- * The chord a menu item advertises.
+ * Spreads an `accel` field only when the active skin actually binds the command.
  *
- * Kept in one place so the menu bar and the keymap cannot drift, and so this becomes a
- * one-line change when `ShellRegionHost.accelFor` lands with System 1: the call site
- * already asks a function for a command's chord rather than writing the literal into
- * the spec.
+ * The chord comes from `ShellRegionHost.accelFor`, never from a literal: a menu that
+ * writes `Meta+W` into its own spec is advertising a chord it has no way of knowing is
+ * still bound, and the accelerator column is the most visible place a label can
+ * disagree with the keyboard. `menu.ts` turns the chord into the era's glyph notation.
  */
-const CHORDS: Readonly<Record<string, string>> = {
-  'window.close': 'Meta+W',
-  'window.minimize': 'Meta+M',
-  'shell.newWindow': 'Meta+N',
-  'window.cycleNext': 'Meta+`',
-}
-
-function accelFor(command: string): string | undefined {
-  return CHORDS[command]
+function accel(api: ShellRegionHost, command: Command): { accel: string } | Record<string, never> {
+  const chord = api.accelFor(command)
+  return chord === undefined ? {} : { accel: chord }
 }
 
 class MenuBar {
@@ -166,7 +161,7 @@ class MenuBar {
         kind: 'item',
         label: 'New Window',
         command: 'shell.newWindow',
-        ...accel('shell.newWindow'),
+        ...accel(this.api, 'shell.newWindow'),
         enabled: true,
         // Through the command registry, not by reaching for the shell: a menu item and
         // its accelerator have to be provably the same action.
@@ -177,7 +172,7 @@ class MenuBar {
         kind: 'item',
         label: 'Close Window',
         command: 'window.close',
-        ...accel('window.close'),
+        ...accel(this.api, 'window.close'),
         enabled: s !== undefined && s.closable,
         onActivate: () => {
           if (id !== null) void wm.close(id)
@@ -216,7 +211,7 @@ class MenuBar {
         kind: 'item',
         label: shaded ? 'Expand Window' : 'Collapse Window',
         command: 'window.minimize',
-        ...accel('window.minimize'),
+        ...accel(this.api, 'window.minimize'),
         enabled: s !== undefined,
         onActivate: () => {
           if (id === null) return
@@ -238,18 +233,12 @@ class MenuBar {
         kind: 'item',
         label: 'Next Window',
         command: 'window.cycleNext',
-        ...accel('window.cycleNext'),
+        ...accel(this.api, 'window.cycleNext'),
         enabled: wm.list().length > 1,
         onActivate: () => void this.api.commands.run('window.cycleNext'),
       },
     ]
   }
-}
-
-/** Spreads an `accel` field only when the command actually has a chord. */
-function accel(command: string): { accel: string } | Record<string, never> {
-  const chord = accelFor(command)
-  return chord === undefined ? {} : { accel: chord }
 }
 
 export function macos8Regions(): readonly ShellRegion[] {
