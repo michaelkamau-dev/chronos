@@ -46,7 +46,6 @@ body {
   background: var(--plain-frame);
   border: 1px solid var(--plain-edge);
   border-top-width: 0;
-  contain: layout paint;
 }
 
 .win[data-state='blurred'] {
@@ -67,8 +66,6 @@ body {
   background: var(--plain-bar);
   color: var(--plain-bar-text);
   cursor: default;
-  user-select: none;
-  touch-action: none;
 }
 
 .win[data-state='blurred'] .win-titlebar {
@@ -130,24 +127,17 @@ body {
   border-color: #b4b4b4;
 }
 
+/* `position: relative` and `min-height: 0` come from base.css. */
 .win-content {
   flex: 1 1 auto;
-  position: relative;
   overflow: auto;
   background: var(--plain-content);
-  min-height: 0;
 }
 
 /* --------------------------------------------------------- resize handles */
 
-.win-resize {
-  position: absolute;
-  touch-action: none;
-}
-
-.win[data-resizable='false'] .win-resize {
-  display: none;
-}
+/* Positioning, touch-action and the not-resizable / maximized suppression all come
+ * from base.css. Only the grab geometry and cursors are the skin's. */
 
 /* 4px grab slop, matching PLAIN_METRICS.resizeGrab, so a 1px visual edge is
  * still a usable target. Corners sit above edges in DOM order. */
@@ -167,19 +157,14 @@ body {
   box-shadow: none;
 }
 
-.win.is-dragging .win-content,
-.win.is-resizing .win-content {
-  pointer-events: none;
-}
+/* Suppressing pointer events on content mid-gesture is in base.css. */
 
 /* --------------------------------------------------------------- switcher */
 
 .switcher {
-  position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 100000;
   display: flex;
   gap: 6px;
   padding: 10px;
@@ -225,7 +210,8 @@ body {
   background: #1f1f1f;
   color: #d8d8d8;
   font: 11px/1 ui-monospace, monospace;
-  z-index: 90000;
+  /* Below both overlay layers; the status strip must never cover a menu. */
+  z-index: calc(var(--layer-switcher) - 1);
 }
 
 .status button {
@@ -264,8 +250,8 @@ body {
 
 /* ------------------------------------------------------------------- menus */
 
+/* Positioning and z-index come from base.css, keyed off `[data-menu]`. */
 .menu {
-  z-index: 200000;
   min-width: 160px;
   padding: 2px;
   background: #f0efed;

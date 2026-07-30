@@ -158,8 +158,13 @@ export class XpChrome implements ChromeRenderer {
   }
 
   /** XP shrinks the window toward its taskbar button. */
+  /*
+   * XP shrinks toward the taskbar button.
+   *
+   * No reduced-motion check: the WM skips the call entirely when the query matches,
+   * so honouring it is not something a skin can get wrong. See src/core/motion.ts.
+   */
   async minimizeTo(h: FrameHandle, target: Rect): Promise<void> {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const box = h.el.getBoundingClientRect()
     if (box.width === 0 || box.height === 0) return
     const sx = Math.max(target.w / box.width, 0.05)
@@ -178,7 +183,6 @@ export class XpChrome implements ChromeRenderer {
   }
 
   async restoreFrom(h: FrameHandle, from: Rect): Promise<void> {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const anim = h.el.animate(
       [
         { transform: `translate3d(${from.x}px, ${from.y}px, 0) scale(0.15)`, opacity: 0.15 },

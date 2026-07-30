@@ -52,9 +52,83 @@ body {
   position: absolute;
   left: 0;
   top: 0;
+  /* A repaint inside one window must not invalidate the other nineteen. This is
+   * the §6 performance contract, not a look, so it does not belong to a skin. */
+  contain: layout paint;
+}
+
+/*
+ * The drag origin. `touch-action: none` is what stops a touch drag from scrolling
+ * the page instead of moving the window, and `user-select: none` stops a drag from
+ * selecting the title text. Both are required for the gesture to work at all, in
+ * every era, so neither is a skin's decision.
+ */
+[data-part='titlebar'] {
+  touch-action: none;
+  user-select: none;
+}
+
+/*
+ * Resize handles. Position and touch behaviour are structural; the *sizes* and
+ * cursors stay with the skin, because a 1px System 1 border needs different grab
+ * slop from a 4px Luna frame.
+ */
+[data-resize] {
+  position: absolute;
+  touch-action: none;
+}
+
+/*
+ * No handles on a window that cannot be resized, and none on a maximized one.
+ *
+ * This is behaviour rather than styling: `GestureController.begin` already refuses
+ * to start a resize in both cases, so a skin that omits this shows a resize cursor
+ * over an edge that will not resize — a lie about what the window will do. The XP
+ * skin carried the maximized half of this rule and the plain skin did not, which is
+ * exactly the kind of divergence that appears in one era only.
+ */
+[data-win-id][data-resizable='false'] [data-resize],
+[data-win-id][data-maximized='true'] [data-resize] {
+  display: none;
+}
+
+/*
+ * App content. `position: relative` is the positioning context apps mount into, and
+ * `min-height: 0` is what stops a flex-column frame from being pushed past its own
+ * height by its content. Both are structural; the background and scrollbars are not.
+ */
+[data-content] {
+  position: relative;
+  min-height: 0;
+}
+
+/* Pointer events must not reach app content mid-gesture, or dragging a window over
+ * an app delivers moves to the app. The classes are written by the WM's gesture
+ * controller, so this is keyed off them and off the content contract attribute. */
+[data-win-id].is-dragging [data-content],
+[data-win-id].is-resizing [data-content] {
+  pointer-events: none;
+}
+
+/*
+ * Overlay layering.
+ *
+ * The *order* is a contract — a menu paints above the switcher, and both above every
+ * window — so the numbers live here once rather than being re-picked per skin, where
+ * two eras disagreeing would surface as a bug in one of them.
+ */
+:root {
+  --layer-switcher: 100000;
+  --layer-menu: 200000;
 }
 
 /* Menus are positioned by the menu controller in client coordinates. */
-.menu {
+[data-menu] {
   position: absolute;
+  z-index: var(--layer-menu);
+}
+
+[data-switcher] {
+  position: absolute;
+  z-index: var(--layer-switcher);
 }

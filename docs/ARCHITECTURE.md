@@ -623,7 +623,8 @@ Wine's `user32/uitools.c`, ReactOS's `sysparams.c`, and the Win32 docs.
 | Frame colours left, outer→inner | `#0019CE` `#0831D9` `#166AEE` `#0955DE` | measured — XP.css missed the outermost |
 | Frame colours bottom | `#0048F2` ×2, `#001EA0` ×2 | measured |
 | Top corner arc | 5 rows, x-insets **5,3,2,1,1,0** — not a radius | measured |
-| Caption buttons | 21×21, `margin-left: 2px`, 5px right inset | measured |
+| Caption buttons | **21×21**, 2px gap, **2px** gutter to the frame's inner edge (6px from the outer edge; 2px when maximized), 6px down from the caption top and 3px clear of its bottom | measured — "Title Bar Buttons" figure, three real captions, nine buttons |
+| Caption button states | four measured 19-row gradients per category; `disabled` contested | measured — "states for Title Bar buttons" specimen sheet |
 | Caption font | **Trebuchet MS Bold 10pt** (13.33px @96dpi) | documented |
 | UI / menu / dialog font | Tahoma 8pt | documented |
 | Active caption gradient | 8 stops, `#0997ff 0%` → `#003dd7 100%` | **contested** — see below |

@@ -125,6 +125,7 @@ export class Switcher {
     if (!this.el) {
       const el = document.createElement('div')
       el.className = 'switcher'
+      el.dataset['switcher'] = ''
       el.setAttribute('role', 'listbox')
       el.setAttribute('aria-label', 'Open windows')
       this.host.appendChild(el)

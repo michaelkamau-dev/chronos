@@ -718,3 +718,130 @@ consistent with the Visual Guidelines. But "we measured zero" and "we have no va
 are different states, and a bare `0` would be indistinguishable from a default. The
 note says which it is, and flags that menu drop shadows are a separate unmeasured
 case.
+
+## Phase 4 preparation — the caption-button figure and two audits
+
+### 4.1 The caption-button geometry came from a second figure, not from `luna.msstyles`
+
+**Call.** Caption button placement is now `measured` from the "Title Bar Buttons"
+figure. 21×21, 2px gaps, a 2px gutter to the frame's inner edge, 6px down from the
+caption top and 3px clear of its bottom. XP.css's `rightInset: 5` is dropped.
+
+**Reasoning.** Phase 3 recorded this as blocked because the magnifier callout in
+"Standard window components in actual size" covers the buttons. That was true of that
+figure and not of the document: a separate figure in the same chapter shows three real
+captions — inactive, active and maximized — with nothing drawn over any of the nine
+buttons.
+
+The calibration argument is the one from the mistake log rather than the placement
+scale. This bitmap reproduces the 30px caption and the 4px right frame, both already
+measured twice from a different bitmap, so it is 1:1. Twenty-seven button instances
+across this figure and the states specimen sheet all measure 21×21 with a 1px outline,
+which no non-integer resampling could produce. And the placement divides exactly:
+6 + 21 + 3 = 30.
+
+The 6px-against-2px difference between a restored and a maximized window is what
+decomposes the inset: 4px of frame plus a 2px gutter, with the gutter showing alone
+when there is no side frame. One CSS value is therefore right for both cases, because
+the frame is drawn outside the title bar's box.
+
+Reproducible via `tools/pdf-extract/measure-xp-capbuttons.py`.
+
+### 4.2 The four button states ship as measured artwork, not as brightness filters
+
+**Call.** `rest`, `hover`, `active` and `disabled` are each a 19-row measured
+gradient per category. The `filter: brightness(1.18)` / `brightness(0.82)` pair is
+gone. `disabled` is tagged `contested`.
+
+**Reasoning.** The states figure exists to show exactly this, so leaving it unread and
+shipping a multiplier was inventing a value with the source in hand. And the
+multiplier is disprovable: hover lifts the close button's red toward white
+(`#E55F3A` → `#FF836D`, per-channel ratios 1.11 / 1.38 / 1.88), pressed both darkens
+and saturates it (`#C2401D`), and disabled removes the hue entirely (`#7578BD`). No
+single brightness value is all three.
+
+`disabled` is contested for the same reason the caption gradient is, and the evidence
+is specific: the disabled specimens are drawn partly transparent over the figure's own
+blue panel. Solving for one alpha gives 0.23 on the red and 1.57 on the blue, and an
+alpha above 1 is not a compositing operation — so it is separate artwork over an
+unknown background rather than the rest artwork at reduced opacity. The structure is
+what ships; `luna.msstyles` resolves the values.
+
+### 4.3 Six more structural rules left the skin layer
+
+**Call.** `contain`, the title bar's `touch-action`/`user-select`, resize-handle
+positioning, handle suppression on non-resizable and maximized windows, pointer-event
+suppression mid-gesture, and the overlay z-index constants all moved to
+`src/shell/base.css`, keyed off contract attributes.
+
+**Reasoning.** The `base.css` extraction in phase 3 was reactive — a response to
+windows landing at y=-30 — so the audit asked what else was structural. Six more, and
+one had already diverged: the XP skin suppressed resize handles on a maximized window
+and the plain skin did not, so the same window offered a resize cursor in one era and
+not the other over an edge that `GestureController.begin` refuses to resize in both.
+That is the failure mode the extraction exists to prevent, already present.
+
+The z-index constants are now `--layer-menu` and `--layer-switcher` in base, because
+the *ordering* is a contract and two skins picking different numbers would surface as
+a bug in one era only. Seven new tests in `wm.spec.ts` assert all of it against the
+contract vocabulary, so they hold for the five eras that follow without being
+rewritten per skin.
+
+Left in the skins deliberately: handle sizes and cursors (a 1px System 1 border needs
+different grab slop from a 4px Luna frame), the suspended-window treatment (Ledger
+bleaches rather than dims), and everything about appearance.
+
+### 4.4 Reduced motion is enforced by the window manager, not by each skin
+
+**Call.** New `src/core/motion.ts`. The WM skips `minimizeTo`/`restoreFrom` entirely
+when the query matches; the per-skin checks are deleted.
+
+**Reasoning.** This is the contract bug §11 asks to be told about rather than
+absorbed. The check was duplicated in four places across two chrome renderers, on its
+way to twelve at six skins, and a skin that omitted it would ship an era whose
+minimize animation ignores the query with no test failing — the only symptom is motion
+a viewer asked not to see. `CLAUDE.md` requires that an era's behaviour may never be
+what blocks an accessibility escape hatch, so the enforcement point has to be
+somewhere an era cannot reach.
+
+The module also exports `onReducedMotionChange`, which Ledger's refresh band needs:
+a running 1Hz timer has to stop when the query flips, not merely start suppressed.
+
+### 4.5 Menus carry contract attributes, so tests stop depending on a skin's classes
+
+**Call.** `data-menu`, `data-menu-item`, `data-menu-separator` and
+`data-menu-submenu`, emitted by both skins and documented in the vocabulary table in
+`core/wm/types.ts`. The switcher gets `data-switcher`.
+
+**Reasoning.** The test-suite audit found the same reactive pattern as `base.css`.
+`.menu` and `.menu-item` are the *plain* skin's class names, and the XP skin only kept
+those tests passing because I made it emit `class="xp-menu menu"` — a second class
+whose sole purpose was to satisfy a selector. Nothing enforced it, each new skin could
+drop it, and the symptom would be a hanging suite rather than an error, which is
+exactly how four suites failed when XP became the default.
+
+Core was already clean: `MenuView` addresses entries by index into `entryEls`, never
+by selector. This is a test-coupling problem, so the fix is a vocabulary plus a test
+that the active skin emits it.
+
+Not changed: the `.dirview-*` selectors in `fs.spec.ts`. Those belong to
+`src/harness/directory-view.ts`, which is era-neutral harness code, not a skin — no
+skin can change them, so there is nothing to decouple.
+
+### 4.6 The perf gate asserts on long tasks rather than on raw frame gaps
+
+**Call.** `expect(stats.over50).toBe(0)` becomes `expect(stats.longTasks).toBe(0)`,
+plus a new `p95 <= 17.5` bound. `over50` stays in the reported diagnostics.
+
+**Reasoning.** The gate went intermittent. Three consecutive runs gave 16.70ms
+medians; one of them carried a single 483ms gap with `longTasks=0` and `layouts=1`. A
+gap in rAF delivery with no long task means the renderer process was not scheduled at
+all — the container's CPU was contended from outside the page — and no change to the
+drag loop can prevent that.
+
+So the instrument was wrong, not the threshold. "Our code never blocks the main
+thread" is measured directly by the long-task count: a stall we caused is by
+definition a task that occupied the main thread. Adding the p95 bound makes the gate
+strictly stronger in the direction that matters — a drag hitting vsync only half the
+time would have passed a median bound — while no longer failing on host noise. Four
+subsequent runs: median 16.70, p95 16.70–16.80, p99 16.80, over50 0.

@@ -10,11 +10,14 @@
  *   in actual size", extracted at native size and measured. Microsoft states the
  *   figure is 1:1, so its pixels are Microsoft's pixels.
  *
- * XP.css was the earlier source for the frame and caption. It is wrong in four
+ * XP.css was the earlier source for the frame and caption. It is wrong in five
  * places and this file does not follow it: the caption is 30px not 28, the frame is
  * 4px not 3 (XP.css missed the outermost step), the corner is a 5-row stepped arc
- * not an 8px radius, and the command button corner is a 1px indent not a 3px
- * radius. Each is noted on the value.
+ * not an 8px radius, the command button corner is a 1px indent not a 3px radius,
+ * and the caption button gutter is 2px not 5. Each is noted on the value.
+ *
+ * Two of its values survive contact with the figures and are marked as confirmed
+ * rather than replaced: the 21x21 caption button and its 2px inter-button gap.
  */
 
 import { insets } from '../../core/geometry.js'
@@ -29,9 +32,10 @@ const GUIDELINES =
   'Windows XP Visual Guidelines (Microsoft, 2001-08-01), stated in prose. ' +
   'See docs/sources/winxp-luna-metrics.md.'
 
-const XPCSS_MEASURED =
-  'Measured from XP.css, which is a recreation rather than a primary source. ' +
-  'Retained only where the 1:1 figure does not cover the value.'
+const BUTTON_FIGURE =
+  'Windows XP Visual Guidelines, figures "Title Bar Buttons" and "Example of the ' +
+  'states for Title Bar buttons" (Microsoft, 2001-08-01), embedded bitmaps ' +
+  'extracted at native size. See docs/sources/figures/README.md.'
 
 export const XP_METRICS: ChromeMetrics = {
   /** Outer top edge to the top of the client area. Measured twice, two bitmaps. */
@@ -191,7 +195,101 @@ export const XP_LUNA = {
    * while minimize and maximize are blue. That is the documented design rationale,
    * not a stylistic choice.
    */
-  captionButton: { size: 21, gap: 2, rightInset: 5 },
+  captionButton: {
+    size: 21,
+    gap: 2,
+    /**
+     * Gutter between the close button and the frame's inner edge. Six pixels
+     * separate the button from the window's *outer* edge on a restored window —
+     * 4px frame plus this 2px gutter — and a maximized window, which has no side
+     * frame, shows exactly 2px. One value is right for both because the frame is
+     * drawn outside the title bar's box.
+     */
+    rightInset: 2,
+    /**
+     * The buttons are NOT vertically centred: 6px above, 21px of button, 3px
+     * below, in a 30px caption. Centring would put them at 4.5px and land the
+     * whole button off the pixel grid.
+     */
+    topInset: 6,
+    /** A 2px inset on the corner row and 1px on the next — an antialiased arc,
+     *  unlike the window frame's hard steps. 3px is the integer radius that fits. */
+    cornerRadius: 3,
+    /** The 1px outline is opaque white when active and a pale blue when inactive —
+     *  separate artwork, not one colour at two alphas. */
+    outline: '#FFFFFF',
+    outlineInactive: '#BCC4EE',
+  },
+
+  /**
+   * Caption button faces, per interior row, top to bottom. 19 entries each — the
+   * 21px button less its 1px outline on each side.
+   *
+   * These are Microsoft's own artwork, read off the specimen sheet the document
+   * publishes for exactly this purpose, so hover and pressed stop being a
+   * `filter: brightness()` guess. `impact` is the close button and `neutral` is
+   * minimize/maximize: XP colours navigation semantically, red for high-impact and
+   * blue for neutral, so the two categories are separate artwork rather than one
+   * button with a hue rotation.
+   *
+   * The shape is the same as the caption's — a highlight at rows 1-3, a plateau, a
+   * second lift through the lower middle, then a dark roll-off — which is why these
+   * ship as per-row stops rather than as a four-stop approximation.
+   */
+  captionButtonFace: {
+    impact: {
+      rest: [
+        '#E45D40', '#E87A5F', '#E97C63', '#E76F54', '#E46344', '#E46040',
+        '#E45D3E', '#E35D3A', '#E45E3B', '#E55F3A', '#E6623B', '#E7653D',
+        '#E7653D', '#E8643A', '#E66239', '#E65B33', '#E05329', '#D2441F',
+        '#AD3011',
+      ],
+      hover: [
+        '#FF6F5E', '#FF8B7C', '#FF8E80', '#FF8475', '#FF7767', '#FF7465',
+        '#FF7463', '#FF7764', '#FF7C68', '#FF836D', '#FF8772', '#FF8E72',
+        '#FF9075', '#FF8F74', '#FF8D6F', '#FF8568', '#FE775C', '#F2654B',
+        '#D14932',
+      ],
+      active: [
+        '#762511', '#9D3116', '#B23719', '#B8391A', '#BA391A', '#BB3A1B',
+        '#BD3B1B', '#BE3C1C', '#C03E1D', '#C2401D', '#C3411E', '#C5431F',
+        '#C64420', '#C6451F', '#C7461F', '#C5431F', '#C5431E', '#C4421E',
+        '#C13F1D',
+      ],
+      disabled: [
+        '#7578BD', '#767DC5', '#777EC4', '#767CC2', '#7579C0', '#7578BD',
+        '#7677BC', '#7577BC', '#7578BB', '#7578BD', '#7678BD', '#7679BE',
+        '#7679BC', '#7679BC', '#7678BB', '#7577BA', '#7476B9', '#7272B7',
+        '#686FB3',
+      ],
+    },
+    neutral: {
+      rest: [
+        '#3D72F4', '#608CF6', '#638DF8', '#5382F6', '#4777F6', '#4072F5',
+        '#3D72F6', '#3A70F5', '#3A73F6', '#3B76F5', '#3C7AF6', '#3D7EF7',
+        '#3C7FF6', '#3A7DF6', '#387BF6', '#3275F7', '#2B6CF2', '#1E5DE3',
+        '#0F44BE',
+      ],
+      hover: [
+        '#4684FF', '#699AFF', '#6D9DFF', '#6095FE', '#528BFF', '#4D8AFF',
+        '#4889FF', '#478AFF', '#4890FF', '#4B94FF', '#4D98FE', '#4EA0FF',
+        '#4FA4FF', '#4CA4FF', '#46A3FE', '#409DFF', '#3590FC', '#2979EE',
+        '#1758CA',
+      ],
+      active: [
+        '#002F6D', '#003E91', '#0045A4', '#0048AA', '#0048AC', '#0049AD',
+        '#004AB0', '#004CB1', '#004EB3', '#0050B5', '#0052B6', '#0054BA',
+        '#0056BB', '#0058BC', '#0057BC', '#0056BB', '#0055BA', '#0054B7',
+        '#0050B5',
+      ],
+      disabled: [
+        '#2161E7', '#3369E6', '#3369E6', '#2D62E6', '#255DE6', '#215AE7',
+        '#2059E8', '#1E58E8', '#205AE9', '#205DEA', '#205FEC', '#2061ED',
+        '#2063EF', '#2065F2', '#1E65F3', '#1A64F4', '#1661F3', '#0F5AED',
+        '#094ED9',
+      ],
+    },
+  },
 
   /**
    * Point sizes resolved to the integer pixel Windows rasterised at 96 DPI.
@@ -228,11 +326,31 @@ export const XP_LUNA_PROVENANCE = {
   statusBar: { level: 'documented', source: GUIDELINES },
   captionButton: {
     level: 'measured',
-    source: XPCSS_MEASURED,
-    note: 'The 1:1 figure has the magnifier callout drawn over the caption buttons, '
-      + 'so they cannot be measured from it. 21x21 with a 2px gap and 5px right '
-      + 'inset comes from XP.css. The states figure would settle it but the buttons '
-      + 'there sit against three different caption colours.',
+    source: BUTTON_FIGURE,
+    note: 'Measured from the "Title Bar Buttons" figure, which shows three real '
+      + 'captions — inactive, active, maximized — with nothing drawn over the '
+      + 'buttons, and cross-checked against the 21 specimens in "Example of the '
+      + 'states for Title Bar buttons". Calibrated by the caption itself: the '
+      + 'active window measures 30px from outer edge to client area and its right '
+      + 'frame measures 4px, both matching the values already measured twice from '
+      + 'the "actual size" figure, so this bitmap is 1:1 too. 6 + 21 + 3 = 30 '
+      + 'exactly. XP.css had the size and the gap right and the right inset wrong.',
+  },
+  captionButtonFace: {
+    level: 'measured',
+    source: BUTTON_FIGURE,
+    note: 'Median of the interior columns per row, from the specimen sheet the '
+      + 'document publishes to show all four states. rest/hover/active are opaque '
+      + 'artwork and the values stand. `disabled` is CONTESTED for the same reason '
+      + 'the caption gradient is: the disabled specimens are drawn partly '
+      + 'transparent over the figure\'s own blue panel, so the panel is mixed into '
+      + 'every sample. Solving for a single alpha fails — it lands at 0.23 for the '
+      + 'red and above 1.0 for the blue, which no compositing operation produces — '
+      + 'so the disabled row is separate artwork over an unknown background rather '
+      + 'than the rest artwork at reduced opacity. What the values do establish is '
+      + 'the structure: disabled strips the close button of its red entirely and '
+      + 'lands it near the caption blue, while the neutral buttons stay blue and '
+      + 'darken. luna.msstyles resolves the exact values.',
   },
   fontPx: {
     level: 'derived',

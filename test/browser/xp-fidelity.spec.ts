@@ -190,6 +190,88 @@ test.describe('caption buttons are semantically coloured, not a uniform set', ()
     for (const b of boxes) expect(b).toEqual({ w: 21, h: 21 })
   })
 
+  /*
+   * The placement below is the whole reason the "Title Bar Buttons" figure was
+   * worth extracting. Every number here is measured off three real captions —
+   * inactive, active and maximized — with the caption's own 30px height and 4px
+   * right frame as the calibration that the bitmap is 1:1.
+   */
+  test('placement: 2px gaps, a 2px right gutter, and 6px down from the caption top', async ({
+    page,
+  }) => {
+    await boot(page)
+    const geom = await page.locator('[data-win-id]').first().evaluate((frame) => {
+      const bar = frame.querySelector('[data-part="titlebar"]') as HTMLElement
+      const btns = [...frame.querySelectorAll('.xp-capbtn')] as HTMLElement[]
+      const barBox = bar.getBoundingClientRect()
+      const boxes = btns.map((b) => b.getBoundingClientRect())
+      return {
+        gaps: boxes.slice(1).map((b, i) => Math.round(b.left - boxes[i]!.right)),
+        // The frame is drawn by box-shadow *inset*, so the title bar's own right
+        // edge is the frame's inner edge and this gutter is the 2px measured on the
+        // maximized bar, which has no side frame at all.
+        rightGutter: Math.round(barBox.right - boxes[boxes.length - 1]!.right),
+        topInset: Math.round(boxes[0]!.top - barBox.top),
+        bottomInset: Math.round(barBox.bottom - boxes[0]!.bottom),
+      }
+    })
+    expect(geom.gaps).toEqual([2, 2])
+    expect(geom.rightGutter).toBe(2)
+    // Not centred: 6 + 21 + 3 = 30. Centring computes 4.5 and lands off the grid.
+    expect(geom.topInset).toBe(6)
+    expect(geom.bottomInset).toBe(3)
+  })
+
+  test('the outline is opaque white when active and a pale blue when blurred', async ({ page }) => {
+    await boot(page)
+    await page.evaluate(() => window.__chronos.openWindows(2))
+    const outlines = await page.locator('[data-win-id]').evaluateAll((frames) =>
+      frames.map((f) => ({
+        state: (f as HTMLElement).dataset['state'],
+        colour: getComputedStyle(f.querySelector('.xp-capbtn')!).borderTopColor,
+      })),
+    )
+    const active = outlines.find((o) => o.state === 'focused')
+    const blurred = outlines.find((o) => o.state === 'blurred')
+    // Measured as #FFFFFF on all three real captions and on all 21 specimens. A
+    // translucent white would compute to roughly #80AAF2 over the active caption.
+    expect(active?.colour).toBe('rgb(255, 255, 255)')
+    expect(blurred?.colour).toBe('rgb(188, 196, 238)')
+    expect(active?.colour).not.toBe(blurred?.colour)
+  })
+
+  test('each state is a measured gradient, not a filter applied to the rest state', async ({
+    page,
+  }) => {
+    await boot(page)
+    const styles = await page.locator('.xp-capbtn-close').first().evaluate((el) => {
+      const cs = getComputedStyle(el)
+      return { bg: cs.backgroundImage, filter: cs.filter }
+    })
+    // 19 interior rows, two hard stops each, straight off the specimen sheet.
+    expect(styles.bg.split('rgb(').length - 1).toBeGreaterThanOrEqual(38)
+    // `filter: brightness()` cannot express what the specimens show: hover lifts the
+    // red toward white while pressed darkens *and* saturates it.
+    expect(styles.filter).toBe('none')
+
+    // The four states must be four distinct faces per category.
+    const faces = await page.evaluate(() => {
+      // The generated properties are written onto the desktop element, not :root.
+      const cs = getComputedStyle(document.querySelector('[data-desktop]')!)
+      const read = (n: string): string => cs.getPropertyValue(n).trim()
+      const out: Record<string, string> = {}
+      for (const cat of ['impact', 'neutral']) {
+        for (const st of ['rest', 'hover', 'active', 'disabled']) {
+          out[`${cat}-${st}`] = read(`--xp-gen-capbtn-${cat}-${st}`)
+        }
+      }
+      return out
+    })
+    const values = Object.values(faces)
+    expect(values.every((v) => v.length > 0)).toBe(true)
+    expect(new Set(values).size).toBe(8)
+  })
+
   test('the maximize glyph becomes restore when maximized', async ({ page }) => {
     await boot(page)
     const btn = page.locator('.xp-capbtn-maximize').first()
@@ -396,16 +478,32 @@ test.describe('all five states on every interactive element', () => {
     // pointer and keyboard state below, since CSS pseudo-classes cannot be forced.
     expect(distinct.disabled).not.toBe(distinct.rest)
 
+    // The caption button's states are four separately measured faces, so they are
+    // compared on the painted gradient. They used to differ only by
+    // `filter: brightness()`, which is a guess this figure disproves: hover lifts
+    // the red toward white while pressed darkens *and* saturates it.
     const close = page.locator('.xp-capbtn-close').first()
-    const rest = await close.evaluate((el) => getComputedStyle(el).filter)
-    await close.hover()
-    const hover = await close.evaluate((el) => getComputedStyle(el).filter)
-    expect(hover).not.toBe(rest)
+    const face = async (): Promise<string> =>
+      close.evaluate((el) => getComputedStyle(el).backgroundImage)
 
+    const rest = await face()
+    // Disabled is read before the press, because releasing the pointer over the
+    // close button closes the window and takes the element with it.
+    const disabled = await close.evaluate((el) => {
+      const btn = el as HTMLButtonElement
+      btn.disabled = true
+      const bg = getComputedStyle(btn).backgroundImage
+      btn.disabled = false
+      return bg
+    })
+
+    await close.hover()
+    const hover = await face()
     await page.mouse.down()
-    const active = await close.evaluate((el) => getComputedStyle(el).filter)
+    const active = await face()
     await page.mouse.up()
-    expect(active).not.toBe(hover)
+
+    expect(new Set([rest, hover, active, disabled]).size).toBe(4)
   })
 
   test('focus is visible on every chrome control', async ({ page }) => {

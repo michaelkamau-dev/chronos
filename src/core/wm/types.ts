@@ -112,6 +112,40 @@ export type ChangeMask = number
  * The data-attribute vocabulary. This is the entire structural coupling between
  * the window manager and a skin: the WM asks "what did the pointer land on?" and
  * never inspects the frame beyond these.
+ *
+ * On the frame element:
+ *
+ * | Attribute | Meaning |
+ * |---|---|
+ * | `data-win-id` | the frame itself; also the transform-origin hook in base.css |
+ * | `data-state` | `focused` / `blurred` |
+ * | `data-maximized`, `data-resizable`, `data-dirty`, `data-suspended`, `data-modal` | frame state, as `'true'`/`'false'` |
+ *
+ * Inside the frame:
+ *
+ * | Attribute | Meaning |
+ * |---|---|
+ * | `data-part="titlebar"` | drag origin, double-click-to-maximize target |
+ * | `data-part="title"` | the text node the WM writes the title into |
+ * | `data-action="close\|minimize\|maximize\|menu\|collapse"` | chrome buttons |
+ * | `data-resize="n\|s\|e\|w\|ne\|nw\|se\|sw"` | the eight resize handles |
+ * | `data-content` | where the app mounts |
+ *
+ * On a skin-supplied menu (see `core/input/menu.ts` — menus are a tier-2 widget, so
+ * the template is the skin's but the vocabulary is not):
+ *
+ * | Attribute | Meaning |
+ * |---|---|
+ * | `data-menu` | the menu root; base.css positions and layers it |
+ * | `data-menu-item` | an activatable entry |
+ * | `data-menu-separator` | a separator |
+ * | `data-menu-submenu` | an entry that opens a submenu |
+ *
+ * These exist because the alternative was already failing. Before them the tests
+ * selected `.menu` and `.menu-item`, which are the *plain* skin's class names, and
+ * the XP skin only kept them passing by emitting `class="xp-menu menu"` — a second
+ * class whose only purpose was to satisfy a selector. Nothing enforced it, so each
+ * new skin could drop it, and the symptom was a hanging suite rather than an error.
  */
 export type FrameAction = 'close' | 'minimize' | 'maximize' | 'menu' | 'collapse'
 export type ResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'

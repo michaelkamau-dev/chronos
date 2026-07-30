@@ -284,11 +284,11 @@ test.describe('Alt+Tab switcher', () => {
 
     await page.keyboard.down('Alt')
     await page.keyboard.press('Tab')
-    await expect(page.locator('.switcher')).toBeVisible()
-    const selected = await page.locator('.switcher-item[aria-selected="true"]').innerText()
+    await expect(page.locator('[data-switcher]')).toBeVisible()
+    const selected = await page.locator('[data-switcher] [aria-selected="true"]').innerText()
     await page.keyboard.up('Alt')
 
-    await expect(page.locator('.switcher')).toHaveCount(0)
+    await expect(page.locator('[data-switcher]')).toHaveCount(0)
     const after = await page.evaluate(() => {
       const wm = window.__chronos.shell.wm
       const id = wm.focusedId()
@@ -309,7 +309,7 @@ test.describe('Alt+Tab switcher', () => {
     await page.keyboard.press('Escape')
     await page.keyboard.up('Alt')
 
-    await expect(page.locator('.switcher')).toHaveCount(0)
+    await expect(page.locator('[data-switcher]')).toHaveCount(0)
     expect(await page.evaluate(() => window.__chronos.shell.wm.focusedId())).toBe(before)
   })
 })
@@ -442,27 +442,27 @@ test.describe('context menus', () => {
     const bar = await titleBarOf(page, 0)
     await bar.click({ button: 'right', position: { x: 40, y: 8 } })
 
-    const menu = page.locator('.menu')
+    const menu = page.locator('[data-menu]')
     await expect(menu).toBeVisible()
     // A non-maximized window has Restore disabled and Maximize enabled.
-    const restore = menu.locator('.menu-item', { hasText: 'Restore' })
+    const restore = menu.locator('[data-menu-item]', { hasText: 'Restore' })
     await expect(restore).toHaveAttribute('aria-disabled', 'true')
-    await expect(menu.locator('.menu-item', { hasText: 'Maximize' })).toHaveAttribute(
+    await expect(menu.locator('[data-menu-item]', { hasText: 'Maximize' })).toHaveAttribute(
       'aria-disabled',
       'false',
     )
-    await expect(menu.locator('.menu-separator')).toHaveCount(2)
+    await expect(menu.locator('[data-menu-separator]')).toHaveCount(2)
     await expect(menu.locator('[aria-haspopup="true"]')).toHaveCount(1)
   })
 
   test('the desktop menu opens and its action works', async ({ page }) => {
     await boot(page)
     await openWindows(page, 1)
-    await page.locator('.desktop').click({ button: 'right', position: { x: 500, y: 400 } })
-    const menu = page.locator('.menu')
+    await page.locator('[data-desktop]').click({ button: 'right', position: { x: 500, y: 400 } })
+    const menu = page.locator('[data-menu]')
     await expect(menu).toBeVisible()
-    await menu.locator('.menu-item', { hasText: 'New Window' }).click()
-    await expect(page.locator('.menu')).toHaveCount(0)
+    await menu.locator('[data-menu-item]', { hasText: 'New Window' }).click()
+    await expect(page.locator('[data-menu]')).toHaveCount(0)
     await expect(page.locator('[data-win-id]')).toHaveCount(2)
   })
 
@@ -470,7 +470,7 @@ test.describe('context menus', () => {
     await boot(page)
     await openWindows(page, 1)
     await page.keyboard.press('Alt+Space')
-    const menu = page.locator('.menu')
+    const menu = page.locator('[data-menu]')
     await expect(menu).toBeVisible()
     await expect(menu.locator('[data-highlight="true"]')).toHaveCount(1)
 
@@ -481,19 +481,19 @@ test.describe('context menus', () => {
       expect(cls).toContain('menu-item')
     }
     await page.keyboard.press('Escape')
-    await expect(page.locator('.menu')).toHaveCount(0)
+    await expect(page.locator('[data-menu]')).toHaveCount(0)
   })
 
   test('a submenu opens with ArrowRight and its item fires', async ({ page }) => {
     await boot(page)
     await openWindows(page, 2)
     await page.keyboard.press('Alt+Space')
-    const menu = page.locator('.menu').first()
-    await menu.locator('.menu-item', { hasText: 'Order' }).hover()
-    await expect(page.locator('.menu')).toHaveCount(2)
-    await page.locator('.menu').nth(1).locator('.menu-item', { hasText: 'Send to Back' }).click()
+    const menu = page.locator('[data-menu]').first()
+    await menu.locator('[data-menu-item]', { hasText: 'Order' }).hover()
+    await expect(page.locator('[data-menu]')).toHaveCount(2)
+    await page.locator('[data-menu]').nth(1).locator('[data-menu-item]', { hasText: 'Send to Back' }).click()
 
-    await expect(page.locator('.menu')).toHaveCount(0)
+    await expect(page.locator('[data-menu]')).toHaveCount(0)
     const z = await page.locator('[data-win-id]').evaluateAll((els) =>
       els.map((el) => Number((el as HTMLElement).style.zIndex)),
     )
@@ -505,7 +505,7 @@ test.describe('context menus', () => {
     await boot(page)
     await openWindows(page, 1)
     await page.keyboard.press('Shift+F10')
-    await expect(page.locator('.menu')).toBeVisible()
+    await expect(page.locator('[data-menu]')).toBeVisible()
   })
 })
 
@@ -527,5 +527,129 @@ test.describe('suspend and resume', () => {
     expect(events).toContain('resumed')
     await expect(win(page, 0)).toHaveAttribute('data-suspended', 'false')
     await expect(page.locator('[data-win-id]')).toHaveCount(1)
+  })
+})
+
+/*
+ * These lock the structural rules that live in src/shell/base.css rather than in a
+ * skin. Each one exists because the alternative already broke something:
+ *
+ * - The XP skin shipped without the base layout rules and every window landed at
+ *   y = -30, because `#chronos-root` had no height, so the work area computed to
+ *   zero and the manager clamped every window above the top edge.
+ * - The XP skin suppressed resize handles on a maximized window and the plain skin
+ *   did not, so the same window offered a resize cursor in one era and not the
+ *   other over an edge that refuses to resize in both.
+ *
+ * They assert against the contract vocabulary, so they hold for every era that
+ * follows without being rewritten per skin. A skin that forgets a structural rule
+ * now fails here instead of shipping the bug.
+ */
+test.describe('structural rules hold independently of the active skin', () => {
+  test('the work area has real height, so no window is clamped above the top edge', async ({
+    page,
+  }) => {
+    await boot(page)
+    await openWindows(page, 4)
+    const tops = await page.locator('[data-win-id]').evaluateAll((els) =>
+      els.map((el) => (el as HTMLElement).getBoundingClientRect().top),
+    )
+    for (const t of tops) expect(t).toBeGreaterThanOrEqual(0)
+  })
+
+  test('frames are absolutely positioned at the origin and moved by transform only', async ({
+    page,
+  }) => {
+    await boot(page)
+    await openWindows(page, 1)
+    const s = await win(page, 0).evaluate((el) => {
+      const cs = getComputedStyle(el)
+      return { position: cs.position, left: cs.left, top: cs.top, contain: cs.contain }
+    })
+    expect(s.position).toBe('absolute')
+    expect(s.left).toBe('0px')
+    expect(s.top).toBe('0px')
+    // A repaint inside one window must not invalidate the other nineteen.
+    expect(s.contain).toContain('layout')
+    expect(s.contain).toContain('paint')
+  })
+
+  test('the title bar suppresses touch scrolling and text selection', async ({ page }) => {
+    await boot(page)
+    await openWindows(page, 1)
+    const bar = await (await titleBarOf(page, 0)).evaluate((el) => {
+      const cs = getComputedStyle(el)
+      return { touch: cs.touchAction, select: cs.userSelect }
+    })
+    expect(bar.touch).toBe('none')
+    expect(bar.select).toBe('none')
+  })
+
+  test('resize handles are positioned and non-scrolling', async ({ page }) => {
+    await boot(page)
+    await openWindows(page, 1)
+    const handles = await win(page, 0).locator('[data-resize]').evaluateAll((els) =>
+      els.map((el) => {
+        const cs = getComputedStyle(el)
+        return { position: cs.position, touch: cs.touchAction }
+      }),
+    )
+    expect(handles).toHaveLength(8)
+    for (const h of handles) {
+      expect(h.position).toBe('absolute')
+      expect(h.touch).toBe('none')
+    }
+  })
+
+  test('a maximized window offers no resize handles', async ({ page }) => {
+    await boot(page)
+    await openWindows(page, 1)
+    await expect(win(page, 0).locator('[data-resize]').first()).toBeVisible()
+    await page.keyboard.press('Alt+F10')
+    await expect(win(page, 0)).toHaveAttribute('data-maximized', 'true')
+    const shown = await win(page, 0)
+      .locator('[data-resize]')
+      .evaluateAll((els) => els.filter((el) => getComputedStyle(el).display !== 'none').length)
+    expect(shown).toBe(0)
+  })
+
+  test('a menu paints above the switcher, and both above every window', async ({ page }) => {
+    await boot(page)
+    await openWindows(page, 2)
+    const layers = await page.evaluate(() => {
+      const cs = getComputedStyle(document.documentElement)
+      return {
+        menu: Number(cs.getPropertyValue('--layer-menu')),
+        switcher: Number(cs.getPropertyValue('--layer-switcher')),
+      }
+    })
+    expect(layers.menu).toBeGreaterThan(layers.switcher)
+    const maxWinZ = await page
+      .locator('[data-win-id]')
+      .evaluateAll((els) => Math.max(...els.map((el) => Number((el as HTMLElement).style.zIndex))))
+    expect(layers.switcher).toBeGreaterThan(maxWinZ)
+
+    // And the numbers must actually reach the elements.
+    await (await titleBarOf(page, 0)).click({ button: 'right' })
+    const menuZ = await page
+      .locator('[data-menu]')
+      .first()
+      .evaluate((el) => Number(getComputedStyle(el).zIndex))
+    expect(menuZ).toBe(layers.menu)
+  })
+
+  test('the active skin emits the menu contract, not just its own class names', async ({
+    page,
+  }) => {
+    await boot(page)
+    await openWindows(page, 1)
+    await (await titleBarOf(page, 0)).click({ button: 'right' })
+    const menu = page.locator('[data-menu]').first()
+    await expect(menu).toBeVisible()
+    // A menu with items and separators must expose both, and a submenu entry must
+    // be distinguishable from a plain item without reading the skin's classes.
+    await expect(menu.locator('[data-menu-item]').first()).toBeVisible()
+    expect(await menu.locator('[data-menu-separator]').count()).toBeGreaterThan(0)
+    expect(await menu.locator('[data-menu-submenu]').count()).toBeGreaterThan(0)
   })
 })

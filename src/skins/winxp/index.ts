@@ -56,13 +56,39 @@ function frameShadows(): string {
   return parts.join(', ')
 }
 
+/**
+ * The four caption-button state faces, per category, as generated properties.
+ *
+ * Named `--xp-gen-capbtn-<category>-<state>` so the stylesheet's five state rules
+ * read a measured gradient each instead of applying a brightness filter to the rest
+ * state. `filter: brightness()` cannot produce what the specimens show: hover lifts
+ * the close button's red toward white while pressed both darkens *and* saturates it,
+ * and disabled removes its hue altogether.
+ */
+function captionButtonFaces(): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [category, states] of Object.entries(XP_LUNA.captionButtonFace)) {
+    for (const [state, rows] of Object.entries(states)) {
+      out[`--xp-gen-capbtn-${category}-${state}`] = rowGradient(rows)
+    }
+  }
+  return out
+}
+
 /** Written onto the desktop element so the stylesheet can read the measurements. */
 export function xpGeneratedProperties(): Record<string, string> {
   return {
+    ...captionButtonFaces(),
     '--xp-gen-caption-active': rowGradient(XP_LUNA.captionActive),
     '--xp-gen-caption-inactive': rowGradient(XP_LUNA.captionInactive),
     '--xp-gen-frame': frameShadows(),
+    '--xp-capbtn-size': `${XP_LUNA.captionButton.size}px`,
+    '--xp-capbtn-gap': `${XP_LUNA.captionButton.gap}px`,
     '--xp-capbtn-right': `${XP_LUNA.captionButton.rightInset}px`,
+    '--xp-capbtn-top': `${XP_LUNA.captionButton.topInset}px`,
+    '--xp-capbtn-radius': `${XP_LUNA.captionButton.cornerRadius}px`,
+    '--xp-capbtn-outline': XP_LUNA.captionButton.outline,
+    '--xp-capbtn-outline-inactive': XP_LUNA.captionButton.outlineInactive,
   }
 }
 

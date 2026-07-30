@@ -13,6 +13,7 @@ export class PlainMenuRenderer implements MenuRenderer {
   createMenu(spec: MenuSpec): MenuView {
     const el = document.createElement('div')
     el.className = 'menu'
+    el.dataset['menu'] = ''
     el.setAttribute('role', 'menu')
 
     const entryEls: HTMLElement[] = []
@@ -20,6 +21,7 @@ export class PlainMenuRenderer implements MenuRenderer {
       if (entry.kind === 'separator') {
         const sep = document.createElement('div')
         sep.className = 'menu-separator'
+        sep.dataset['menuSeparator'] = ''
         sep.setAttribute('role', 'separator')
         el.appendChild(sep)
         entryEls.push(sep)
@@ -28,7 +30,9 @@ export class PlainMenuRenderer implements MenuRenderer {
 
       const item = document.createElement('div')
       item.className = 'menu-item'
-      item.setAttribute('role', entry.kind === 'submenu' ? 'menuitem' : 'menuitem')
+      item.dataset['menuItem'] = ''
+      if (entry.kind === 'submenu') item.dataset['menuSubmenu'] = ''
+      item.setAttribute('role', 'menuitem')
       item.setAttribute('aria-disabled', entry.enabled ? 'false' : 'true')
       if (entry.kind === 'submenu') item.setAttribute('aria-haspopup', 'true')
 

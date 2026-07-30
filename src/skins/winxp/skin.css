@@ -95,7 +95,6 @@
   /* Four discrete 1px steps per side, written from the measured arrays. The
    * bottom differs from the sides, which is why they are separate properties. */
   box-shadow: var(--xp-gen-frame);
-  contain: layout paint;
   font-family: 'XP UI', sans-serif;
   font-size: var(--xp-fs-8);
   color: var(--xp-text);
@@ -112,11 +111,12 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 0 var(--xp-capbtn-right, 5px) 0 5px;
+  /* 2px on the right: the measured gutter between the close button and the frame's
+   * inner edge. On a restored window the frame adds 4px outside this box for the
+   * 6px the figure shows; a maximized window has no side frame and shows 2px. */
+  padding: 0 var(--xp-capbtn-right, 2px) 0 5px;
   background: var(--xp-gen-caption-active);
   cursor: default;
-  user-select: none;
-  touch-action: none;
 }
 
 .xp-win[data-state='blurred'] .xp-titlebar {
@@ -179,11 +179,17 @@
 
 /* -------------------------------------------------- caption buttons */
 
+/*
+ * The buttons are not centred in the caption. Measured: 6px above, 21px of
+ * button, 3px below, summing to the caption's 30px. Centring computes 4.5px and
+ * puts the whole button on a half-pixel.
+ */
 .xp-controls {
   flex: 0 0 auto;
   display: flex;
-  gap: 2px;
-  align-items: center;
+  gap: var(--xp-capbtn-gap, 2px);
+  align-self: flex-start;
+  margin-top: var(--xp-capbtn-top, 6px);
 }
 
 /*
@@ -193,29 +199,53 @@
  */
 .xp-capbtn {
   position: relative;
-  width: 21px;
-  height: 21px;
+  width: var(--xp-capbtn-size, 21px);
+  height: var(--xp-capbtn-size, 21px);
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  border-radius: 3px;
+  /* Opaque white, measured. The inactive outline below is separate artwork rather
+   * than the same white at a lower alpha — over the active caption a 65% white
+   * measures ~#80AAF2, and the figure shows #FFFFFF. */
+  border: 1px solid var(--xp-capbtn-outline, #FFFFFF);
+  /* The corner outline is inset 2px on the corner row and 1px on the next, and it
+   * is antialiased — a curve, not the hard steps the window frame uses. 3px is the
+   * integer radius that reproduces those insets. */
+  border-radius: var(--xp-capbtn-radius, 3px);
   cursor: default;
   font: inherit;
 }
 
+.xp-win[data-state='blurred'] .xp-capbtn {
+  border-color: var(--xp-capbtn-outline-inactive, #BCC4EE);
+}
+
+/*
+ * All four faces come from the specimen sheet, per row, so no state is a filter
+ * applied to another. Hover lifts the close button's red toward white; pressed
+ * darkens *and* saturates it; disabled removes its hue entirely. One brightness
+ * multiplier cannot be all three.
+ */
 .xp-capbtn--neutral {
-  background: linear-gradient(180deg, #4E92F7 0%, #2C6FE0 45%, #1B55C4 90%, #3F7BE8 100%);
+  background: var(--xp-gen-capbtn-neutral-rest);
 }
 
 .xp-capbtn--impact {
-  background: linear-gradient(180deg, #E8846B 0%, #D8542F 45%, #B93417 90%, #E06A48 100%);
+  background: var(--xp-gen-capbtn-impact-rest);
 }
 
-.xp-capbtn:hover:not(:disabled) {
-  filter: brightness(1.18);
+.xp-capbtn--neutral:hover:not(:disabled) {
+  background: var(--xp-gen-capbtn-neutral-hover);
 }
 
-.xp-capbtn:active:not(:disabled) {
-  filter: brightness(0.82);
+.xp-capbtn--impact:hover:not(:disabled) {
+  background: var(--xp-gen-capbtn-impact-hover);
+}
+
+.xp-capbtn--neutral:active:not(:disabled) {
+  background: var(--xp-gen-capbtn-neutral-active);
+}
+
+.xp-capbtn--impact:active:not(:disabled) {
+  background: var(--xp-gen-capbtn-impact-active);
 }
 
 .xp-capbtn:focus-visible {
@@ -223,9 +253,19 @@
   outline-offset: -3px;
 }
 
-.xp-capbtn:disabled {
-  background: linear-gradient(180deg, #A8B8D0 0%, #8FA0BC 100%);
-  border-color: rgba(255, 255, 255, 0.35);
+.xp-capbtn--neutral:disabled {
+  background: var(--xp-gen-capbtn-neutral-disabled);
+}
+
+.xp-capbtn--impact:disabled {
+  background: var(--xp-gen-capbtn-impact-disabled);
+}
+
+/* Specificity has to beat the blurred rule above, which is why this repeats the
+ * frame selector rather than relying on source order. */
+.xp-capbtn:disabled,
+.xp-win[data-state='blurred'] .xp-capbtn:disabled {
+  border-color: var(--xp-capbtn-outline-inactive, #BCC4EE);
 }
 
 /* Glyphs drawn from box-shadow rectangles so they stay on the pixel grid at
@@ -297,12 +337,12 @@
 
 /* ------------------------------------------------------------- content */
 
+/* `position: relative` and `min-height: 0` come from base.css — they are the same
+ * in every era. What is XP's here is the fill and the 4px inset. */
 .xp-content {
   flex: 1 1 auto;
-  position: relative;
   overflow: auto;
   background: var(--xp-window-bg);
-  min-height: 0;
   /* The 4px frame is drawn by the window's box-shadow, so the content area is
    * inset by it rather than carrying its own border. */
   margin: 0 4px 4px 4px;
@@ -314,16 +354,9 @@
 
 /* --------------------------------------------------------- resize handles */
 
-.xp-resize {
-  position: absolute;
-  touch-action: none;
-}
-
-.xp-win[data-resizable='false'] .xp-resize,
-.xp-win[data-maximized='true'] .xp-resize {
-  display: none;
-}
-
+/* Positioning, touch-action and the not-resizable / maximized suppression all come
+ * from base.css. Only the grab geometry and cursors are XP's: 4px matches the Luna
+ * frame width, so the handle is exactly the visible frame. */
 .xp-resize-n { top: 0; left: 6px; right: 6px; height: 4px; cursor: ns-resize; }
 .xp-resize-s { bottom: 0; left: 6px; right: 6px; height: 4px; cursor: ns-resize; }
 .xp-resize-w { left: 0; top: 6px; bottom: 6px; width: 4px; cursor: ew-resize; }
@@ -332,11 +365,6 @@
 .xp-resize-ne { top: 0; right: 0; width: 6px; height: 6px; cursor: nesw-resize; }
 .xp-resize-sw { bottom: 0; left: 0; width: 6px; height: 6px; cursor: nesw-resize; }
 .xp-resize-se { bottom: 0; right: 0; width: 6px; height: 6px; cursor: nwse-resize; }
-
-.xp-win.is-dragging .xp-content,
-.xp-win.is-resizing .xp-content {
-  pointer-events: none;
-}
 
 /* --------------------------------------------------------------- controls */
 
@@ -449,8 +477,9 @@
 
 /* --------------------------------------------------------------- menus */
 
+/* Positioning and z-index come from base.css, keyed off `[data-menu]`, so no two
+ * eras can pick different layer numbers. */
 .xp-menu {
-  z-index: 200000;
   min-width: 140px;
   padding: 2px;
   background: #FFFFFF;
@@ -510,11 +539,9 @@
 /* --------------------------------------------------------------- switcher */
 
 .switcher {
-  position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 100000;
   display: flex;
   gap: 6px;
   padding: 10px;

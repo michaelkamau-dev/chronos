@@ -52,7 +52,7 @@ test.describe('keyboard completeness', () => {
       const d = shell.dispatcher
       const bar = document.querySelector<HTMLElement>('[data-win-id] [data-part="titlebar"]')
       if (bar) collect(shell.menuSpecFor(d.resolve(bar)))
-      const desktop = document.querySelector<HTMLElement>('.desktop')
+      const desktop = document.querySelector<HTMLElement>('[data-desktop]')
       if (desktop) collect(shell.menuSpecFor(d.resolve(desktop)))
 
       const unreachable = registered.filter((c) => !chordBound.has(c) && !menuBound.has(c))

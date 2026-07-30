@@ -19,6 +19,7 @@ import {
   rect,
   rectEquals,
 } from '../geometry.js'
+import { prefersReducedMotion } from '../motion.js'
 import {
   Change,
   type ChangeMask,
@@ -391,7 +392,12 @@ export class WindowManager {
     entry.minimizedFrom = cloneRect(s.rect)
     s.minimized = true
     this.chrome.updateFrame(entry.handle, s, Change.Minimized)
-    await this.chrome.minimizeTo(entry.handle, target ?? this.defaultMinimizeTarget())
+    // The reduced-motion query is honoured here, not in the skin. A skin that
+    // forgot the check would ship an era that animates anyway, and the only
+    // symptom is motion a viewer asked not to see — nothing would fail.
+    if (!prefersReducedMotion()) {
+      await this.chrome.minimizeTo(entry.handle, target ?? this.defaultMinimizeTarget())
+    }
     entry.handle.el.style.display = 'none'
     this.emit('minimized', id)
 
@@ -412,7 +418,9 @@ export class WindowManager {
     s.minimized = false
     entry.handle.el.style.display = ''
     this.chrome.updateFrame(entry.handle, s, Change.Minimized)
-    void this.chrome.restoreFrom(entry.handle, entry.minimizedFrom ?? s.rect)
+    if (!prefersReducedMotion()) {
+      void this.chrome.restoreFrom(entry.handle, entry.minimizedFrom ?? s.rect)
+    }
     entry.minimizedFrom = null
     this.emit('restored', id)
   }

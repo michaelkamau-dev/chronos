@@ -93,12 +93,14 @@ export class PlainChrome implements ChromeRenderer {
     handles.delete(h.el)
   }
 
+  /*
+   * `shrink`: collapse toward the target rect, with the Web Animations API so the
+   * window manager can await it.
+   *
+   * There is no reduced-motion check here. The WM does not call this at all when the
+   * query matches, so a skin cannot forget it — see src/core/motion.ts.
+   */
   async minimizeTo(h: FrameHandle, target: Rect): Promise<void> {
-    // `shrink`: collapse toward the target rect. The harness animates with the
-    // Web Animations API so it can be awaited and so reduced-motion callers get
-    // an instant transition rather than a janky one.
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced) return
     const box = h.el.getBoundingClientRect()
     if (box.width === 0 || box.height === 0) return
     const sx = Math.max(target.w / box.width, 0.05)
@@ -118,8 +120,6 @@ export class PlainChrome implements ChromeRenderer {
   }
 
   async restoreFrom(h: FrameHandle, from: Rect): Promise<void> {
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced) return
     const anim = h.el.animate(
       [
         { transform: `translate3d(${from.x}px, ${from.y}px, 0) scale(0.2)`, opacity: 0.2 },

@@ -15,14 +15,16 @@ import type { MenuRenderer, MenuSpec, MenuView } from '../../core/input/menu.js'
 export class XpMenuRenderer implements MenuRenderer {
   createMenu(spec: MenuSpec): MenuView {
     const el = document.createElement('div')
-    el.className = 'xp-menu menu'
+    el.className = 'xp-menu'
+    el.dataset['menu'] = ''
     el.setAttribute('role', 'menu')
 
     const entryEls: HTMLElement[] = []
     for (const entry of spec) {
       if (entry.kind === 'separator') {
         const sep = document.createElement('div')
-        sep.className = 'xp-menu-separator menu-separator'
+        sep.className = 'xp-menu-separator'
+        sep.dataset['menuSeparator'] = ''
         sep.setAttribute('role', 'separator')
         el.appendChild(sep)
         entryEls.push(sep)
@@ -30,7 +32,9 @@ export class XpMenuRenderer implements MenuRenderer {
       }
 
       const item = document.createElement('div')
-      item.className = 'xp-menu-item menu-item'
+      item.className = 'xp-menu-item'
+      item.dataset['menuItem'] = ''
+      if (entry.kind === 'submenu') item.dataset['menuSubmenu'] = ''
       item.setAttribute('role', 'menuitem')
       item.setAttribute('aria-disabled', entry.enabled ? 'false' : 'true')
       if (entry.kind === 'submenu') item.setAttribute('aria-haspopup', 'true')

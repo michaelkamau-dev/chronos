@@ -123,3 +123,52 @@ Append every correction I make here as a permanent rule. Never delete entries.
 - Do not infer a glyph's letterform from its contour count. Cabin, Source Sans 3 and
   Open Sans all report three contours on lowercase `g` and are all **single-storey**
   — a tail terminal can close as its own contour. Render it and look.
+
+### Structural rules do not belong to a skin (audit before phase 4)
+- A rule that must be true in every era is not era styling, and putting it in a
+  stylesheet means each of six skins can forget it. Extracting `base.css` after the
+  y=-30 bug was reactive; the audit that followed found five more of the same kind
+  already diverging — `contain`, `touch-action`/`user-select` on the drag origin,
+  resize-handle positioning, the maximized-window handle suppression (XP had it, the
+  plain skin did not), pointer-event suppression mid-gesture, and the overlay
+  z-index constants. Ask "would a skin that omitted this be wrong?" before writing a
+  rule into a skin.
+- The same applies to code. The reduced-motion check lived in each skin's
+  `minimizeTo`/`restoreFrom` — four copies, on the way to twelve — so honouring an
+  accessibility obligation was something a skin could omit with no test failing. The
+  window manager now refuses to call the animation at all when the query matches.
+- A test that selects a skin's class name is coupled to that skin. `.menu` and
+  `.menu-item` are the plain skin's classes, and the XP skin only kept those tests
+  green by emitting `class="xp-menu menu"` — a second class whose only purpose was to
+  satisfy a selector nothing enforced. Menus now carry `data-menu`,
+  `data-menu-item`, `data-menu-separator` and `data-menu-submenu`, and a test asserts
+  the active skin emits them.
+- A perf gate must assert on the instrument that measures the claim. `over50 === 0`
+  on raw rAF intervals fails when the container deschedules the whole renderer, which
+  no change to the drag loop can prevent. The claim "our code never blocks" is
+  measured by the long-task count; a stall we caused is by definition a long task.
+  Diagnose an intermittent gate by running it, not by adjusting the number.
+
+### Caption buttons — a second figure answered what the first could not
+- "The magnifier callout covers it" was a statement about one figure, not about the
+  document. A separate figure in the same chapter shows three real captions with
+  nothing over the buttons, and it settled every value in one pass. Before recording
+  something as unresolvable pending an external file, check whether another figure in
+  the same source shows it.
+- Calibrate a figure against values already measured elsewhere. This one reproduces
+  the 30px caption and the 4px frame, both measured twice from a different bitmap,
+  which is what establishes it as 1:1 — and the placement then divides exactly:
+  6 + 21 + 3 = 30.
+- Caption buttons are not vertically centred. Centring in a 30px caption computes
+  4.5px and puts the whole button off the pixel grid.
+- A specimen sheet's arrangement is the document's layout, not the OS's. The bottom
+  row of the states figure spaces its five glyphs 3px apart and includes both
+  maximize and restore, which cannot co-occur on a real title bar. The 2px gap comes
+  from the real captions.
+- `filter: brightness()` is not a state model. Measured: hover lifts the close
+  button's red toward white, pressed darkens *and* saturates it, disabled removes the
+  hue entirely. No single multiplier is all three — each state is its own artwork.
+- When solving for a compositing alpha yields a value above 1, the layer is not the
+  base artwork at reduced opacity. The disabled specimens give 0.23 on the red and
+  1.57 on the blue, which means separate artwork over an unknown background — so the
+  values are `contested`, exactly like the caption gradient.
