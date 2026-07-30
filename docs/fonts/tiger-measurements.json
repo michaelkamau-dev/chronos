@@ -1,0 +1,80 @@
+{
+  "targets": [
+    {
+      "text": "Back",
+      "apple": 29,
+      "ours": 30,
+      "dev": 3.4
+    },
+    {
+      "text": "Enclosing Folder",
+      "apple": 110,
+      "ours": 106,
+      "dev": -3.6
+    },
+    {
+      "text": "Recent Folders",
+      "apple": 97,
+      "ours": 95,
+      "dev": -2.1
+    }
+  ],
+  "metrics": [
+    {
+      "role": "System font",
+      "px": 13,
+      "weight": 400,
+      "cap": 9,
+      "xHeight": 7
+    },
+    {
+      "role": "Emphasized system",
+      "px": 13,
+      "weight": 700,
+      "cap": 9,
+      "xHeight": 7
+    },
+    {
+      "role": "View font",
+      "px": 12,
+      "weight": 400,
+      "cap": 9,
+      "xHeight": 7
+    },
+    {
+      "role": "Small system",
+      "px": 11,
+      "weight": 400,
+      "cap": 8,
+      "xHeight": 6
+    },
+    {
+      "role": "Emphasized small",
+      "px": 11,
+      "weight": 700,
+      "cap": 8,
+      "xHeight": 6
+    },
+    {
+      "role": "Label font",
+      "px": 10,
+      "weight": 400,
+      "cap": 8,
+      "xHeight": 6
+    },
+    {
+      "role": "Mini system",
+      "px": 9,
+      "weight": 400,
+      "cap": 7,
+      "xHeight": 5
+    },
+    {
+      "role": "Application title",
+      "px": 14,
+      "weight": 700,
+      "cap": 10,
+      "xHeight": 8
+    }
+  ]
+}

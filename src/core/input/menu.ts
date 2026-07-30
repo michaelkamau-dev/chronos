@@ -86,6 +86,7 @@ export class MenuController {
    */
   private sawPointerDown = false
   private readonly layer: CaptureLayer
+  private readonly watchers = new Set<(open: boolean) => void>()
 
   constructor(renderer: MenuRenderer, capture: CaptureStack, host: HTMLElement) {
     this.renderer = renderer
@@ -97,12 +98,33 @@ export class MenuController {
       onPointerDown: (e) => this.onPointerDown(e),
       onPointerMove: (e) => this.onPointerMove(e),
       onPointerUp: (e) => this.onPointerUp(e),
-      release: () => this.teardown(),
+      release: () => {
+        this.teardown()
+        this.notify()
+      },
     }
   }
 
   get isOpen(): boolean {
     return this.levels.length > 0
+  }
+
+  /**
+   * Called whenever a menu opens or closes.
+   *
+   * A menu bar needs this and cannot work without it: a bar highlights the title
+   * whose menu is open, and the menu can close by six routes the bar never sees —
+   * Escape, activating an item, a click on the desktop, a click on another window,
+   * losing the capture layer, or another menu opening. Without a notification the
+   * highlight goes stale after every one of them, and the symptom is a title that
+   * looks open when nothing is.
+   *
+   * Era-neutral: Windows eras render their menu bar inside a window and have the
+   * identical problem.
+   */
+  subscribe(fn: (open: boolean) => void): () => void {
+    this.watchers.add(fn)
+    return () => this.watchers.delete(fn)
   }
 
   /**
@@ -119,6 +141,7 @@ export class MenuController {
     this.levels = [{ view, spec, index: null }]
     this.sawPointerDown = false
     this.release = this.capture.push(this.layer)
+    this.notify()
     return true
   }
 
@@ -127,6 +150,7 @@ export class MenuController {
     this.release = null
     this.teardown()
     if (rel) rel()
+    this.notify()
   }
 
   /** Move the highlight to the first navigable entry (keyboard entry point). */
@@ -138,6 +162,11 @@ export class MenuController {
   }
 
   // ------------------------------------------------------------------ private
+
+  private notify(): void {
+    const open = this.isOpen
+    for (const fn of this.watchers) fn(open)
+  }
 
   private position(el: HTMLElement, clientX: number, clientY: number): void {
     // Measure before deciding, since flipping depends on the rendered size.

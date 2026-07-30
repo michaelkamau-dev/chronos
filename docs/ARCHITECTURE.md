@@ -723,36 +723,71 @@ which is reachable from here.
 | Menu bar translucency | **Tiger did not have it** — that is 10.5 Leopard | measured |
 
 **Apple never published the window chrome in prose** — there is no Window, Title
-Bar, Scroll Bar or Menu specification section anywhere in the HIG, only figures.
-Figure 13-2 has now been extracted and measured, which converts most of that gap:
+Bar, Scroll Bar or Menu specification section anywhere in the HIG, only figures. The
+phase-4 extraction is done, and it found **five more figures** beyond the Figure 13-2
+this table originally rested on. Full derivation, the calibration argument and the
+list of what remains unknown: [`docs/eras/tiger.md`](eras/tiger.md).
 
-| Metric | Measured |
-|---|---|
-| Title bar height | **22px** + a 1px separator (23px to the client area) |
-| Traffic light diameter | ~12px |
-| Traffic light spacing | **21px** centre to centre |
-| First light inset from window left | **13px** |
-| Scroll bar width | ~15px |
-| Top corner radius | ~6–8px (JPEG-noisy) |
+| Metric | Measured | From |
+|---|---|---|
+| Title bar height | **22px** + a 1px separator (23px to the client area) | six figures |
+| Traffic light diameter | **14px** incl. a 1px ring (12px coloured core) | 40+ instances |
+| Traffic light spacing | **21px** centre to centre | four figures |
+| First light inset from the window's left edge | **9px** | five figures |
+| Light inset from the top frame line | **5px** — one pixel **below** centre | fifteen specimens |
+| Active title bar gradient | 21 rows, `#F9F9F9` → `#CACACA`, exactly neutral | three specimens agreeing |
+| Inactive title bar | nearly flat, ink `#4D5B5F` | Figure 13-19 |
+| Window frame | **1px hairline** on left / right / bottom | Figure 13-22 |
+| Top corner | a 5-row arc, insets **4,3,2,1,1,0** → a 6px radius | Figure 13-3 |
+| Menu bar height | **22px** incl. its 1px `#BDBDBD` rule | Figure 12-12 |
+| Menu item height | **19px**; separator slot 12px | Figure 12-11 |
+| Menu highlight | `#3262B4`, white text; dimmed ink `#808080` | Figure 12-11 |
+| Menu background | a **4px pinstripe**: 2px `#F3F3F3`, 2px `#EFEFEF` | Figure 12-11, proven in a lossless PNG |
+| Aqua focus ring | `#C5D5E2` / `#A8C8E2` / `#8ABCE3` outward-in | Figure 7-1 — **lossless PNG** |
+| Scroll bar width | **15px**, proportional scroller, arrows together at one end | Figure 13-22 |
+| Utility window | 16px title bar, 11px lights on 18px centres | Figure 13-19 |
 
 The scale is argued rather than assumed: Figure 14-1's three push buttons measure
 16/22/19px including shadows against documented heights of 15/20/17px "not
-including the shadow", so this document embeds 1:1 bitmaps. The 22px title bar also
-matches the independent `NSStatusBar.system.thickness == 22` datum. Details and
-caveats in `docs/sources/figures/README.md`; everything stays tagged `measured`.
+including the shadow", so this document embeds 1:1 bitmaps. That argument is now much
+stronger — **six separately cropped, separately compressed figures all reproduce the
+22px title bar plus its 1px separator**, and Figure 12-12 puts the *menu bar* at the
+same 22px, which is what the independent `NSStatusBar.system.thickness == 22` datum
+actually describes. Everything stays tagged `measured`; Apple published none of it.
 
-Still unverified: window shadow parameters, title bar gradient stops, menu item
-height, the Aqua selection highlight, and the lozenge thumb geometry. The
-widely-circulated traffic-light *colours* (`#FF5F57`…) remain **modern macOS values
-from CSS clones, not Tiger**.
+**Two values above correct this table's own earlier entries, and both had one cause.**
+`tools/pdf-extract/measure-tiger-window.py` located the window's edges with "the first
+step greater than 30 in channel sum", and an Aqua window sits on a soft drop shadow
+that ramps in 30-to-40-unit steps — so it stopped on the shadow, three pixels outside
+the window, and every inset measured from it came out 3px large. The frame line is the
+*largest* step in the row by a factor of five (217 against the shadow's 40). Measuring
+from it gives **9px, not 13px**. Separately, the 12px diameter came from a saturation
+test that finds only a light's coloured core and cannot see its ring — or a grey light
+at all, which is why the disabled state was recorded as unmeasurable. Both scripts are
+fixed and carry notes saying what the threshold version cost.
 
-**But this gap has a clean fix that works from here.** The HIG PDF embeds its
-figures as 1:1 screenshots — Figure 13-2 "Standard window parts" is a full
-standard document window at native resolution, and Figures 14-1/14-2 are
-*dimensioned* drawings whose documented 20px button height calibrates the ruler.
-Extracting those XObjects and measuring them yields **Apple's own pixels**, which
-is a better provenance than any third-party clone. That is a phase-4 task and it
-is fully in scope.
+**Figure 13-3 is what made the difference**, and it is the same lesson the Luna
+caption-button figure taught: *before recording something as unresolvable, check
+whether another figure in the same chapter shows it.* "Title bar buttons for standard
+windows" is **fifteen separate embedded bitmaps**, each placed at exactly
+`px/pt = 1.000` — 72 DPI, the resolution Mac OS X itself drew at. It is the Tiger
+analogue of Microsoft's caption-button specimen sheet, and it settled the lights'
+artwork in both the enabled and the disabled state in one pass.
+
+Still unverified, with the cause stated in each case: the traffic lights' **hover,
+pressed and glyph artwork** (no figure shows a glyph and no prose describes a
+rollover), the **Dock shelf's fill and height** (the figure crops the translucent
+shelf onto the white page, so it composited against the paper), and the **window
+shadow's full depth** (the crop ends while the shadow is still ramping). The
+widely-circulated traffic-light *colours* (`#FF5F57`…) are confirmed **modern macOS
+values from CSS clones, not Tiger** — Tiger's close button bodies around `#C1362F`.
+
+**A point is a pixel in this era.** Mac OS X drew at a nominal 72 DPI, so Lucida
+Grande 13pt is 13px exactly — the inverse of the Windows trap recorded above, where
+8pt at 96 DPI is 10.667px. The rule is unchanged (integer pixels, never `pt` in a
+stylesheet, because CSS `13pt` means 17.33px); the conversion is the identity. Checked
+against the figures rather than assumed: the menu bar title inks a 10px
+caps-and-ascenders band, which 13px predicts and a 96 DPI reading does not.
 
 ### The Apple sources arrived, and they close more than expected
 

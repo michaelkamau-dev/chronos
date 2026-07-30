@@ -118,8 +118,51 @@ body {
  * two eras disagreeing would surface as a bug in one of them.
  */
 :root {
+  --layer-region: 50000;
   --layer-switcher: 100000;
   --layer-menu: 200000;
+}
+
+/*
+ * Shell regions — menu bars, taskbars, docks, Ledger's budget bar.
+ *
+ * Position, stacking and pointer behaviour are structural: a region declared at an
+ * edge must actually sit at that edge, must paint above every window, and must stay
+ * below menus and the switcher. Two skins picking different z-indexes would surface
+ * as a bug in one era only, which is the same reasoning the overlay constants above
+ * are here for. Everything about how a region *looks* stays with the skin.
+ */
+[data-shell-region] {
+  position: absolute;
+  z-index: var(--layer-region);
+  /* A region is chrome, not a document: dragging across it must not select text,
+   * and a touch drag on it must not scroll the page. */
+  user-select: none;
+  touch-action: none;
+}
+
+[data-shell-region][data-edge='top'] {
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+[data-shell-region][data-edge='bottom'] {
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+[data-shell-region][data-edge='left'] {
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+[data-shell-region][data-edge='right'] {
+  top: 0;
+  bottom: 0;
+  right: 0;
 }
 
 /* Menus are positioned by the menu controller in client coordinates. */
