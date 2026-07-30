@@ -1,23 +1,77 @@
 /**
- * Phase-3 entry point.
+ * Entry point.
  *
- * Boots the filesystem, then the shell with the Windows XP Luna skin — the
- * reference implementation every other era is measured against — then opens a
+ * Boots the filesystem, then the shell with the era named by `?era=`, then opens a
  * directory view. Every status-strip control does its job.
+ *
+ * The era is selected here and loaded with a dynamic `import()`, which is what keeps
+ * skins out of the core chunk — the 4G transfer budget in §6 depends on exactly one
+ * era reaching the browser, never six. `winxp` is the default because it is the
+ * reference implementation the others are measured against.
+ *
+ * This module is the *only* place that names an era. Everything downstream receives a
+ * `SkinManifest` and a `PathCodec` and cannot tell which one it got, which is the
+ * invariant `test/invariants.test.ts` enforces by grepping core and apps for era
+ * identifiers.
  *
  * `window.__chronos` is the handle the browser tests drive. It is a test surface,
  * not an app API: phase 5 replaces the directory-view harness with the real Files
  * app and this shrinks to the app registry.
  */
 
-import { winxpSkin } from './skins/winxp/index.js'
-import { Shell } from './shell/shell.js'
+import { Shell, type SkinManifest } from './shell/shell.js'
 import { asAppId, type WindowId } from './core/wm/types.js'
 import { Filesystem } from './core/fs/fs.js'
 import { FsStore, nodeKey } from './core/fs/store.js'
-import { createXpCodec, xpNameDecorator } from './skins/winxp/paths.js'
 import { DirectoryView } from './harness/directory-view.js'
-import type { NodeId, PathCodec } from './core/fs/types.js'
+import type { FsApi, NodeId, PathCodec } from './core/fs/types.js'
+
+/** A name decorator is era knowledge: Windows appends " (2)", classic Mac " copy". */
+type NameDecorator = (base: string, attempt: number) => string
+
+interface EraBundle {
+  skin: SkinManifest
+  codec: (fs: FsApi) => PathCodec
+  decorate: NameDecorator
+}
+
+/**
+ * The era registry.
+ *
+ * Each entry is a thunk so Vite emits one chunk per era and the browser fetches only
+ * the selected one. Adding an era is adding a line here; nothing else in the tree
+ * changes, which is the whole claim the skin architecture makes.
+ */
+const ERAS: Record<string, () => Promise<EraBundle>> = {
+  winxp: async () => {
+    const [{ winxpSkin }, paths] = await Promise.all([
+      import('./skins/winxp/index.js'),
+      import('./skins/winxp/paths.js'),
+    ])
+    return { skin: winxpSkin, codec: paths.createXpCodec, decorate: paths.xpNameDecorator }
+  },
+  win31: async () => {
+    const [{ win31Skin }, paths] = await Promise.all([
+      import('./skins/win31/index.js'),
+      import('./skins/win31/paths.js'),
+    ])
+    return {
+      skin: win31Skin,
+      codec: paths.createWin31Codec,
+      decorate: paths.win31NameDecorator,
+    }
+  },
+}
+
+const DEFAULT_ERA = 'winxp'
+
+function requestedEra(): string {
+  const asked = new URLSearchParams(location.search).get('era')
+  if (asked !== null && Object.hasOwn(ERAS, asked)) return asked
+  // An unknown era is a typo, not a reason to show nothing. Fall back and say so.
+  if (asked !== null) console.warn(`Chronos: unknown era "${asked}", using ${DEFAULT_ERA}`)
+  return DEFAULT_ERA
+}
 
 const root = document.getElementById('chronos-root')
 if (!root) throw new Error('Chronos: #chronos-root is missing from the document')
@@ -26,16 +80,12 @@ const store = new FsStore()
 const fs = new Filesystem(store)
 await fs.open()
 
-const codec: PathCodec = createXpCodec(fs)
+const eraId = requestedEra()
+const era = await ERAS[eraId]!()
+const codec: PathCodec = era.codec(fs)
+const decorate: NameDecorator = era.decorate
 
-const shell = new Shell(root, {
-  id: winxpSkin.id,
-  chrome: winxpSkin.chrome,
-  menu: winxpSkin.menu,
-  keymap: winxpSkin.keymap,
-  viewport: { mode: 'native' },
-  generatedProperties: winxpSkin.generatedProperties,
-})
+const shell = new Shell(root, era.skin)
 shell.bindFocusFollowing()
 
 // The status strip reserves space at the bottom, which is how a taskbar, a Dock
@@ -59,7 +109,7 @@ function openDirectoryWindow(startAt?: NodeId): WindowId {
   const view = new DirectoryView({
     fs,
     codec,
-    decorate: xpNameDecorator,
+    decorate,
     root: handle.content,
     ...(startAt !== undefined ? { startAt } : {}),
     onError: (message) => {
@@ -206,6 +256,8 @@ declare global {
       shell: Shell
       fs: Filesystem
       codec: PathCodec
+      /** Which era is loaded. Fidelity suites assert against the right one. */
+      era: string
       openDirectoryWindow(startAt?: NodeId): WindowId
       openWindows(n: number): WindowId[]
       keymapUnknownKeys(): string[]
@@ -229,6 +281,7 @@ window.__chronos = {
   shell,
   fs,
   codec,
+  era: eraId,
   openDirectoryWindow,
   openWindows(n: number): WindowId[] {
     const ids: WindowId[] = []

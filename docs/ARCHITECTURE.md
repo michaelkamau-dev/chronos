@@ -831,6 +831,46 @@ gaps land in phase 4, which is exactly where your review gate already is — so
 they do not block starting, and I will bring you a specific list of the values I
 need at that gate rather than quietly filling them in.
 
+### The stipple: one mechanism, two vendors, four years apart
+
+The single most surprising measured result in the project, and it is a fact about
+**two** eras rather than one, so it lives here rather than in either skin.
+
+**System 1 (Apple, 1984)** draws a disabled menu item by drawing the text normally and
+then knocking a 50% gray pattern out of it with `notPatBic` — the pattern is ANDed
+against the already-drawn glyph, so the ink is removed in a checkerboard rather than
+being replaced with a lighter colour. Sourced from Apple's own shipped `StandardWDEF.a`
+listing and corroborated against Executor.
+
+**Windows 3.1 (Microsoft, 1992)** does the same thing, by a different name. `GrayString`
+paints a checkerboard of the *background* colour over the drawn glyph. Measured from the
+VGA captures and proven by parity rather than by eye: the Run dialog's disabled `OK`
+label is 37 ink pixels with **all 37 on one `(x + y)` parity**, while the `Cancel` label
+beside it is 140 pixels split 71/69. The same treatment applies to a disabled menu item
+and a disabled button label alike.
+
+Two competing vendors, eight years of hardware apart, converged on the identical
+construction — and both did so for the same reason: on a 1-bit or 4-bit display there
+is no lighter shade of black to reach for, so the only way to say "unavailable" is to
+remove half the pixels. Windows 95 abandoned it for a grey fill with a white shadow the
+moment 8-bit colour was assumed, which is why nearly every recreation of either era
+gets it wrong — they inherit the later treatment.
+
+Three consequences for the build, all load-bearing:
+
+1. **It is why the bitmap eras render at an integer scale.** A one-pixel checkerboard
+   at a fractional scale averages into exactly the flat grey it exists to disprove. The
+   integer-viewport decision in §1 was made for type crispness; this is the second,
+   stronger reason for it.
+2. **It cannot be implemented as a colour.** CSS has no way to knock a pattern out of
+   live text, so the Win 3.1 skin paints a checkerboard of the background over the
+   glyph — which is not a workaround but the actual historical mechanism.
+3. **The test asserts the mechanism, not the appearance.** `win31-fidelity.spec.ts`
+   applies the same parity discriminator to the rendered output that
+   `tools/captures/measure-win31.py` applies to Microsoft's pixels, so the source and
+   the implementation are held to one standard. A grey fill fails it; a checkerboard
+   passes. System 1's skin will reuse that assertion verbatim.
+
 ### Fonts — the substitution table, and one trap
 
 Confirmed: **not one of the eight authentic faces is shippable.** Chicago,
@@ -845,7 +885,8 @@ conversion, so it falls outside the licence.
 | Chicago (System 1, OS 8.0/8.1) | **ChicagoFLF** | public domain per Robin Casady |
 | Chicago alt / bitmap-truer | ChiKareGo2 | CC-BY (verify deed on download) |
 | Geneva 9 (icon labels) | FindersKeepers | free; **terms unconfirmed** |
-| Win 3.1 System / MS Sans Serif | **W95FA** | **SIL OFL** |
+| Win 3.1 **System** (`SYSTEM.FON`) — the entire era's chrome | **unresolved** — see below | — |
+| Win 3.1 MS Sans Serif (`SSERIFE.FON`), unused by our chrome | W95FA | SIL OFL |
 | DOS/VGA text (Win 3.1 terminal) | Px437 IBM VGA (Oldschool PC Font Pack) | CC BY-SA 4.0 — see below |
 | Tahoma 8/9/11pt (XP system default) | **Source Sans 3** | SIL OFL |
 | Trebuchet MS Bold 10pt (XP captions only) | **Cabin** | SIL OFL |
@@ -859,7 +900,14 @@ README states it is *a conversion of the original MS Sans Serif* — Microsoft's
 actual bitmaps, not a clean-room design. 98.css's MIT licence covers its CSS and
 says nothing about the font binaries inside it. `system.css` has the same problem
 and additionally ships Apple's Monaco. **We will not inherit a font just because
-a popular library does.** W95FA is the clean answer for the Windows bitmap eras.
+a popular library does.** W95FA is licensed cleanly — an OFL recreation by Alina
+Sava — but it is a recreation of the **Windows 95** MS Sans Serif bitmap, which is
+the wrong face for 3.1's chrome and one era too late. Measurement from the VGA
+captures settles this: 3.1 draws its captions, menu bar, menu items, dialog labels
+and button labels in a *single* face, the bold `SYSTEM.FON`, with 2px stems at a 9px
+cap height. MS Sans Serif is the lighter dialog face 3.1 also shipped and our chrome
+never uses. The row above therefore splits in two, and the one we need is open.
+The metric target is in `docs/sources/win31-metrics.md`.
 
 Two licence nuances I want on the record: the Oldschool PC Font Pack is CC
 **BY-SA**, and subsetting produces a derivative that must stay BY-SA and carry

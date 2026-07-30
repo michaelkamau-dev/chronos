@@ -172,3 +172,60 @@ Append every correction I make here as a permanent rule. Never delete entries.
   base artwork at reduced opacity. The disabled specimens give 0.23 on the red and
   1.57 on the blue, which means separate artwork over an unknown background — so the
   values are `contested`, exactly like the caption gradient.
+
+### Windows 3.1 (from the VGA captures)
+- Disabled text is a **50% checkerboard knocked out of the black glyph**, for menu
+  items and button labels alike. Not a grey fill, and not a grey fill with a white
+  shadow — that is the Windows 95 treatment and it is what nearly every recreation
+  uses. Same mechanism as System 1's `notPatBic`.
+- Prove a stipple by parity, not by eye: ink on one `(x + y)` parity only means a
+  checkerboard. The disabled OK label is 37 pixels all on one parity; the Cancel label
+  beside it is 140 split 71/69.
+- A greyed button in a captured dialog is not necessarily pressed. 3.1's Run dialog
+  disables OK until the command line has content, so that capture gives the disabled
+  state and leaves the 1px-depress question open.
+- The 3.1 push-button bevel is **2px** highlight and **2px** shadow, not 1px, and its
+  black outline has notched corners so it is not a plain `border`.
+- A 3.1 edit field is a plain 1px black rectangle with a white fill. The sunken
+  two-tone field is a Windows 95 feature.
+- A 3.1 modal dialog has its own frame, not the window sizing frame: 1px black + 4px
+  navy + 1px white on the sides, 3px of navy on top, and no white line at the bottom.
+- **Windows 3.1 uses one face for the whole era** — `SYSTEM.FON`, bold, 2px stems, 9px
+  cap height — for captions, the menu bar, menu items, dialog labels and button
+  labels. MS Sans Serif is a separate face 3.1 also shipped and our chrome never
+  touches. W95FA is an OFL recreation of the **Windows 95** MS Sans Serif bitmap:
+  right licence, wrong face, one era too late. §7's single "System / MS Sans Serif"
+  row was two needs collapsed into one.
+- Two equal-width strings cannot tell a right-aligned column from a fixed left one.
+  `Ctrl+F4` and `Ctrl+F6` are the same width, so the menu accelerator column's
+  alignment is a standard-behaviour assumption, not a measurement.
+
+### The stipple is a cross-era fact, not a Win 3.1 detail
+- System 1's `notPatBic` and Windows 3.1's `GrayString` are the same construction:
+  draw the glyph, then knock a 50% checkerboard out of it. Two competing vendors, eight
+  years apart, converged — because on a 1-bit or 4-bit display there is no lighter
+  black, so removing half the pixels is the only way to say "unavailable". Windows 95
+  replaced it with a grey fill plus a white shadow as soon as 8-bit colour was assumed,
+  which is why almost every recreation of *either* era is wrong. Recorded in
+  ARCHITECTURE.md §7 under its own heading because it governs two skins.
+- It is the strongest reason for the integer-scaled viewport, stronger than type
+  crispness: a one-pixel checkerboard at a fractional scale averages into exactly the
+  flat grey it exists to disprove.
+- Assert the mechanism, not the appearance. The parity test that proves it in
+  Microsoft's bitmap is the same test that proves it in our render, so the source and
+  the implementation are held to one standard. System 1 reuses it unchanged.
+
+### A perf gate must measure our work, not the host's scheduler
+- `p95`/`p99` on rAF intervals are not ours to control. The identical 4x-throttled drag
+  reported p99 16.80ms on one container generation and 50.00ms on the next, unchanged
+  bundle, `longTasks=0` and `layouts=1` in both. Reproducing it on the commit *before*
+  the day's work is what established it as the host.
+- "Is every long interval a whole multiple of vsync" looks like the right discriminator
+  and is useless: the compositor only delivers rAF on vsync boundaries, so every
+  interval is a multiple whether we caused it or not. An injected 7ms-per-frame block
+  produced zero off-grid intervals. A guard that cannot fail is not a guard — test that
+  a new instrument can fail before trusting it.
+- What works is per-frame cost from CDP: `ScriptDuration / frames` and
+  `LayoutDuration / frames`. Frame count and percentiles fall when the host is busy;
+  script time per frame does not, because it measures how long our code ran rather than
+  when it was allowed to run.

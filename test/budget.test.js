@@ -57,6 +57,37 @@ function classify(name) {
   return 'core'
 }
 
+function eraOf(name) {
+  return /^skin-([^.-]+)/.exec(name)?.[1] ?? name
+}
+
+/**
+ * Which era each font belongs to, read out of the stylesheet that references it.
+ *
+ * Necessary because Vite flattens asset filenames, so `system-sub.woff2` carries no
+ * trace of having come from `src/skins/win31/fonts/`. Attributing fonts by filename
+ * convention would work until two eras picked similar names; reading the @font-face
+ * URLs out of each skin's compiled CSS is exact.
+ *
+ * This matters because only ONE era ever loads. Summing every era's fonts into the
+ * critical path would fail the budget for a reason that cannot happen in a browser,
+ * and would keep failing harder with each era added.
+ */
+function fontsByEra() {
+  const map = new Map()
+  for (const { name, path } of assets()) {
+    if (!/^skin-.*\.css$/.test(name)) continue
+    const css = readFileSync(path, 'utf8')
+    const era = eraOf(name)
+    for (const m of css.matchAll(/url\(\s*["']?[^"')]*?([\w.-]+\.woff2?)["']?\s*\)/g)) {
+      const file = m[1]
+      if (!map.has(file)) map.set(file, new Set())
+      map.get(file).add(era)
+    }
+  }
+  return map
+}
+
 test('dist exists — run the build first', () => {
   assert.ok(existsSync(DIST), 'dist/ is missing; run `npm run build`')
   assert.ok(existsSync(join(DIST, 'index.html')), 'dist/index.html is missing')
@@ -71,8 +102,7 @@ test('each chunk is inside its class budget', () => {
     const kind = classify(name)
     const size = gz(path)
     if (kind === 'skin') {
-      const era = /^skin-([^.-]+)/.exec(name)?.[1] ?? name
-      skinTotals.set(era, (skinTotals.get(era) ?? 0) + size)
+      skinTotals.set(eraOf(name), (skinTotals.get(eraOf(name)) ?? 0) + size)
       continue
     }
     if (kind === 'font-deferred') continue
@@ -97,49 +127,70 @@ test('the critical path fits the 4G budget', () => {
   // Critical path is the document plus core plus exactly one era skin and its
   // font — never all six, which is the whole point of splitting them.
   const html = gz(join(DIST, 'index.html'))
+  const owners = fontsByEra()
   let core = 0
-  const perSkin = new Map()
-  const perFont = new Map()
+  const perEra = new Map()
+
+  const add = (era, n) => perEra.set(era, (perEra.get(era) ?? 0) + n)
 
   for (const { name, path } of assets()) {
     const kind = classify(name)
     const size = gz(path)
     if (kind === 'core') core += size
-    else if (kind === 'skin') {
-      const era = /^skin-([^.-]+)/.exec(name)?.[1] ?? name
-      perSkin.set(era, (perSkin.get(era) ?? 0) + size)
-    } else if (kind === 'font') perFont.set(name, size)
+    else if (kind === 'skin') add(eraOf(name), size)
+    else if (kind === 'font') {
+      // Every critical-path font for one era loads together, so they sum within
+      // that era. Windows XP needs four faces because Microsoft specifies four;
+      // two of them are deferred and excluded above.
+      for (const era of owners.get(name) ?? ['unattributed']) add(era, size)
+    }
   }
 
-  const worstSkin = Math.max(0, ...perSkin.values())
-  // Every critical-path font loads together, so they sum. Windows XP needs four
-  // faces because Microsoft specifies four; two of them are deferred and excluded.
-  const fontTotal = [...perFont.values()].reduce((a, b) => a + b, 0)
-  const total = html + core + worstSkin + fontTotal
+  const worst = [...perEra.entries()].sort((a, b) => b[1] - a[1])[0] ?? ['none', 0]
+  const total = html + core + worst[1]
 
   assert.ok(
     total <= BUDGETS.criticalPath,
     `critical path ${(total / KB).toFixed(1)}KB > ${(BUDGETS.criticalPath / KB).toFixed(0)}KB ` +
       `(html ${(html / KB).toFixed(1)} + core ${(core / KB).toFixed(1)} + ` +
-      `skin ${(worstSkin / KB).toFixed(1)} + fonts ${(fontTotal / KB).toFixed(1)})`,
+      `worst era "${worst[0]}" ${(worst[1] / KB).toFixed(1)} incl. its fonts)`,
   )
 })
 
-test('the critical-path fonts fit their share', () => {
-  // The per-class font budget applies to everything that loads on first paint,
-  // summed — not to the largest single file.
-  let total = 0
-  const loaded = []
+test('each era\'s critical-path fonts fit their share', () => {
+  // Per era, not across all of them: one era loads, so one era's faces sum.
+  const owners = fontsByEra()
+  const perEra = new Map()
   for (const { name, path } of assets()) {
     if (classify(name) !== 'font') continue
-    total += gz(path)
-    loaded.push(name)
+    for (const era of owners.get(name) ?? ['unattributed']) {
+      if (!perEra.has(era)) perEra.set(era, { total: 0, faces: [] })
+      const e = perEra.get(era)
+      e.total += gz(path)
+      e.faces.push(name)
+    }
   }
-  assert.ok(
-    total <= BUDGETS.font,
-    `critical-path fonts ${(total / KB).toFixed(1)}KB > ${(BUDGETS.font / KB).toFixed(0)}KB ` +
-      `across ${loaded.length} faces: ${loaded.join(', ')}`,
-  )
+  const failures = []
+  for (const [era, e] of perEra) {
+    if (e.total > BUDGETS.font) {
+      failures.push(
+        `${era}: ${(e.total / KB).toFixed(1)}KB > ${(BUDGETS.font / KB).toFixed(0)}KB ` +
+          `across ${e.faces.length} faces (${e.faces.join(', ')})`,
+      )
+    }
+  }
+  assert.deepEqual(failures, [], 'Over the font budget:\n' + failures.join('\n'))
+})
+
+test('every shipped font is attributable to an era', () => {
+  // An unattributed font means a stylesheet stopped referencing a face that is
+  // still being emitted, or the URL pattern above stopped matching. Either way the
+  // per-era budgets silently become wrong, so this fails loudly instead.
+  const owners = fontsByEra()
+  const orphans = assets()
+    .map((a) => a.name)
+    .filter((n) => /\.(woff2?)$/.test(n) && !owners.has(n))
+  assert.deepEqual(orphans, [], `fonts no skin stylesheet references: ${orphans.join(', ')}`)
 })
 
 test('skins are split out of core rather than bundled into it', () => {

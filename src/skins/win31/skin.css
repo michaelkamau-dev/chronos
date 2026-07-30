@@ -1,0 +1,685 @@
+/*
+ * Windows 3.1, VGA, default colour scheme.
+ *
+ * Every value is measured from docs/sources/win31-*.png in logical VGA pixels. The
+ * era renders in a 640x480 integer-scaled viewport, so 1 CSS pixel here is 1 VGA
+ * pixel and nothing lands on a half-pixel.
+ *
+ * The palette is 6-bit VGA DAC values written as 8-bit hex. #C0C4C8 rather than
+ * #C0C0C0, #0000A8 rather than #000080. The face and the shadow both carry a
+ * measurable blue tint — channels 48/49/50 and 33/34/35 — and these are literals, not
+ * values to be corrected to neutral grey.
+ *
+ * Three things here are deliberately NOT the Windows 95 treatment, because 3.1 is not
+ * 95 with a different palette: the inactive caption is white, the menu bar is white,
+ * and the active caption is flat.
+ */
+
+@font-face {
+  font-family: 'W31 System';
+  src: url('./fonts/system-sub.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+
+:root {
+  /* Measured palette. 14 unique colours in the capture, zero blend values. */
+  --w31-window: #FCFCFC;
+  --w31-face: #C0C4C8;
+  --w31-ink: #000000;
+  --w31-shadow: #84888C;
+  --w31-caption-active: #0000A8;
+  --w31-caption-inactive: #FCFCFC;
+  --w31-caption-text-active: #FCFCFC;
+  --w31-caption-text-inactive: #000000;
+
+  /*
+   * One size for the whole era. Pixel Operator Bold is a 16px cell — 1600 upm as
+   * ascent 1300 plus descent 300 — so font-size 16px gives exactly a 9px cap height
+   * with no fraction and zero antialiasing. Any other size breaks both.
+   */
+  --w31-fs: 16px;
+  --w31-caption-h: 18px;
+}
+
+/* ---------------------------------------------------------------- desktop */
+
+.desktop[data-skin='win31'] {
+  /* 3.1's default desktop is the flat face colour; the "desktop pattern" was
+   * off by default and Program Manager covered most of it anyway. */
+  background: var(--w31-face);
+  color: var(--w31-ink);
+  font-family: 'W31 System', monospace;
+  font-size: var(--w31-fs);
+  /* Pixel-outline text only stays hard if the type size is an exact integer
+   * multiple of the design size. 16px is that multiple; see :root. */
+  font-weight: 700;
+}
+
+/* ----------------------------------------------------------------- window */
+
+/*
+ * The sizing frame: 1px black, 2px face, 1px black. Measured on three windows, and
+ * again where two windows nest — the left edge reads K G G K K G G K, which is two
+ * 4px frames adjacent rather than one 8px frame.
+ *
+ * Four stacked inset shadows rather than a 4px border, because a border cannot carry
+ * three different colours across its width.
+ */
+.w31-win {
+  display: flex;
+  flex-direction: column;
+  background: var(--w31-face);
+  box-shadow:
+    inset 1px 0 0 0 var(--w31-ink),
+    inset -1px 0 0 0 var(--w31-ink),
+    inset 0 1px 0 0 var(--w31-ink),
+    inset 0 -1px 0 0 var(--w31-ink),
+    inset 3px 0 0 0 var(--w31-face),
+    inset -3px 0 0 0 var(--w31-face),
+    inset 0 3px 0 0 var(--w31-face),
+    inset 0 -3px 0 0 var(--w31-face),
+    inset 4px 0 0 0 var(--w31-ink),
+    inset -4px 0 0 0 var(--w31-ink),
+    inset 0 4px 0 0 var(--w31-ink),
+    inset 0 -4px 0 0 var(--w31-ink);
+  font-family: 'W31 System', monospace;
+  font-size: var(--w31-fs);
+  color: var(--w31-ink);
+  /* Square. Rounded window corners arrive with XP. */
+  border-radius: 0;
+}
+
+/* --------------------------------------------------------------- titlebar */
+
+.w31-titlebar {
+  flex: 0 0 auto;
+  /* Measured three times: top-level active, MDI child active, inactive. */
+  height: var(--w31-caption-h, 18px);
+  margin: 4px 4px 0 4px;
+  display: flex;
+  align-items: center;
+  /* Flat. Caption gradients arrive with Windows 95's
+   * COLOR_GRADIENTACTIVECAPTION — there is nothing to gradient here. */
+  background: var(--w31-caption-active);
+  /* The 1px black rule under the caption, measured. */
+  border-bottom: 1px solid var(--w31-ink);
+  cursor: default;
+}
+
+/* White with black text, not grey. Windows 95 changed this and every
+ * 95-lineage recreation inherits the wrong version. */
+.w31-win[data-state='blurred'] .w31-titlebar {
+  background: var(--w31-caption-inactive);
+}
+
+.w31-title {
+  flex: 1 1 auto;
+  /* 3.1 centres the caption text. Windows 95 moved it left. */
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  color: var(--w31-caption-text-active);
+  pointer-events: none;
+  /* No text shadow. 3.1 drew glyphs, not effects. */
+}
+
+.w31-win[data-state='blurred'] .w31-title {
+  color: var(--w31-caption-text-inactive);
+}
+
+.w31-win[data-dirty='true'] .w31-title::after {
+  content: ' *';
+}
+
+/* ------------------------------------------------------- chrome boxes */
+
+/*
+ * The system-menu box, the minimize box and the maximize box.
+ *
+ * There is no close box in 3.1 — closing goes through the system menu. A skin whose
+ * era lacks a control simply does not emit it, so `data-action="close"` does not
+ * exist on a 3.1 frame at all.
+ *
+ * The glyphs are box-shadow rectangles at exact pixel offsets rather than font
+ * characters, because a scaled glyph in an 18px caption lands off the pixel grid.
+ */
+.w31-box {
+  position: relative;
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 0;
+  background: var(--w31-face);
+  cursor: default;
+  font: inherit;
+  /* The 1px black rule on the side facing the title text. */
+  box-shadow: inset 0 0 0 1px var(--w31-ink);
+}
+
+.w31-sysbox {
+  margin: 0 0 0 1px;
+}
+
+.w31-controls {
+  flex: 0 0 auto;
+  display: flex;
+  margin-right: 1px;
+}
+
+.w31-box:hover {
+  background: #D4D8DC;
+}
+
+/*
+ * Pressed inverts the box, which is what 3.1 did to the caption boxes. Whether a
+ * *push button's* label shifts 1px on depress is a separate question and is still
+ * unverified — no pressed button was captured. See metrics.ts.
+ */
+.w31-box:active:not(:disabled) {
+  background: var(--w31-shadow);
+}
+
+.w31-box:focus-visible {
+  outline: 1px dotted var(--w31-ink);
+  outline-offset: -3px;
+}
+
+.w31-box:disabled {
+  background: var(--w31-face);
+}
+
+/* The system-menu glyph: a horizontal bar, 9x2, centred. */
+.w31-sysbox::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 7px;
+  width: 9px;
+  height: 2px;
+  background: var(--w31-ink);
+}
+
+/* Minimize: a solid down triangle built from stacked 1px rows, so every edge
+ * lands on a pixel. A CSS border-triangle would antialias. */
+.w31-minbox::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  width: 1px;
+  height: 1px;
+  box-shadow:
+    0 0 0 0 var(--w31-ink),
+    1px 0 0 0 var(--w31-ink), 2px 0 0 0 var(--w31-ink), 3px 0 0 0 var(--w31-ink),
+    4px 0 0 0 var(--w31-ink), 5px 0 0 0 var(--w31-ink), 6px 0 0 0 var(--w31-ink),
+    1px 1px 0 0 var(--w31-ink), 2px 1px 0 0 var(--w31-ink), 3px 1px 0 0 var(--w31-ink),
+    4px 1px 0 0 var(--w31-ink), 5px 1px 0 0 var(--w31-ink),
+    2px 2px 0 0 var(--w31-ink), 3px 2px 0 0 var(--w31-ink), 4px 2px 0 0 var(--w31-ink),
+    3px 3px 0 0 var(--w31-ink);
+  background: var(--w31-ink);
+}
+
+/* Maximize: the same triangle pointing up. */
+.w31-maxbox[data-glyph='maximize']::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  width: 1px;
+  height: 1px;
+  box-shadow:
+    3px 0 0 0 var(--w31-ink),
+    2px 1px 0 0 var(--w31-ink), 3px 1px 0 0 var(--w31-ink), 4px 1px 0 0 var(--w31-ink),
+    1px 2px 0 0 var(--w31-ink), 2px 2px 0 0 var(--w31-ink), 3px 2px 0 0 var(--w31-ink),
+    4px 2px 0 0 var(--w31-ink), 5px 2px 0 0 var(--w31-ink),
+    1px 3px 0 0 var(--w31-ink), 2px 3px 0 0 var(--w31-ink), 3px 3px 0 0 var(--w31-ink),
+    4px 3px 0 0 var(--w31-ink), 5px 3px 0 0 var(--w31-ink), 6px 3px 0 0 var(--w31-ink);
+  background: transparent;
+}
+
+/* Restore: both triangles, which is what a maximized 3.1 window showed. */
+.w31-maxbox[data-glyph='restore']::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  width: 1px;
+  height: 1px;
+  box-shadow:
+    3px 0 0 0 var(--w31-ink),
+    2px 1px 0 0 var(--w31-ink), 3px 1px 0 0 var(--w31-ink), 4px 1px 0 0 var(--w31-ink),
+    1px 2px 0 0 var(--w31-ink), 2px 2px 0 0 var(--w31-ink), 3px 2px 0 0 var(--w31-ink),
+    4px 2px 0 0 var(--w31-ink), 5px 2px 0 0 var(--w31-ink);
+  background: transparent;
+}
+
+.w31-maxbox[data-glyph='restore']::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  width: 1px;
+  height: 1px;
+  box-shadow:
+    1px 0 0 0 var(--w31-ink), 2px 0 0 0 var(--w31-ink), 3px 0 0 0 var(--w31-ink),
+    4px 0 0 0 var(--w31-ink), 5px 0 0 0 var(--w31-ink),
+    2px 1px 0 0 var(--w31-ink), 3px 1px 0 0 var(--w31-ink), 4px 1px 0 0 var(--w31-ink),
+    3px 2px 0 0 var(--w31-ink);
+  background: transparent;
+}
+
+/*
+ * A disabled chrome box loses half its glyph to the same checkerboard.
+ *
+ * Here a mask *is* the right tool: the glyph is already a pseudo-element, so masking
+ * it touches nothing else. The button's own 1px outline is drawn by box-shadow on the
+ * element and is unaffected.
+ */
+.w31-box:disabled::before,
+.w31-box:disabled::after {
+  mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+  mask-size: var(--w31-stipple, 2px) var(--w31-stipple, 2px);
+}
+
+/* --------------------------------------------------------------- content */
+
+.w31-content {
+  flex: 1 1 auto;
+  overflow: auto;
+  background: var(--w31-window);
+  /* Inside the 4px frame, and clear of the caption's own margin. */
+  margin: 0 4px 4px 4px;
+}
+
+.w31-win[data-suspended='true'] .w31-content {
+  opacity: 0.45;
+}
+
+/* --------------------------------------------------------- resize handles */
+
+/* Positioning and the maximized/non-resizable suppression come from base.css.
+ * 3.1 sized from the visible 4px frame itself, so the handles are exactly it. */
+.w31-resize-n { top: 0; left: 6px; right: 6px; height: 4px; cursor: ns-resize; }
+.w31-resize-s { bottom: 0; left: 6px; right: 6px; height: 4px; cursor: ns-resize; }
+.w31-resize-w { left: 0; top: 6px; bottom: 6px; width: 4px; cursor: ew-resize; }
+.w31-resize-e { right: 0; top: 6px; bottom: 6px; width: 4px; cursor: ew-resize; }
+.w31-resize-nw { top: 0; left: 0; width: 6px; height: 6px; cursor: nwse-resize; }
+.w31-resize-ne { top: 0; right: 0; width: 6px; height: 6px; cursor: nesw-resize; }
+.w31-resize-sw { bottom: 0; left: 0; width: 6px; height: 6px; cursor: nesw-resize; }
+.w31-resize-se { bottom: 0; right: 0; width: 6px; height: 6px; cursor: nwse-resize; }
+
+/* --------------------------------------------------------------- controls */
+
+/*
+ * Push button: 70x23, measured on both buttons in the Run dialog.
+ *
+ * The bevel is three colours — 3.1 has no COLOR_3DDKSHADOW or COLOR_3DLIGHT, those
+ * are Windows 95 additions — and the highlight and shadow are 2px, not the 1px
+ * recorded in ARCHITECTURE.md §7 before these captures were measured.
+ *
+ * The black outline's corners are notched, so it cannot be a `border`; the clip-path
+ * cuts the four corner pixels the way XP's 1px command-button indent does.
+ */
+.w31-button {
+  width: var(--w31-btn-w, 70px);
+  height: var(--w31-btn-h, 23px);
+  padding: 0;
+  border: 0;
+  background: var(--w31-face);
+  box-shadow:
+    /* 1px black outline */
+    inset 1px 0 0 0 var(--w31-ink),
+    inset -1px 0 0 0 var(--w31-ink),
+    inset 0 1px 0 0 var(--w31-ink),
+    inset 0 -1px 0 0 var(--w31-ink),
+    /* 2px highlight, top and left */
+    inset 3px 0 0 0 var(--w31-window),
+    inset 0 3px 0 0 var(--w31-window),
+    /* 2px shadow, bottom and right */
+    inset -3px 0 0 0 var(--w31-shadow),
+    inset 0 -3px 0 0 var(--w31-shadow);
+  clip-path: polygon(
+    1px 0, calc(100% - 1px) 0, 100% 1px, 100% calc(100% - 1px),
+    calc(100% - 1px) 100%, 1px 100%, 0 calc(100% - 1px), 0 1px
+  );
+  font-family: 'W31 System', monospace;
+  font-size: var(--w31-fs);
+  color: var(--w31-ink);
+  cursor: default;
+}
+
+.w31-button:hover:not(:disabled) {
+  background: #C8CCD0;
+}
+
+/*
+ * Pressed swaps the bevel: highlight and shadow trade sides.
+ *
+ * Whether the *label* also shifts 1px is unverified — the capture taken to settle it
+ * shows a disabled OK button, not a pressed one, because 3.1 greys OK until the Run
+ * dialog's command line has content. The label deliberately does not move here, so
+ * the unverified behaviour is absent rather than invented.
+ */
+.w31-button:active:not(:disabled) {
+  box-shadow:
+    inset 1px 0 0 0 var(--w31-ink),
+    inset -1px 0 0 0 var(--w31-ink),
+    inset 0 1px 0 0 var(--w31-ink),
+    inset 0 -1px 0 0 var(--w31-ink),
+    inset 3px 0 0 0 var(--w31-shadow),
+    inset 0 3px 0 0 var(--w31-shadow),
+    inset -3px 0 0 0 var(--w31-window),
+    inset 0 -3px 0 0 var(--w31-window);
+}
+
+.w31-button:focus-visible {
+  outline: 1px dotted var(--w31-ink);
+  outline-offset: -5px;
+}
+
+/*
+ * Disabled text: a 50% checkerboard knocked out of the black glyph.
+ *
+ * NOT a grey fill, and not a grey fill with a white shadow — that is the Windows 95
+ * treatment and it is what nearly every recreation uses. Measured and proven by
+ * parity: the disabled OK label is 37 ink pixels with all 37 on one (x + y) parity,
+ * while the Cancel label beside it is 140 split 71/69.
+ *
+ * Implemented the way `GrayString` implemented it: the glyph keeps its black ink and a
+ * checkerboard of the *background* colour is painted over it, removing half. That is
+ * the actual 3.1 mechanism, and it is also the only construction that works here — a
+ * CSS `mask` on the element would stipple the button's bevel along with its label, and
+ * masking a child element would silently do nothing for a button whose label is a bare
+ * text node rather than a wrapped span.
+ *
+ * The overlay is inset past the bevel so only the face and the glyph are affected, and
+ * the knockout colour is a variable so a highlighted disabled menu item knocks out
+ * against the highlight rather than against white.
+ *
+ * The cell is one logical pixel, which only survives at an integer display scale — the
+ * reason this era renders in a fixed 640x480 viewport scaled by a whole number.
+ */
+.w31-button,
+.w31-menu-item {
+  position: relative;
+}
+
+.w31-button:disabled::after,
+.w31-menu-item[aria-disabled='true']::after {
+  content: '';
+  position: absolute;
+  /* Inside the 1px outline plus 2px bevel, so the bevel is never stippled. */
+  inset: 3px;
+  background-image: repeating-conic-gradient(
+    var(--w31-knockout, var(--w31-face)) 0% 25%,
+    transparent 0% 50%
+  );
+  background-size: var(--w31-stipple, 2px) var(--w31-stipple, 2px);
+  /* Anchored to the element's own box, which at an integer scale is on the era's
+   * pixel grid, so the checkerboard phase is stable across repaints. */
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+/* A menu item has no bevel to protect, and its knockout is the menu's white. */
+.w31-menu-item[aria-disabled='true']::after {
+  inset: 0;
+  --w31-knockout: var(--w31-window);
+}
+
+/* 3.1 let you walk onto a greyed item. Highlighted, the stipple knocks out against
+ * the navy rather than against white, which is what the capture shows: the surviving
+ * pixels of the disabled "Restore" are white on navy. */
+.w31-menu-item[aria-disabled='true'][data-highlight='true']::after {
+  --w31-knockout: var(--w31-caption-active);
+}
+
+/* The label keeps its ink colour. A colour change here would be the 95 treatment. */
+.w31-button:disabled,
+.w31-menu-item[aria-disabled='true'] {
+  color: var(--w31-ink);
+}
+
+/*
+ * An edit field is a plain 1px black rectangle with a white fill.
+ *
+ * The sunken two-tone field is a Windows 95 feature. There is no bevel here at all,
+ * which is one of the most visible differences between 3.1 and every recreation
+ * built from a 95 palette.
+ */
+.w31-textbox {
+  height: 20px;
+  padding: 2px 3px;
+  border: 1px solid var(--w31-ink);
+  background: var(--w31-window);
+  font-family: 'W31 System', monospace;
+  font-size: var(--w31-fs);
+  color: var(--w31-ink);
+}
+
+.w31-textbox:hover:not(:disabled) {
+  background: var(--w31-window);
+}
+
+.w31-textbox:focus-visible {
+  outline: none;
+  /* 3.1 showed focus in a text field with the caret, not with a border change. */
+  background: var(--w31-window);
+}
+
+.w31-textbox:disabled {
+  background: var(--w31-face);
+  color: var(--w31-shadow);
+}
+
+/* 13x13, 1px black frame, white fill. Measured. */
+.w31-check,
+.w31-radio {
+  width: var(--w31-check, 13px);
+  height: var(--w31-check, 13px);
+  margin: 0;
+  border: 1px solid var(--w31-ink);
+  background: var(--w31-window);
+  appearance: none;
+  position: relative;
+}
+
+.w31-check:checked::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  width: 1px;
+  height: 1px;
+  /* An X, drawn pixel by pixel. */
+  box-shadow:
+    0 0 0 0 var(--w31-ink), 1px 1px 0 0 var(--w31-ink), 2px 2px 0 0 var(--w31-ink),
+    3px 1px 0 0 var(--w31-ink), 4px 0 0 0 var(--w31-ink),
+    0 4px 0 0 var(--w31-ink), 1px 3px 0 0 var(--w31-ink),
+    3px 3px 0 0 var(--w31-ink), 4px 4px 0 0 var(--w31-ink);
+  background: var(--w31-ink);
+}
+
+.w31-check:hover:not(:disabled),
+.w31-radio:hover:not(:disabled) {
+  background: #F0F0F0;
+}
+
+.w31-check:active:not(:disabled),
+.w31-radio:active:not(:disabled) {
+  background: var(--w31-face);
+}
+
+.w31-check:focus-visible,
+.w31-radio:focus-visible {
+  outline: 1px dotted var(--w31-ink);
+  outline-offset: 1px;
+}
+
+.w31-check:disabled,
+.w31-radio:disabled {
+  background: var(--w31-face);
+}
+
+/* ------------------------------------------------------------------ menus */
+
+/*
+ * The menu bar is white, not grey. Windows 95 changed it, and every 98.css-lineage
+ * recreation inherits the wrong version.
+ */
+.w31-menubar {
+  height: 18px;
+  background: var(--w31-window);
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--w31-ink);
+}
+
+/*
+ * Popup menu. Positioning and z-index come from base.css, keyed off [data-menu].
+ *
+ * 1px black frame plus a 1px #C0C4C8 drop shadow on the right and bottom only,
+ * offset one pixel past the frame — the same asymmetric-shadow idea as System 1, in
+ * grey rather than black.
+ */
+.w31-menu {
+  min-width: 100px;
+  padding: 0;
+  background: var(--w31-window);
+  border: 1px solid var(--w31-ink);
+  box-shadow: 1px 1px 0 0 var(--w31-face);
+  font-family: 'W31 System', monospace;
+  font-size: var(--w31-fs);
+  color: var(--w31-ink);
+  user-select: none;
+}
+
+/* 18px items, confirmed by a text-block pitch of exactly 18 across four
+ * adjacent items. 16px label gutter, 15px accelerator gutter. */
+.w31-menu-item {
+  display: grid;
+  /* 16px check gutter, label, accelerator, 15px right gutter — measured. The gap
+   * keeps a long label off its accelerator; the capture's items are short enough
+   * that the minimum gap is not measurable, so 8px is a legibility floor. */
+  grid-template-columns: var(--w31-menu-gutter, 16px) 1fr auto var(--w31-menu-accel, 15px);
+  column-gap: 8px;
+  align-items: center;
+  height: var(--w31-menu-item-h, 18px);
+  cursor: default;
+}
+
+/* The gutters are gaps, not padding, so they must not also take the column gap. */
+.w31-menu-item > .w31-menu-check {
+  margin-right: -8px;
+}
+
+.w31-menu-item > .w31-menu-sub {
+  margin-left: -8px;
+}
+
+/* Driven by the menu controller rather than :hover, so keyboard and pointer
+ * navigation land on exactly the same visual state. */
+.w31-menu-item[data-highlight='true'] {
+  background: var(--w31-caption-active);
+  color: var(--w31-caption-text-active);
+}
+
+/* A disabled item stays walkable and stays visible — 3.1 let you highlight a
+ * greyed item, and the stipple survives the highlight because it knocks out of
+ * whatever colour the glyph is drawn in. */
+.w31-menu-item[aria-disabled='true'][data-highlight='true'] {
+  background: var(--w31-caption-active);
+  color: var(--w31-caption-text-active);
+}
+
+/*
+ * A separator is 7px tall with its 1px rule as the 4th row, so 3px of padding
+ * either side — and the rule spans the popup's full outer width, replacing the frame
+ * pixel at each end rather than stopping inside it. That is why the negative margin
+ * is here rather than a plain full-width border.
+ */
+.w31-menu-separator {
+  height: var(--w31-menu-sep-h, 7px);
+  margin: 0 -1px;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0 3px,
+    var(--w31-ink) 3px 4px,
+    transparent 4px 7px
+  );
+}
+
+.w31-menu-check,
+.w31-menu-sub {
+  text-align: center;
+}
+
+.w31-menu-trail {
+  text-align: right;
+}
+
+/* --------------------------------------------------------------- switcher */
+
+.w31-switcher,
+.switcher {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background: var(--w31-face);
+  box-shadow:
+    inset 1px 0 0 0 var(--w31-ink),
+    inset -1px 0 0 0 var(--w31-ink),
+    inset 0 1px 0 0 var(--w31-ink),
+    inset 0 -1px 0 0 var(--w31-ink),
+    inset 3px 0 0 0 var(--w31-window),
+    inset 0 3px 0 0 var(--w31-window),
+    inset -3px 0 0 0 var(--w31-shadow),
+    inset 0 -3px 0 0 var(--w31-shadow);
+  font-family: 'W31 System', monospace;
+  font-size: var(--w31-fs);
+  color: var(--w31-ink);
+  max-width: 90%;
+  overflow: hidden;
+}
+
+.switcher-item {
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.switcher-item[aria-selected='true'] {
+  background: var(--w31-caption-active);
+  color: var(--w31-caption-text-active);
+  border-color: var(--w31-ink);
+}
+
+/* --------------------------------------------------------- keyboard modes */
+
+.w31-win.is-keyboard-moving .w31-titlebar,
+.w31-win.is-keyboard-resizing .w31-titlebar {
+  outline: 1px dotted var(--w31-caption-text-active);
+  outline-offset: -2px;
+}
+
+/*
+ * 3.1 animated nothing, so there is nothing here to suppress except the minimize
+ * collapse — and the window manager already refuses to call that when the query
+ * matches. This block exists so a future addition cannot slip past the query.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .w31-win,
+  .w31-box,
+  .w31-button {
+    transition: none !important;
+    animation: none !important;
+  }
+}

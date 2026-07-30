@@ -107,6 +107,18 @@ export class Display {
     return this.state
   }
 
+  /**
+   * The integer factor logical era pixels are scaled by.
+   *
+   * Exposed because the bitmap eras' fidelity depends on it: Windows 3.1's
+   * disabled-text checkerboard is a one-logical-pixel pattern, so a test that
+   * measures it has to convert device pixels back to logical ones, and a test that
+   * asserts the scale is a whole number needs to read it.
+   */
+  scale(): number {
+    return this.state.scale
+  }
+
   workArea(): Rect {
     const r = this.reserved
     return rect(
