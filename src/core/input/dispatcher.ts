@@ -340,9 +340,26 @@ export class Dispatcher {
         void this.wm.minimize(id)
         return
       case 'maximize':
-      case 'collapse':
         this.wm.toggleMaximize(id)
         return
+      /*
+       * A collapse box is a windowshade toggle, not a maximize.
+       *
+       * These two shared a branch because no era had declared `collapse` and
+       * `toggleMaximize` was the nearest neighbour — the same way `MinimizeStyle`'s
+       * `'collapse'` sat unexercised in the window manager. On a Mac OS 8 title bar
+       * they are two different boxes doing two different things: the zoom box occupies
+       * the maximize slot, and the collapse box rolls the window up to its title bar
+       * and rolls it back down. Apple: "Clicking the collapse box again restores the
+       * window to its normal state" (HIG p103), which is why this is a toggle where
+       * `minimize` is not.
+       */
+      case 'collapse': {
+        const s = this.wm.get(id)
+        if (s?.minimized) this.wm.restore(id)
+        else void this.wm.minimize(id)
+        return
+      }
       case 'menu':
         this.commands.run('window.openChromeMenu')
         return

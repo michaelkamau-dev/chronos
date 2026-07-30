@@ -304,8 +304,15 @@ export const MACOS8 = {
     body: 11,
     /** From the window's outer frame edge, left and right (excluding the shadow). */
     edgeInset: 4,
-    /** From the title bar's top and bottom rows. */
+    /**
+     * From the interior's top row to the footprint's first row.
+     *
+     * The bottom inset is **4**, not 3: 3 + 13 + 4 = 20, the measured interior. The
+     * often-quoted "3 and 3" belongs to the 19px reading of the bar, and centring an
+     * 11px body in 20px computes 4.5 — the Luna trap again.
+     */
     topInset: 3,
+    bottomInset: 4,
     /** Between the zoom box and the collapse box. */
     gap: 3,
     /** Upper-left chisel. */
@@ -328,6 +335,29 @@ export const MACOS8 = {
     utilitySize: 10,
     utilityBody: 8,
   },
+
+  /**
+   * The size box — Apple's word (p101); "grow box" is the Toolbox name.
+   *
+   * 21x21, and byte-identical across three figures: Figure 5-3, Figure 5-1's active
+   * window and Figure 5-6's normal window differ by zero pixels. The era's only real
+   * resize affordance — Chronos requires eight handles, so the other seven exist and
+   * are invisible.
+   */
+  sizeBox: {
+    size: 21,
+    /** Three "/" grip lines at constant (col + row). */
+    gripLines: 3,
+  },
+
+  /**
+   * How far both free ends of the drop shadow are pulled in.
+   *
+   * The right column starts at frame-top + 2 and the bottom row at frame-left + 2, so
+   * the shadow is an L notched at the top-right AND the bottom-left. System 1 is
+   * remembered for the top-right notch, which is why the other one gets missed.
+   */
+  shadowNotch: 2,
 
   /**
    * Scroll bars.
@@ -535,6 +565,15 @@ export const MACOS8_PROVENANCE_EXTRA = {
       + 'so it is not a ramp step. 000044 was dropped: it is a bevel-button icon '
       + 'outline from a different chapter with a disjoint grey family. Two accents in '
       + 'two figures is the proof it is a user variable; lavender is the default.',
+  },
+  sizeBox: {
+    level: 'measured',
+    source: `${FIG_5_3}, ${FIG_5_1} and ${FIG_5_6} — byte-identical, zero differing pixels`,
+  },
+  shadowNotch: {
+    level: 'measured',
+    source: `${FIG_5_3}; the same +2 offset in five figures`,
+    note: 'Both arms, not just the top-right one System 1 is remembered for.',
   },
   menuBar: { level: 'measured', source: FIG_4_1 },
   menu: {

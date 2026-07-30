@@ -1,0 +1,530 @@
+/*
+ * Mac OS 8 Platinum.
+ *
+ * Every measurement reaches this file as a custom property generated from
+ * `./metrics.ts` by `./index.ts`, so no number is written twice and none can drift
+ * from the figure it was measured in. The properties are written on the **shell root**
+ * rather than on `.desktop`, because menus and the switcher are hosted on the root —
+ * outside the desktop — and a variable set on the desktop is simply undefined for them.
+ *
+ * Structural rules — frame positioning, `contain`, resize-handle positioning, handle
+ * suppression, region placement, overlay z-index — are in `src/shell/base.css` and are
+ * deliberately absent here.
+ */
+
+@font-face {
+  font-family: 'Chicago Sub';
+  src: url('./fonts/chicago-sub.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+
+/* ------------------------------------------------------------------ desktop */
+
+/*
+ * The desktop.
+ *
+ * Flat, and that is an admission rather than a choice: Mac OS 8 shipped a dithered
+ * desktop pattern, no figure in the HIG shows the desktop, and none of the extracted
+ * bitmaps contains one. A plausible 50% dither was written here first and removed —
+ * inventing a pattern is exactly what `CLAUDE.md` forbids, and a wrong pattern behind
+ * every window would be the most visible unmeasured thing in the era.
+ *
+ * Recorded as unverified in docs/eras/macos8.md rather than approximated.
+ */
+[data-skin='macos8'] {
+  background-color: var(--m8-desktop);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+  color: var(--m8-ink);
+}
+
+/* ------------------------------------------------------------------- window */
+
+/*
+ * The frame.
+ *
+ * Six pixels per side, built as the two nested bevel rings the figures actually show
+ * rather than as six independent per-side steps: one outset ring and one inset ring
+ * around a 2px face, lit from a single top-left source. Written as stacked inset
+ * box-shadows because that is the only way to lay concentric 1px rings without adding
+ * elements, and because a `border` cannot change colour per side within one ring.
+ *
+ * The drop shadow is a separate, *offset* box-shadow rather than part of the stack: it
+ * is 1px on the right and bottom only, and both of its free ends are pulled in 2px, so
+ * it is drawn as two `::after` bars rather than a shadow that would close its corners.
+ */
+.m8-win {
+  --ring-outer: var(--m8-ink);
+  --ring-a-light: var(--m8-white);
+  --ring-a-dark: var(--m8-shadow);
+  --ring-b-light: var(--m8-shadow);
+  --ring-b-dark: var(--m8-white);
+  --face: var(--m8-title-face);
+
+  display: flex;
+  flex-direction: column;
+  background: var(--face);
+  /* The shadow occupies the right and bottom of the frame's own box, so the chrome is
+   * inset from it. Excluded from hit-testing by metrics.shadowInsets. */
+  padding-right: var(--m8-shadow-w);
+  padding-bottom: var(--m8-shadow-w);
+}
+
+.m8-win::before {
+  content: '';
+  position: absolute;
+  inset: 0 var(--m8-shadow-w) var(--m8-shadow-w) 0;
+  pointer-events: none;
+  box-shadow:
+    inset 1px 1px 0 0 var(--ring-a-light),
+    inset -1px -1px 0 0 var(--ring-a-dark),
+    inset 0 0 0 1px var(--ring-outer),
+    inset 3px 3px 0 0 var(--ring-b-light),
+    inset -3px -3px 0 0 var(--ring-b-dark);
+  z-index: 2;
+}
+
+/*
+ * The drop shadow: 1px, right and bottom, notched at BOTH free ends.
+ *
+ * System 1 is remembered for the top-right notch, so that is the one that gets looked
+ * for; Platinum's bottom-left arm is inset by the same 2px in every figure. Two bars
+ * rather than one box-shadow, because a shadow closes its corners and this one does
+ * not.
+ */
+.m8-win::after {
+  content: '';
+  position: absolute;
+  inset: var(--m8-shadow-notch) 0 0 var(--m8-shadow-notch);
+  pointer-events: none;
+  background:
+    linear-gradient(var(--m8-shadow-colour), var(--m8-shadow-colour)) right top / var(--m8-shadow-w)
+      100% no-repeat,
+    linear-gradient(var(--m8-shadow-colour), var(--m8-shadow-colour)) left bottom / 100%
+      var(--m8-shadow-w) no-repeat;
+}
+
+/* An inactive window recedes: grey frame lines, a flat fill, no bevel rings, no boxes. */
+.m8-win[data-state='blurred'] {
+  --ring-outer: var(--m8-inactive-ink);
+  --ring-a-light: var(--m8-inactive-face);
+  --ring-a-dark: var(--m8-inactive-face);
+  --ring-b-light: var(--m8-inactive-face);
+  --ring-b-dark: var(--m8-inactive-face);
+  --face: var(--m8-inactive-face);
+  --m8-shadow-colour: var(--m8-inactive-ink);
+}
+
+/* --------------------------------------------------------------- title bar */
+
+/*
+ * The 20px interior, measured. Apple's prose says 19px and the figures show a 22px band
+ * containing a 20px interior; both 19-row candidates cut through a bevel ring, so the
+ * pixels win here and the prose is recorded in the provenance. See docs/eras/macos8.md.
+ */
+.m8-titlebar {
+  position: relative;
+  z-index: 3;
+  flex: none;
+  height: var(--m8-title-h);
+  margin: var(--m8-frame-line) var(--m8-frame-line) 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
+  cursor: default;
+}
+
+.m8-title {
+  flex: none;
+  padding: 0 var(--m8-title-clear);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+  line-height: var(--m8-line-box);
+  color: var(--m8-ink);
+  white-space: nowrap;
+}
+
+.m8-win[data-state='blurred'] .m8-title {
+  color: var(--m8-inactive-text);
+}
+
+/*
+ * The six racing stripes.
+ *
+ * System 1 drew six 1px-on/1px-off black lines; Platinum draws the same six bands as a
+ * white highlight over a #777777 shadow. Six pairs across twelve rows, and the pattern
+ * starts on a stated row rather than wherever a repeat happens to land — a stripe field
+ * with the wrong phase is visibly wrong even when the period is right.
+ *
+ * Two elements, one each side of the title, because the stripes stop clear of the text.
+ * A single background behind the whole bar would run them straight through it.
+ */
+.m8-stripes {
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--m8-stripe-hi) 0 1px,
+    var(--m8-stripe-lo) 1px 2px
+  );
+  background-repeat: no-repeat;
+  background-position: 0 var(--m8-stripe-top);
+  background-size: 100% var(--m8-stripe-band);
+}
+
+/* An inactive title bar is flat: no stripes at all, not paler ones. */
+.m8-win[data-state='blurred'] .m8-stripes {
+  background-image: none;
+}
+
+/* ------------------------------------------------------------------- boxes */
+
+/*
+ * Close, zoom and collapse.
+ *
+ * 13x13 including the chisel, over an 11x11 dark outline, with an inner bevel and a
+ * 7x7 diagonal ramp. 3 + 13 + 3 = 19 inside the bar's ink band, which lands on the
+ * pixel grid — unlike Luna, where centring a 21px button in a 30px caption computes
+ * 4.5px and had to be resolved asymmetrically.
+ *
+ * The three share everything except the glyph, which is the whole point of each.
+ */
+/*
+ * NOT vertically centred, and this is the same trap Luna set.
+ *
+ * Centring an 11px body in the 20px interior computes 4.5px and lands the box off the
+ * pixel grid. Measured, the 13x13 footprint sits 3px below the interior's top and 4px
+ * above its bottom — 3 + 13 + 4 = 20. The body is inset one further for its chisel, so
+ * `margin-top` is 4. A flexbox centre here would look almost right and be wrong, which
+ * is exactly why the fidelity suite asserts the asymmetry rather than the centring.
+ */
+.m8-box {
+  flex: none;
+  align-self: flex-start;
+  width: var(--m8-box);
+  height: var(--m8-box);
+  margin: var(--m8-box-top) 0 0;
+  padding: 0;
+  border: 0;
+  position: relative;
+  background:
+    /* the 7x7 diagonal ramp, seven steps in 2-wide bands of constant (col+row) */
+    linear-gradient(135deg,
+      var(--m8-ramp-1) 0 14%,
+      var(--m8-ramp-2) 14% 28%,
+      var(--m8-ramp-3) 28% 42%,
+      var(--m8-ramp-4) 42% 57%,
+      var(--m8-ramp-5) 57% 71%,
+      var(--m8-ramp-6) 71% 85%,
+      var(--m8-ramp-7) 85% 100%);
+  box-shadow:
+    /* inner bevel */
+    inset 2px 2px 0 0 var(--m8-box-inner-light),
+    inset -2px -2px 0 0 var(--m8-box-inner-dark),
+    /* the 11x11 outline */
+    inset 0 0 0 1px var(--m8-box-body),
+    /* outer chisel: dark top-left, light bottom-right */
+    -1px -1px 0 0 var(--m8-box-chisel-dark),
+    1px 1px 0 0 var(--m8-box-chisel-light);
+  cursor: default;
+}
+
+/* The chisel sits outside the 13x13 footprint's inner square, so the boxes need room
+ * for it and are inset from the frame by the measured 4px minus that 1px. */
+.m8-box-close {
+  margin-left: var(--m8-box-edge);
+}
+
+/* `hidden` has to win over the flex display below, or an inactive window keeps boxes
+ * that are invisible to the eye and present to a hit test. */
+.m8-boxes[hidden],
+.m8-box[hidden] {
+  display: none;
+}
+
+.m8-boxes {
+  flex: none;
+  align-self: flex-start;
+  display: flex;
+  gap: var(--m8-box-gap);
+  margin-right: var(--m8-box-edge);
+}
+
+/* Zoom: a nested square, 7x7 inside the body. */
+.m8-box-maximize::after {
+  content: '';
+  position: absolute;
+  inset: var(--m8-glyph-inset);
+  box-shadow: inset 0 0 0 1px var(--m8-box-body);
+}
+
+/* Collapse: two rules, which is what distinguishes it from zoom at a glance. */
+.m8-box-collapse::after {
+  content: '';
+  position: absolute;
+  inset: var(--m8-glyph-inset);
+  background:
+    linear-gradient(var(--m8-box-body), var(--m8-box-body)) left top / 100% 1px no-repeat,
+    linear-gradient(var(--m8-box-body), var(--m8-box-body)) left 100% / 100% 1px no-repeat;
+}
+
+/* Close carries no glyph at all — measured, not omitted. */
+
+.m8-box:hover:not(:disabled) {
+  --m8-ramp-1: var(--m8-ramp-4);
+  --m8-ramp-2: var(--m8-ramp-5);
+}
+
+/* Pressed inverts the chisel, which is how every Platinum control reports a press. */
+.m8-box:active:not(:disabled) {
+  box-shadow:
+    inset 2px 2px 0 0 var(--m8-box-inner-dark),
+    inset -2px -2px 0 0 var(--m8-box-inner-light),
+    inset 0 0 0 1px var(--m8-box-body),
+    -1px -1px 0 0 var(--m8-box-chisel-light),
+    1px 1px 0 0 var(--m8-box-chisel-dark);
+}
+
+.m8-box:focus-visible {
+  outline: var(--m8-focus-w) solid var(--m8-focus);
+  outline-offset: 1px;
+}
+
+.m8-box:disabled {
+  background: var(--m8-title-face);
+  box-shadow:
+    inset 0 0 0 1px var(--m8-dim),
+    -1px -1px 0 0 var(--m8-box-chisel-dark),
+    1px 1px 0 0 var(--m8-box-chisel-light);
+}
+
+.m8-box:disabled::after {
+  opacity: 0.5;
+}
+
+/* ----------------------------------------------------------------- content */
+
+.m8-content {
+  flex: 1 1 auto;
+  margin: 0 var(--m8-frame) var(--m8-frame);
+  background: var(--m8-white);
+  border: var(--m8-frame-line) solid var(--m8-ink);
+  overflow: auto;
+}
+
+.m8-win[data-state='blurred'] .m8-content {
+  border-color: var(--m8-inactive-ink);
+}
+
+.m8-win[data-suspended='true'] .m8-content {
+  opacity: 0.55;
+}
+
+/*
+ * The windowshade.
+ *
+ * The frame's shorter height is applied by the window manager — it derives the
+ * collapsed height from this skin's own metrics, because a collapsed window is
+ * draggable and any height a skin wrote would be overwritten on the next move. All the
+ * stylesheet does is take the content out of the flow so the title bar is what remains.
+ */
+.m8-win[data-minimized='true'] .m8-content {
+  display: none;
+}
+
+/* -------------------------------------------------------------- resize/size box */
+
+.m8-resize {
+  --grab: var(--m8-resize-grab);
+}
+
+.m8-resize-n { top: 0; left: 0; right: 0; height: var(--grab); cursor: ns-resize; }
+.m8-resize-s { bottom: 0; left: 0; right: 0; height: var(--grab); cursor: ns-resize; }
+.m8-resize-e { top: 0; bottom: 0; right: 0; width: var(--grab); cursor: ew-resize; }
+.m8-resize-w { top: 0; bottom: 0; left: 0; width: var(--grab); cursor: ew-resize; }
+.m8-resize-ne { top: 0; right: 0; width: var(--grab); height: var(--grab); cursor: nesw-resize; }
+.m8-resize-nw { top: 0; left: 0; width: var(--grab); height: var(--grab); cursor: nwse-resize; }
+.m8-resize-sw { bottom: 0; left: 0; width: var(--grab); height: var(--grab); cursor: nesw-resize; }
+
+/*
+ * The size box — Apple's word (p101); "grow box" is the Toolbox name.
+ *
+ * 21x21, and the only resize affordance the era actually had. The other seven handles
+ * exist because Chronos requires eight in every era, and they are invisible; this one
+ * is real artwork. Its three "/" grip lines run at constant (col + row).
+ */
+.m8-sizebox {
+  right: var(--m8-shadow-w);
+  bottom: var(--m8-shadow-w);
+  width: var(--m8-sizebox);
+  height: var(--m8-sizebox);
+  cursor: nwse-resize;
+  background:
+    repeating-linear-gradient(45deg,
+      transparent 0 3px,
+      var(--m8-white) 3px 4px,
+      transparent 4px 5px,
+      var(--m8-stripe-lo) 5px 6px),
+    var(--m8-title-face);
+  box-shadow:
+    inset 1px 1px 0 0 var(--m8-ink),
+    inset 2px 2px 0 0 var(--m8-white);
+}
+
+/* A collapsed or non-resizable window shows no size box: there is nothing to size. */
+.m8-win[data-minimized='true'] .m8-sizebox,
+.m8-win[data-resizable='false'] .m8-sizebox {
+  display: none;
+}
+
+/* --------------------------------------------------------------- menu bar */
+
+.m8-menubar {
+  height: var(--m8-menubar-h);
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding-left: var(--m8-menubar-inset);
+  background: var(--m8-menu-face);
+  /* Beveled edges: a white highlight row on top, then #999999 and the black rule that
+   * closes the bar. Apple's prose says "beveled edges"; these are the measured rows. */
+  box-shadow:
+    inset 0 1px 0 0 var(--m8-white),
+    inset 0 calc(-1 * var(--m8-frame-line) * 2) 0 0 var(--m8-shadow),
+    inset 0 calc(-1 * var(--m8-frame-line)) 0 0 var(--m8-ink);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+  color: var(--m8-ink);
+}
+
+.m8-menubar-title {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  padding: 0 calc(var(--m8-menubar-gap) / 2);
+  cursor: default;
+  /* A menu title is NEVER dimmed, even when everything inside it is unavailable —
+   * Apple states it twice. So there is no disabled styling here, deliberately. */
+}
+
+.m8-menubar-title[data-open='true'] {
+  background: var(--m8-menu-title-hi);
+  color: var(--m8-menu-title-hi-text);
+  box-shadow:
+    inset 0 1px 0 0 var(--m8-menu-title-hi-top),
+    inset 0 -1px 0 0 var(--m8-menu-title-hi-bottom);
+}
+
+.m8-menubar-title:focus-visible {
+  outline: var(--m8-focus-w) solid var(--m8-focus);
+  outline-offset: -2px;
+}
+
+/* ------------------------------------------------------------------- menus */
+
+.m8-menu {
+  min-width: 120px;
+  padding: var(--m8-frame-line) 0;
+  background: var(--m8-menu-face);
+  border: var(--m8-frame-line) solid var(--m8-ink);
+  /* Mitred inner bevel, then the 1px shadow on the right and bottom. The shadow is
+   * offset at both free ends, the same notched L as the window frame's. */
+  box-shadow:
+    inset 1px 1px 0 0 var(--m8-white),
+    inset -1px -1px 0 0 var(--m8-shadow),
+    var(--m8-menu-shadow-w) var(--m8-menu-shadow-w) 0 0 var(--m8-menu-shadow);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+  color: var(--m8-ink);
+}
+
+.m8-menu-item {
+  display: flex;
+  align-items: center;
+  height: var(--m8-menu-item-h);
+  padding: 0 var(--m8-menu-pad) 0 0;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.m8-menu-check {
+  flex: none;
+  width: var(--m8-menu-text-inset);
+  text-align: center;
+}
+
+.m8-menu-label {
+  flex: 1 1 auto;
+}
+
+.m8-menu-accel {
+  flex: none;
+  padding-left: var(--m8-menu-accel-gap);
+}
+
+.m8-menu-sub {
+  flex: none;
+  padding-left: 4px;
+}
+
+/*
+ * A disabled item is a solid grey, NOT a stipple.
+ *
+ * System 1 and Windows 3.1 both knock a 50% checkerboard out of the glyph; Platinum
+ * does not, and this is the one place a Mac OS 8 skin is most likely to inherit the
+ * wrong mechanism from its own predecessor. Proven by parity, not by eye — 127 ink
+ * pixels split 64/63 — in docs/eras/macos8.md §6.
+ */
+.m8-menu-item[aria-disabled='true'] {
+  color: var(--m8-dim);
+}
+
+/* A dimmed item is dimmed AND cannot be highlighted; the controller keeps it
+ * focusable so it can be walked onto and read. */
+.m8-menu-item[data-highlight='true']:not([aria-disabled='true']) {
+  background: var(--m8-menu-title-hi);
+  color: var(--m8-menu-title-hi-text);
+}
+
+/*
+ * The etched divider: two rows of face, the rule, the engrave, two rows of face.
+ * Apple's separator prose gives the 2px etch; the colours are measured.
+ */
+.m8-menu-separator {
+  height: var(--m8-menu-sep-h);
+  background:
+    linear-gradient(var(--m8-menu-sep-rule), var(--m8-menu-sep-rule)) left var(--m8-menu-sep-off) /
+      100% 1px no-repeat,
+    linear-gradient(var(--m8-menu-sep-engrave), var(--m8-menu-sep-engrave)) left
+      calc(var(--m8-menu-sep-off) + 1px) / 100% 1px no-repeat;
+}
+
+/* --------------------------------------------------------------- switcher */
+
+.switcher {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px;
+  background: var(--m8-menu-face);
+  border: var(--m8-frame-line) solid var(--m8-ink);
+  box-shadow:
+    inset 1px 1px 0 0 var(--m8-white),
+    inset -1px -1px 0 0 var(--m8-shadow);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+  color: var(--m8-ink);
+}
+
+.switcher-item {
+  padding: 2px 8px;
+}
+
+.switcher-item[aria-selected='true'] {
+  background: var(--m8-menu-title-hi);
+  color: var(--m8-menu-title-hi-text);
+}
