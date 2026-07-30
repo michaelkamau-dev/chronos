@@ -831,6 +831,46 @@ gaps land in phase 4, which is exactly where your review gate already is — so
 they do not block starting, and I will bring you a specific list of the values I
 need at that gate rather than quietly filling them in.
 
+### The stipple: one mechanism, two vendors, four years apart
+
+The single most surprising measured result in the project, and it is a fact about
+**two** eras rather than one, so it lives here rather than in either skin.
+
+**System 1 (Apple, 1984)** draws a disabled menu item by drawing the text normally and
+then knocking a 50% gray pattern out of it with `notPatBic` — the pattern is ANDed
+against the already-drawn glyph, so the ink is removed in a checkerboard rather than
+being replaced with a lighter colour. Sourced from Apple's own shipped `StandardWDEF.a`
+listing and corroborated against Executor.
+
+**Windows 3.1 (Microsoft, 1992)** does the same thing, by a different name. `GrayString`
+paints a checkerboard of the *background* colour over the drawn glyph. Measured from the
+VGA captures and proven by parity rather than by eye: the Run dialog's disabled `OK`
+label is 37 ink pixels with **all 37 on one `(x + y)` parity**, while the `Cancel` label
+beside it is 140 pixels split 71/69. The same treatment applies to a disabled menu item
+and a disabled button label alike.
+
+Two competing vendors, eight years of hardware apart, converged on the identical
+construction — and both did so for the same reason: on a 1-bit or 4-bit display there
+is no lighter shade of black to reach for, so the only way to say "unavailable" is to
+remove half the pixels. Windows 95 abandoned it for a grey fill with a white shadow the
+moment 8-bit colour was assumed, which is why nearly every recreation of either era
+gets it wrong — they inherit the later treatment.
+
+Three consequences for the build, all load-bearing:
+
+1. **It is why the bitmap eras render at an integer scale.** A one-pixel checkerboard
+   at a fractional scale averages into exactly the flat grey it exists to disprove. The
+   integer-viewport decision in §1 was made for type crispness; this is the second,
+   stronger reason for it.
+2. **It cannot be implemented as a colour.** CSS has no way to knock a pattern out of
+   live text, so the Win 3.1 skin paints a checkerboard of the background over the
+   glyph — which is not a workaround but the actual historical mechanism.
+3. **The test asserts the mechanism, not the appearance.** `win31-fidelity.spec.ts`
+   applies the same parity discriminator to the rendered output that
+   `tools/captures/measure-win31.py` applies to Microsoft's pixels, so the source and
+   the implementation are held to one standard. A grey fill fails it; a checkerboard
+   passes. System 1's skin will reuse that assertion verbatim.
+
 ### Fonts — the substitution table, and one trap
 
 Confirmed: **not one of the eight authentic faces is shippable.** Chicago,

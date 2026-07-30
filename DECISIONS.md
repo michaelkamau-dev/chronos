@@ -916,3 +916,117 @@ most pixel fonts regardless of how well their widths match.
 
 Everything that does not depend on the font is finished and committed: the metrics
 module with full provenance, the reproducible measurement script, and the source doc.
+
+## Phase 4, era/win31 — the chrome
+
+### 4.11 Pixel Operator Bold accepted, with two quantified losses
+
+**Call.** Pixel Operator Bold at `font-size: 16px` is the Windows 3.1 System font
+substitute. Subset to 3.0KB. Two losses are recorded in the substitution table rather
+than absorbed.
+
+**Reasoning.** Every structural property verifies independently: 1600 upm as ascent
+1300 plus descent 300, so exactly a 16px cell at 16px; `sCapHeight` 900, so exactly a
+9px cap with no fraction; rendered at 16px it produces **2** distinct grey levels, pure
+black and pure white, so it holds the pixel grid without the canvas escape hatch; bold;
+proportional. That 9px-at-an-integer-size property is precisely what Pixelify Sans,
+Handjet and VT323 failed on.
+
+The losses, measured rather than estimated:
+
+- **Advance widths diverge per glyph, in both directions.** Pixel Operator's caps are
+  narrower than the era's — `M` advances 9px against 12 — and its lowercase are 1px
+  wider. So string lengths land within about ±16% and the sign depends on the string:
+  `Minimize` measures **58px against a 58px target**, exactly right, because two wide
+  caps and six tight lowercase cancel out; `Cancel` measures **44px against 38px**,
+  +16%. Reporting this as "16% wide" would be wrong — it is per-glyph divergence that
+  nets out differently per string. `Cancel` at 44px still fits the measured 70px button
+  with 10px each side, so nothing overflows; menus simply run wider than the era's.
+- **The descender is 2px deep against the era's 4px.** `g`, `y`, `p` and `q` sit higher,
+  so the 12px menu-item text block renders 11px.
+
+Same category as Trebuchet's double-storey `g`: a real, permanent, stated loss rather
+than a silent compromise.
+
+### 4.12 The disabled stipple is a knockout overlay, not a CSS mask
+
+**Call.** Disabled text paints a checkerboard of the *background* colour over the glyph
+via an `::after` layer, inset past the bevel. The `mask` approach it replaced is kept
+only for the chrome-box glyphs, which are already pseudo-elements.
+
+**Reasoning.** The mask was wrong twice. It stippled the button's bevel along with its
+label, so the workaround was to mask a `.w31-label` child — and a button whose label is
+a bare text node then had **no disabled state at all**. The five-states test caught it:
+disabled compared byte-identical to rest.
+
+The overlay is also the actual historical mechanism. `GrayString` did not lighten the
+glyph; it painted the background through a 50% pattern. Implementing what the OS did
+turned out to be the only construction that works on arbitrary text content.
+
+The knockout colour is a variable, so a highlighted disabled menu item knocks out
+against the navy rather than against white — which is what the capture shows, the
+surviving pixels of the disabled `Restore` being white on navy.
+
+### 4.13 The era is selected by `?era=`, and skins load with `import()`
+
+**Call.** `src/main.ts` gains an `ERAS` registry of thunks; the era comes from the query
+string, defaulting to `winxp`. `main.ts` is the only module that names an era.
+
+**Reasoning.** Two eras exist now, so something has to choose. Thunks rather than static
+imports because the §6 transfer budget depends on exactly one era reaching the browser —
+the build confirms it, emitting `skin-winxp` and `skin-win31` as separate chunks. An
+unknown era warns and falls back rather than showing nothing, because a typo in a URL is
+not a reason for a blank screen.
+
+`window.__chronos.era` is exposed so a fidelity suite can assert it is testing the era
+it thinks it is. Without that, `win31-fidelity.spec.ts` would pass vacuously against XP.
+
+### 4.14 Vite's asset inlining is off
+
+**Call.** `assetsInlineLimit: 0`.
+
+**Reasoning.** The default 4KB threshold base64'd the 3.0KB Win 3.1 font into
+`skin-win31.css`. That is wrong twice: it makes the font a render-blocking part of the
+stylesheet rather than something the browser fetches only when text uses the face, and
+it hides the bytes from the per-class font budget. Caught by noticing the font missing
+from the build output.
+
+### 4.15 The font budget is per era, and every font must be attributable
+
+**Call.** `test/budget.test.js` attributes each font to the era whose compiled stylesheet
+references it, by reading the `@font-face` URLs out of `skin-*.css`. The critical path is
+now core plus the worst *single* era including its fonts. A new test fails if any shipped
+font is referenced by no skin.
+
+**Reasoning.** The old test summed every era's critical-path fonts, which was harmless at
+one era and wrong at two: only one era loads, so summing them fails the budget for a
+condition that cannot happen in a browser — and it would fail harder with each era added.
+Filename convention would work until two eras picked similar names; reading the URLs is
+exact. The attribution test exists because if the URL pattern ever stops matching, the
+per-era budgets silently become wrong rather than failing.
+
+### 4.16 The perf gate measures per-frame cost, not frame-interval percentiles
+
+**Call.** `p95`, `p99` and `over50` are reported diagnostics. The assertions are
+`ScriptDuration / frames < 3ms`, `LayoutDuration / frames < 0.5ms`, one style recalc per
+frame, `longTasks === 0`, and the median at vsync.
+
+**Reasoning.** The gate went from intermittent to consistently failing: p95 33.40ms,
+p99 50.00ms, frame count down from ~360 to ~270, on every run. Diagnosed by running it
+on `170f1ce` — the commit before any of this work — where it reproduces identically.
+The container generation changed; the bundle did not.
+
+An intermediate fix was tried and discarded, and the discard is the useful part.
+"Every long interval must be a whole multiple of the vsync period" seems like the exact
+discriminator between a frame the host skipped and a frame we delayed. It is useless:
+the compositor delivers rAF only on vsync boundaries, so every interval is a multiple
+whichever caused it. Verified by injecting a deliberate 7ms block per frame and
+measuring zero off-grid intervals. A guard that cannot fail is not a guard, so it went
+in the bin rather than into the suite.
+
+CDP's duration counters are the honest instrument. Frame count and the percentiles fall
+when the host is busy; `ScriptDuration / frames` does not, because it measures how long
+our JavaScript ran rather than when it was allowed to run. Measured 0.55–0.69ms under 4x
+throttling against a 3ms bound, and `LayoutDuration / frames` at 0.001ms against 0.5ms.
+A regression that adds a per-frame allocation or forces a reflow moves both; a busy
+container moves neither.
