@@ -50,6 +50,17 @@ const ERAS: Record<string, () => Promise<EraBundle>> = {
     ])
     return { skin: winxpSkin, codec: paths.createXpCodec, decorate: paths.xpNameDecorator }
   },
+  macos8: async () => {
+    const [{ macos8Skin }, paths] = await Promise.all([
+      import('./skins/macos8/index.js'),
+      import('./skins/macos8/paths.js'),
+    ])
+    return {
+      skin: macos8Skin,
+      codec: paths.createMacos8Codec,
+      decorate: paths.macos8NameDecorator,
+    }
+  },
   win31: async () => {
     const [{ win31Skin }, paths] = await Promise.all([
       import('./skins/win31/index.js'),

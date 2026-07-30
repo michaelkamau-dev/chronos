@@ -454,6 +454,9 @@ export class WindowManager {
     entry.minimizedFrom = cloneRect(s.rect)
     s.minimized = true
     entry.handle.el.dataset['minimized'] = 'true'
+    // Re-applied so a collapse style's shorter rendered height takes effect; a hiding
+    // style is unaffected because renderedHeight returns rect.h for it.
+    this.applyGeometry(entry)
     this.chrome.updateFrame(entry.handle, s, Change.Minimized)
     // The reduced-motion query is honoured here, not in the skin. A skin that
     // forgot the check would ship an era that animates anyway, and the only
@@ -493,6 +496,7 @@ export class WindowManager {
     s.minimized = false
     entry.handle.el.dataset['minimized'] = 'false'
     entry.handle.el.style.display = ''
+    this.applyGeometry(entry)
     this.chrome.updateFrame(entry.handle, s, Change.Minimized)
     if (!prefersReducedMotion()) {
       void this.chrome.restoreFrom(entry.handle, entry.minimizedFrom ?? s.rect)
@@ -634,7 +638,26 @@ export class WindowManager {
     const el = entry.handle.el
     el.style.transform = `translate3d(${r.x}px, ${r.y}px, 0)`
     el.style.width = `${r.w}px`
-    el.style.height = `${r.h}px`
+    el.style.height = `${this.renderedHeight(entry.state)}px`
+  }
+
+  /**
+   * How tall the frame is drawn, which is not always `rect.h`.
+   *
+   * A collapsed window keeps its rect — that is what it restores to, and it is what
+   * the drag and resize maths keep using — but occupies only its title bar on screen.
+   * This has to live here rather than in the skin's CSS: the height is an inline style
+   * this method writes, `moveTo` calls it on every drag frame, and a collapsed window
+   * is draggable, so a skin-written height would last exactly until the user moved it.
+   */
+  private renderedHeight(s: WindowState): number {
+    const m = this.chrome.metrics
+    if (!s.minimized || minimizeHidesFrame(m.minimizeStyle)) return s.rect.h
+    // A windowshade is its title bar band plus whatever the frame paints below it —
+    // derived from metrics the skin already declares rather than added to the
+    // contract, because deriving it cannot disagree with them. If a second collapse
+    // era ever draws something else down there, that is when it becomes a metric.
+    return m.border.top + m.titleBarHeight + m.shadowInsets.bottom
   }
 
   private applyZ(): void {

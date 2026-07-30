@@ -551,6 +551,10 @@ narrowed the fifth, and surfaced three genuinely new ones.
 - **Whether the thumb is truly fixed or proportional clamped at a 17px minimum.** Three
   figures at three track lengths all give 17px and Apple's p40 prose says the indicator
   shows position, but figures alone cannot exclude a clamp.
+- **The desktop pattern.** Mac OS 8 shipped a dithered desktop; no HIG figure shows
+  the desktop and none of the extracted bitmaps contains one. The skin ships a flat
+  fill. A plausible 50% dither was written and removed — inventing the one surface that
+  sits behind every window is the most visible possible guess.
 - **What Figure 5-7's second, dark-interior specimen is.** Apple's caption says
   inactive, but Figure 5-1's inactive window has no zoom box at all. A pressed state is
   the most consistent reading and nothing in the source says so.
