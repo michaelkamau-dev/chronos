@@ -100,17 +100,16 @@ class BudgetBar {
     this.field.id = 'lg-index-field'
     this.field.dataset['ledgerIndex'] = ''
     indexLabel.htmlFor = this.field.id
-    // A visible label rather than an in-box hint. Two reasons, and the second is the
+    // A visible label rather than a `placeholder`. Two reasons, and the second is the
     // era's: a hint vanishes the moment you type, which is wrong for a field whose
     // entire content is an account number; and a machine that prints a regulatory
     // disclosure on every window does not hint at anything.
     //
-    // It also avoids a real collision worth knowing about. The HTML attribute for an
-    // in-box hint is spelled with one of the exact strings `test/invariants.test.js`
-    // bans as a stub marker, and that guard scans raw text rather than stripping
-    // comments — so it fires on legitimate DOM use, and on any comment explaining
-    // why. Naming the attribute here would fail the build. Sidestepping it is cheaper
-    // than weakening a rule that has earned its place.
+    // This is also where the stub-marker guard's collision with the DOM was found —
+    // `test/invariants.test.js` banned the bare word against raw text, so it fired on
+    // legitimate use and on any comment explaining one. The guard is narrowed now and
+    // the attribute could be used here; the label stays because it is the better
+    // design for the era, not because anything forbids the alternative.
     this.caret = document.createElement('span')
     this.caret.className = 'lg-caret'
     this.caret.dataset['ledgerCaret'] = 'off'

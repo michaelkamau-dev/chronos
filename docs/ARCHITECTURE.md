@@ -82,8 +82,14 @@ only through `import()`.
 4. `core/wm/drag.ts` mentions any layout-reading API (`getBoundingClientRect`,
    `offsetWidth`, `getComputedStyle`, …) — a forced reflow per frame is the
    easiest way to lose the frame budget.
-5. Any source file contains `TODO|FIXME|XXX|HACK|placeholder|in a real
-   implementation`.
+5. Any source file contains a stub marker. `TODO|FIXME|XXX|HACK`, "in a real
+   implementation" and "for now, " are matched against raw text everywhere, comments
+   included. `placeholder` is matched against **comments only**, minus the spans that
+   name the DOM API — it is a word in prose and an identifier in code, and a guard that
+   fired on `input.placeholder` would have been fought once per app in phase 5 and then
+   deleted. The scan ships with a table of cases it must catch and cases it must let
+   through, because a guard that has just been narrowed is exactly when to ask whether
+   it can still fail.
 6. Any skin is missing `metrics.ts`, a `Provenance<ChromeMetrics>` export, or a
    `note` on an `unverified` metric.
 7. The dispatcher registers more than one root listener per event type.
@@ -1386,8 +1392,10 @@ whether the abstraction was real.
 
 ### Test counts, so a regression is obvious
 
-`npm test` runs all three suites. As of the Ledger build: **269 green** — 11 invariant,
-7 budget, 251 browser. The browser suites are `wm`, `a11y`, `fs`, `perf`,
+`npm test` runs all three suites. As of the Ledger merge: **270 green** — 12 invariant,
+7 budget, 269 browser. The twelfth invariant is the stub-marker scan's own table, which
+asserts the guard both fires and stays silent where it should. The browser suites are
+`wm`, `a11y`, `fs`, `perf`,
 `xp-fidelity` (28), `win31-fidelity` (20), `tiger-fidelity` (34), `system1-fidelity`,
 `macos8-fidelity` and `ledger-fidelity` (42).
 

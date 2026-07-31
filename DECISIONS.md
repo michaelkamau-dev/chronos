@@ -2108,3 +2108,49 @@ shape of the name.
 **Consequence.** The decoration is still this era's own — a plain ` 2`, not XP's ` (2)`
 and not the classic Mac's ` copy` — because a ledger that already numbers every entry has
 no collision to dress up.
+
+### 4.63 The stub-marker guard is narrowed structurally, and it ships with a table
+
+**Call.** `test/invariants.test.js` scans **raw text** for `TODO|FIXME|XXX|HACK`, "in a
+real implementation" and "for now, ", and scans **comments only** for `placeholder` —
+minus the spans that name the DOM API. Code is not scanned for that word at all. A second
+test asserts the guard against a table in both directions.
+
+**Reasoning.** 4.62's sibling: the era build hit the collision and routed around it, which
+was right for that afternoon and wrong for the project. Phase 5 is six apps with text
+fields; a guard that fires on `input.placeholder` gets fought once per app and then
+deleted by whoever tires first, and **a rule everyone works around is already weakened —
+it just has not been admitted yet.**
+
+The narrowing is structural rather than a longer list of exceptions, which is what keeps
+it from being a weakening. `placeholder` is a *word* in prose and an *identifier* in code:
+
+- **Code**: in JavaScript, TypeScript and CSS the token is only ever the identifier. There
+  is no way to write a stub marker in code that is the bare word — a stub marker in code
+  is a comment, and comments are still scanned. The other markers still cover a string
+  that announces itself unfinished, so `throw new Error('TODO')` fails as before.
+- **Comments**: scanned, minus backticked code references (this codebase's own prose
+  convention), member and pseudo-element forms, and the word followed by `attribute`,
+  `property` or `pseudo`. So "the `placeholder` attribute vanishes as soon as you type"
+  passes and "a placeholder implementation" does not.
+
+**Consequence.** A guard that has just been narrowed is exactly when *a guard that cannot
+fail is not a guard* needs asking again — the third time that rule has paid, after the
+vsync-multiple check and the Ledger face gate. So it ships with eleven cases it must still
+catch and twelve it must now let through, and the narrowing was additionally verified by
+appending real stubs to a real source file and watching the build break:
+
+| Appended to `src/skins/ledger/dither.ts` | Result |
+|---|---|
+| `// placeholder` | fires |
+| `// a placeholder implementation until the real one lands` | fires |
+| `// TODO: finish this` | fires |
+| `// in a real implementation this would hit the network` | fires |
+| `q.placeholder = 'Search'` | silent |
+| `` const h = `<input placeholder="Search">` `` | silent |
+| `// the placeholder attribute vanishes as soon as you type` | silent |
+| ``// `placeholder` collides with a marker this file bans`` | silent |
+
+One thing found on the way: the same scan was reading WOFF2 files as UTF-8 and
+regex-matching the bytes. Binary assets are skipped now, as a **denylist** of known binary
+extensions rather than an allowlist of text ones, so a new text format is still scanned.
