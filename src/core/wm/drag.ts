@@ -23,6 +23,7 @@ import {
   copyRect,
   rect,
 } from '../geometry.js'
+import type { RenderBudget } from '../input/render-budget.js'
 import type { ResizeEdge, WindowId } from './types.js'
 import type { WindowManager } from './manager.js'
 
@@ -30,6 +31,21 @@ type Mode = 'idle' | 'move' | 'resize'
 
 export class GestureController {
   private readonly wm: WindowManager
+  /**
+   * The system's frame clock, used through its **priority lane**.
+   *
+   * A gesture is never throttled. An era may hold the display to a fraction of the
+   * refresh rate — that is what the governor is for — but ARCHITECTURE.md §8 is
+   * explicit that "rationing did not delete direct manipulation", and a drag
+   * delivered at a throttled rate is not a drag. The priority lane is a single slot
+   * taken ahead of any target rate, so this loop behaves exactly as it did when it
+   * held its own `requestAnimationFrame`.
+   *
+   * It goes through the governor rather than around it so that the frames a gesture
+   * costs are *counted*. An era that bills the viewer for rendering cannot have a
+   * loop painting frames the accounting never sees.
+   */
+  private readonly budget: RenderBudget
 
   private mode: Mode = 'idle'
   private id: WindowId = 0 as WindowId
@@ -59,12 +75,14 @@ export class GestureController {
   private titleBarHeight = 0
   private grabMargin = 0
 
+  /** 0 or 1: whether a priority frame is already scheduled. */
   private rafHandle = 0
   /** Bound once in the constructor so scheduling a frame allocates no closure. */
   private readonly tick: () => void
 
-  constructor(wm: WindowManager) {
+  constructor(wm: WindowManager, budget: RenderBudget) {
     this.wm = wm
+    this.budget = budget
     this.tick = () => this.onFrame()
   }
 
@@ -119,14 +137,17 @@ export class GestureController {
     if (this.mode === 'idle') return
     this.pointerX = x
     this.pointerY = y
-    if (this.rafHandle === 0) this.rafHandle = requestAnimationFrame(this.tick)
+    if (this.rafHandle === 0) {
+      this.rafHandle = 1
+      this.budget.requestPriority(this.tick)
+    }
   }
 
   /** Commit the gesture into window manager state. */
   end(): void {
     if (this.mode === 'idle') return
     if (this.rafHandle !== 0) {
-      cancelAnimationFrame(this.rafHandle)
+      this.budget.cancelPriority()
       this.rafHandle = 0
     }
     // Flush the final pointer position so releasing mid-frame cannot drop it.
@@ -144,7 +165,7 @@ export class GestureController {
   cancel(): void {
     if (this.mode === 'idle') return
     if (this.rafHandle !== 0) {
-      cancelAnimationFrame(this.rafHandle)
+      this.budget.cancelPriority()
       this.rafHandle = 0
     }
     const el = this.frameEl

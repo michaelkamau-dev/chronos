@@ -19,7 +19,9 @@ import { CaptureStack } from '../core/input/capture.js'
 import { CommandRegistry, type Command } from '../core/input/commands.js'
 import { Keymap, KeymapStack, type Binding } from '../core/input/keymap.js'
 import { MenuController, type MenuRenderer, type MenuSpec } from '../core/input/menu.js'
+import { RenderBudget, type RenderBudgetSpec } from '../core/input/render-budget.js'
 import { asAppId, type ChromeRenderer, type WindowId } from '../core/wm/types.js'
+import type { AppInstance } from '../core/app/types.js'
 import type { Rect } from '../core/geometry.js'
 
 /**
@@ -33,6 +35,15 @@ import type { Rect } from '../core/geometry.js'
 export interface ShellRegionHost {
   readonly wm: WindowManager
   readonly menus: MenuController
+  /**
+   * The system's frame clock.
+   *
+   * Era-neutral: any region that needs to repaint on a schedule subscribes here
+   * rather than taking its own `requestAnimationFrame`, so the frames it costs are
+   * counted and its rate obeys whatever target the skin declared. A region that
+   * repaints only on events never touches it and the clock never starts.
+   */
+  readonly budget: RenderBudget
   /**
    * The command registry, so a region's menu entries route through the same
    * semantic commands the keymap does rather than reaching for the shell directly.
@@ -117,6 +128,15 @@ export interface SkinManifest {
    */
   regions?: readonly ShellRegion[]
   /**
+   * The rate this era holds the display to, if it holds it to one at all.
+   *
+   * Omit for the display's own rate, which is what five of the six eras want. The
+   * shell passes this straight to the governor and neither it nor `core/input` ever
+   * learns why the number is what it is — the same shape of fact as a region's
+   * `thickness`.
+   */
+  renderBudget?: RenderBudgetSpec
+  /**
    * Custom properties derived from the skin's measured metrics, applied to the shell
    * root. This is how a stylesheet reads a measurement without keeping a second copy
    * of it that could drift — the XP caption gradient and frame steps are generated
@@ -142,6 +162,11 @@ export class Shell {
   readonly switcher: Switcher
   readonly keyboardGeometry: KeyboardGeometry
   readonly menus: MenuController
+  /**
+   * The single animation clock. Public because a skin's regions drive their own
+   * repaints from it and the fidelity suites measure what it delivered.
+   */
+  readonly budget = new RenderBudget()
   /** The active skin's chord table, kept for the keyboard-completeness gate. */
   readonly skinKeymap: readonly Binding[]
 
@@ -175,8 +200,10 @@ export class Shell {
       }
     }
 
+    if (skin.renderBudget) this.budget.setSpec(skin.renderBudget)
+
     this.wm = new WindowManager(this.display.desktop, skin.chrome, this.display.workArea())
-    this.gestures = new GestureController(this.wm)
+    this.gestures = new GestureController(this.wm, this.budget)
     this.switcher = new Switcher(this.wm, this.capture, this.display.desktop)
     this.keyboardGeometry = new KeyboardGeometry(this.wm, this.capture)
     this.menus = new MenuController(skin.menu, this.capture, root)
@@ -188,6 +215,7 @@ export class Shell {
       capture: this.capture,
       keymaps: this.keymaps,
       commands: this.commands,
+      budget: this.budget,
       hooks: {
         onContextMenu: (hit, x, y) => this.openContextMenu(hit, x, y),
         onBlockedInteraction: (blocked, modal) => this.flashModal(blocked, modal),
@@ -304,6 +332,60 @@ export class Shell {
     return un
   }
 
+  /**
+   * Bind a mounted app instance to its window.
+   *
+   * This is the whole of the `suspend()`/`resume()` wiring, and where it lives is the
+   * point. §2's first invariant is that the window manager knows nothing about apps,
+   * so the WM owns `WindowState.suspended` and emits `suspended`/`resumed` — a fact
+   * about a *window* — and the shell is what turns that into a call on an *instance*.
+   * Putting the instance on the WM instead would have been one field and would have
+   * broken the invariant the whole architecture is built on.
+   *
+   * The close guard is registered from the same place for the same reason: `canClose`
+   * belongs to the app, `close()` belongs to the window manager, and the shell is the
+   * only layer that may know both.
+   *
+   * **Scope, stated plainly.** Phase 5's gate is that every app survives the round
+   * trip with state intact — Paint's undo stack, the editor's cursor and selection,
+   * the terminal's scrollback — verified per app. There are no apps yet. What this
+   * routing has is one harness implementation, which proves the contract is wireable
+   * and proves nothing about six apps honouring it.
+   */
+  registerApp(id: WindowId, instance: AppInstance): () => void {
+    this.wm.setCloseGuard(id, () => instance.canClose())
+    const un = this.wm.subscribe((e) => {
+      if (e.id !== id) return
+      switch (e.type) {
+        case 'suspended':
+          instance.suspend()
+          return
+        case 'resumed':
+          instance.resume()
+          return
+        case 'focused':
+          instance.onFocus?.()
+          return
+        case 'blurred':
+          instance.onBlur?.()
+          return
+        case 'resized': {
+          const s = this.wm.get(id)
+          if (s) instance.onResize?.(s.rect.w, s.rect.h)
+          return
+        }
+        case 'closed':
+          instance.destroy()
+          un()
+          return
+        default:
+          return
+      }
+    })
+    this.teardowns.push(un)
+    return un
+  }
+
   openWindow(title?: string): WindowId {
     this.untitledCount++
     return this.wm.open({
@@ -316,6 +398,7 @@ export class Shell {
   destroy(): void {
     this.menus.closeAll()
     this.capture.releaseAll()
+    this.budget.destroy()
     for (let i = this.teardowns.length - 1; i >= 0; i--) this.teardowns[i]?.()
     this.teardowns.length = 0
   }
@@ -337,6 +420,7 @@ export class Shell {
     const api: ShellRegionHost = {
       wm: this.wm,
       menus: this.menus,
+      budget: this.budget,
       commands: this.commands,
       accelFor: (command) => this.accelFor(command),
       openMenu: (spec, x, y) => this.menus.open(spec, x, y),

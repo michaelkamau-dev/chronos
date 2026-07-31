@@ -19,6 +19,7 @@ import type { GestureController } from '../wm/drag.js'
 import type { CaptureStack } from './capture.js'
 import type { CommandRegistry } from './commands.js'
 import type { KeymapStack } from './keymap.js'
+import type { RenderBudget } from './render-budget.js'
 import { FocusScope } from './focus.js'
 
 export type HitKind =
@@ -67,6 +68,17 @@ export class Dispatcher {
   private readonly capture: CaptureStack
   private readonly keymaps: KeymapStack
   private readonly commands: CommandRegistry
+  /**
+   * The frame clock, poked on every interaction.
+   *
+   * An era that throttles the display below the refresh rate has to come back to
+   * full rate the moment it is touched, or every interaction waits out a frame
+   * period before anything moves. Poking from here rather than from a skin means an
+   * era gets that for free and cannot forget it — the same reasoning that put the
+   * reduced-motion check in the window manager. `poke()` does nothing at all when no
+   * target rate is set, which is every era but one.
+   */
+  private readonly budget: RenderBudget
   private readonly hooks: DispatcherHooks
   readonly focusScope = new FocusScope()
 
@@ -108,6 +120,7 @@ export class Dispatcher {
     capture: CaptureStack
     keymaps: KeymapStack
     commands: CommandRegistry
+    budget: RenderBudget
     hooks?: DispatcherHooks
   }) {
     this.root = opts.root
@@ -116,6 +129,7 @@ export class Dispatcher {
     this.capture = opts.capture
     this.keymaps = opts.keymaps
     this.commands = opts.commands
+    this.budget = opts.budget
     this.hooks = opts.hooks ?? {}
 
     this.bound = {
@@ -225,6 +239,7 @@ export class Dispatcher {
   // ------------------------------------------------------------------ pointer
 
   private onPointerDown(e: PointerEvent): void {
+    this.budget.poke()
     const x = this.toLogicalX(e.clientX)
     const y = this.toLogicalY(e.clientY)
 
@@ -369,6 +384,7 @@ export class Dispatcher {
   // --------------------------------------------------------------------- keys
 
   private onKeyDown(e: KeyboardEvent): void {
+    this.budget.poke()
     const top = this.capture.top()
     if (top?.onKeyDown?.(e)) {
       e.preventDefault()
@@ -419,6 +435,7 @@ export class Dispatcher {
   }
 
   private onWheel(e: WheelEvent): void {
+    this.budget.poke()
     const top = this.capture.top()
     if (top?.onWheel?.(e)) e.preventDefault()
   }

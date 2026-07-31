@@ -37,6 +37,8 @@ export class DirectoryView {
 
   private cwd: NodeId
   private unwatch: (() => void) | null = null
+  /** Frozen by `suspend()`. See the method for what is stopped and what is kept. */
+  private suspended = false
   private selected: NodeId | null = null
   /** Guards against overlapping renders when events arrive during a read. */
   private renderToken = 0
@@ -120,6 +122,50 @@ export class DirectoryView {
     await this.render()
   }
 
+  /**
+   * Stop computing, keeping every piece of state.
+   *
+   * `AppInstance.suspend()` in `core/app/types.ts`, implemented here because an era
+   * exists whose entire premise is that unfocused work stops, and a contract with no
+   * implementation is untested code — the lesson `MinimizeStyle`'s unexercised
+   * `'collapse'` member taught, which was wrong at all three of its decision sites
+   * until an era finally declared it.
+   *
+   * What actually stops is the filesystem watch, which is this view's only live
+   * subscription and therefore its only way of doing work while nobody is looking at
+   * it. What is kept is everything a person would notice losing: the current folder,
+   * the selection, the scroll position and any unsaved text in the editor. That last
+   * one is the point — the DOM stays mounted, so the textarea keeps its value,
+   * cursor and selection without this method touching them.
+   *
+   * **Scope, stated rather than implied.** This is one harness view. The phase-5 gate
+   * is that all six apps survive the round trip with state intact — Paint's undo
+   * stack, the editor's cursor and selection, the terminal's scrollback — verified per
+   * app. This proves the contract is wireable and nothing more.
+   */
+  suspend(): void {
+    if (this.suspended) return
+    this.suspended = true
+    // The watch is dropped rather than merely ignored: a suspended view that kept its
+    // subscription would still be woken by every sibling window's write, which is
+    // exactly the background work the contract exists to stop.
+    this.unwatch?.()
+    this.unwatch = null
+  }
+
+  /** Resume, and re-read once because the folder may have changed while stopped. */
+  resume(): void {
+    if (!this.suspended) return
+    this.suspended = false
+    this.rewatch()
+    void this.render()
+  }
+
+  /** True while suspended. Read by the fidelity suite to prove the round trip. */
+  isSuspended(): boolean {
+    return this.suspended
+  }
+
   destroy(): void {
     this.unwatch?.()
     this.unwatch = null
@@ -161,6 +207,11 @@ export class DirectoryView {
    */
   private rewatch(): void {
     this.unwatch?.()
+    this.unwatch = null
+    // A suspended view arms nothing. Navigation and error recovery both call this,
+    // and either re-subscribing while suspended would quietly restart the background
+    // work `suspend()` exists to stop.
+    if (this.suspended) return
     this.unwatch = this.fs.watch(this.cwd, () => {
       void this.render()
     })

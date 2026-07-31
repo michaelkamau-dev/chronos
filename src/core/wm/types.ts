@@ -84,7 +84,31 @@ export interface ChromeMetrics {
   minimizeStyle: MinimizeStyle
 }
 
-export type ProvenanceLevel = 'documented' | 'measured' | 'derived' | 'unverified'
+/**
+ * Where a metric came from.
+ *
+ * Five eras are archaeology and their values are `documented` (the vendor's prose),
+ * `measured` (the vendor's pixels), `derived` (arithmetic over one of those) or
+ * `unverified` (stated as unknown rather than invented).
+ *
+ * **`authored` is the sixth era's level and only the sixth era's.** ARCHITECTURE.md
+ * §8 is a specification rather than a source: its numbers are normative because they
+ * were written, not uncertain because they were found. That is a genuinely different
+ * epistemic status from the other four and collapsing it into `derived` would lose
+ * it — a reader could not tell "the spec says the gutter is 40px" from "40px is what
+ * the arithmetic gave".
+ *
+ * It means *the spec states this value*. It does not mean "I chose this value": a
+ * number the spec does not state is `derived`, with the derivation in the note, and
+ * the moment `authored` starts absorbing free choices it stops carrying any signal
+ * at all — which is the one job provenance has.
+ */
+export type ProvenanceLevel =
+  | 'documented'
+  | 'measured'
+  | 'derived'
+  | 'authored'
+  | 'unverified'
 
 export interface ProvenanceEntry {
   level: ProvenanceLevel
