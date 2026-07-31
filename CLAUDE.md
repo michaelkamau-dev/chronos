@@ -644,3 +644,23 @@ Append every correction I make here as a permanent rule. Never delete entries.
   the HTML attribute for an in-box form hint fails the build on legitimate DOM use — *and* on any
   comment explaining why. Route around it rather than weakening a rule that has earned its place,
   and describe the attribute instead of naming it.
+
+### …and the answer was to narrow the guard, not to route around it
+- The entry above is left standing because it was the right call *that day* and the log is
+  never rewritten. It was the wrong call for the project: phase 5 is six apps with text
+  fields, so a guard that fires on `input.placeholder` would have been fought once per app
+  and then disabled by whoever got tired first. **A rule everyone works around is already
+  weakened; it just has not been admitted yet.**
+- The narrowing is structural rather than a longer exception list. `placeholder` is a
+  *word* in prose and an *identifier* in code, so the two are scanned by different rules:
+  code is not scanned for the word at all (there is no way to write a stub marker in code
+  that is the bare word — a stub marker in code is a comment), and comments are scanned
+  minus the spans that name the API. `TODO|FIXME|XXX|HACK`, "in a real implementation" and
+  "for now, " still scan raw text everywhere, because none of them has a legitimate use.
+- **A guard that has just been narrowed is exactly when to ask whether it can still fail.**
+  It ships with a table of eleven cases it must still catch and twelve it must now let
+  through, and the narrowing was additionally proved by appending real stubs to a real
+  source file and watching the build break. Third time this rule has earned its place.
+- The same scan was reading WOFF2 files as UTF-8 and regex-matching the result. Binary
+  assets are skipped now — as a denylist of known binary extensions, not an allowlist of
+  text ones, so a new text format is still scanned.

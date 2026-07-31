@@ -170,18 +170,208 @@ test('the drag hot path reads no layout', () => {
   assert.deepEqual(found, [], `drag.ts must not read layout. Found: ${found.join(', ')}`)
 })
 
-test('no placeholder markers anywhere in src', () => {
-  const banned = /\b(TODO|FIXME|XXX|HACK)\b|placeholder|in a real implementation|for now, /i
+/**
+ * Markers that mean "this is not finished", wherever they appear.
+ *
+ * Scanned against the raw line, comments included, because a stub marker in a comment
+ * is the commonest kind by far. None of these has a legitimate use in this codebase.
+ */
+const STUB_MARKERS = /\b(TODO|FIXME|XXX|HACK)\b|in a real implementation|for now, /i
+
+/**
+ * The word `placeholder`, in the sense that means unfinished work.
+ *
+ * This one needs its own treatment because it collides with a real DOM API — the HTML
+ * attribute, the matching element property, the `::placeholder` pseudo-element and the
+ * `:placeholder-shown` pseudo-class. The first version of this guard banned the bare
+ * word against raw text, which fired on every legitimate use *and* on any comment
+ * explaining one. Six apps with text fields would have hit it constantly.
+ *
+ * The narrowing is structural rather than a longer list of exceptions:
+ *
+ * - **Code is not scanned for the word at all.** In JavaScript, TypeScript and CSS the
+ *   token is only ever the identifier. There is no way to write a stub marker in code
+ *   that is the bare word — a stub marker in code is a comment, and comments are still
+ *   scanned. The markers above still cover a string that announces itself unfinished.
+ * - **Comments are scanned**, minus the spans that are naming the API rather than
+ *   describing missing work: anything inside backticks (this codebase's own convention
+ *   for a code reference in prose), a member or pseudo-element form, and the word
+ *   followed by `attribute`, `property` or `pseudo`.
+ *
+ * So `// placeholder` and `// a placeholder implementation` still fail the build, and
+ * `input.placeholder = 'Search'`, `::placeholder`, and `// the placeholder attribute
+ * vanishes as soon as you type` all pass.
+ */
+const STUB_WORD = /\bplaceholders?\b/i
+
+function withoutApiReferences(comment) {
+  return (
+    comment
+      // A backticked code reference. The repo writes `data-menu` and `suspend()` this
+      // way throughout, so naming the attribute in prose costs nothing.
+      .replace(/`[^`]*`/g, ' ')
+      // el.placeholder, dataset.placeholder, ::placeholder, :placeholder-shown
+      .replace(/(\.|::|:)placeholder\b/gi, ' ')
+      // The attribute as it is actually written, quoted inside prose or not.
+      .replace(/\bplaceholder(?=\s*=)/gi, ' ')
+      // Prose that names the feature rather than describing work that is missing.
+      .replace(/\bplaceholder(?=\s+(attribute|property|pseudo|element))/gi, ' ')
+  )
+}
+
+/**
+ * Splits a source file into per-line code and comment text.
+ *
+ * `stripComments` above answers "what does the code say"; this answers it per line and
+ * keeps the comment text too, which is what lets the two halves be scanned by different
+ * rules without losing the line number an offence has to report.
+ *
+ * It does not understand regex literals, exactly as `stripComments` does not. The
+ * failure mode is a code span read as a comment, which can only make this stricter —
+ * never laxer — so it is the safe direction to be wrong in.
+ */
+function splitLines(src) {
+  const lines = src.split('\n').map(() => ({ code: '', comment: '' }))
+  let line = 0
+  let i = 0
+  const n = src.length
+  let inBlock = false
+  const push = (key, ch) => {
+    if (ch === '\n') {
+      line++
+      return
+    }
+    if (lines[line]) lines[line][key] += ch
+  }
+  while (i < n) {
+    const c = src[i]
+    const next = src[i + 1]
+    if (inBlock) {
+      if (c === '*' && next === '/') {
+        inBlock = false
+        i += 2
+        continue
+      }
+      push('comment', c)
+      i++
+      continue
+    }
+    if (c === '/' && next === '/') {
+      i += 2
+      while (i < n && src[i] !== '\n') {
+        push('comment', src[i])
+        i++
+      }
+      continue
+    }
+    if (c === '/' && next === '*') {
+      inBlock = true
+      i += 2
+      continue
+    }
+    if (c === '"' || c === "'" || c === '`') {
+      const quote = c
+      push('code', c)
+      i++
+      while (i < n) {
+        if (src[i] === '\\') {
+          push('code', src[i])
+          push('code', src[i + 1] ?? '')
+          i += 2
+          continue
+        }
+        push('code', src[i])
+        if (src[i] === quote) {
+          i++
+          break
+        }
+        i++
+      }
+      continue
+    }
+    push('code', c)
+    i++
+  }
+  return lines
+}
+
+/** Binary assets. Reading a WOFF2 as text and regex-scanning it is noise, not a check. */
+const BINARY = /\.(woff2?|ttf|otf|eot|png|jpe?g|gif|webp|ico|avif|mp3|wav|pdf)$/i
+
+test('no stub markers anywhere in src', () => {
   const offences = []
   for (const file of walk(SRC)) {
+    if (BINARY.test(file)) continue
     const text = readFileSync(file, 'utf8')
-    const lines = text.split('\n')
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-      if (banned.test(line)) offences.push(`${rel(file)}:${i + 1}: ${line.trim()}`)
+    const raw = text.split('\n')
+    const split = splitLines(text)
+    for (let i = 0; i < raw.length; i++) {
+      const line = raw[i]
+      const comment = split[i]?.comment ?? ''
+      const hit =
+        STUB_MARKERS.test(line) || STUB_WORD.test(withoutApiReferences(comment))
+      if (hit) offences.push(`${rel(file)}:${i + 1}: ${line.trim()}`)
     }
   }
-  assert.deepEqual(offences, [], 'Placeholder markers found:\n' + offences.join('\n'))
+  assert.deepEqual(offences, [], 'Stub markers found:\n' + offences.join('\n'))
+})
+
+/**
+ * The guard is tested against a table, in both directions.
+ *
+ * `CLAUDE.md`: *a guard that cannot fail is not a guard* — learned twice, once on the
+ * vsync-multiple check and once on the Ledger face gate, both of which passed
+ * everything put to them. A guard that has just been **narrowed** is exactly when that
+ * question needs asking again, so the cases it must still catch are written down beside
+ * the cases it must now let through.
+ */
+test('the stub-marker scan fires on stubs and not on the DOM attribute', () => {
+  const scan = (src) => {
+    const raw = src.split('\n')
+    const split = splitLines(src)
+    return raw.some(
+      (line, i) =>
+        STUB_MARKERS.test(line) ||
+        STUB_WORD.test(withoutApiReferences(split[i]?.comment ?? '')),
+    )
+  }
+
+  const mustFire = [
+    '// TODO: wire this up',
+    '/* FIXME */',
+    'const x = 1 // HACK: works by accident',
+    '// XXX',
+    '// in a real implementation this would hit the network',
+    '// for now, return an empty list',
+    '// placeholder',
+    '// a placeholder implementation until the real one lands',
+    '/*\n * placeholder\n */',
+    '// leaves a placeholder here',
+    "throw new Error('TODO')",
+  ]
+  const mustNotFire = [
+    "input.placeholder = 'Search'",
+    'el.setAttribute("placeholder", label)',
+    'const html = `<input placeholder="Search">`',
+    'input::placeholder { color: red; }',
+    'input:placeholder-shown { opacity: 1; }',
+    'ui.textField({ label, placeholder })',
+    "ui.textField({ placeholder: 'Search' })",
+    '// the placeholder attribute vanishes as soon as you type',
+    '// its placeholder property is read-only in this era',
+    '// `placeholder` is spelled the same as a marker this file bans',
+    '/* Style the ::placeholder pseudo-element to the era ink. */',
+    '// the placeholder pseudo-class matches an empty field',
+  ]
+
+  const missed = mustFire.filter((s) => !scan(s))
+  const spurious = mustNotFire.filter((s) => scan(s))
+  assert.deepEqual(missed, [], 'stub markers the scan no longer catches:\n' + missed.join('\n'))
+  assert.deepEqual(
+    spurious,
+    [],
+    'legitimate DOM use the scan still rejects:\n' + spurious.join('\n'),
+  )
 })
 
 test('every skin ships metrics and a complete provenance record', () => {

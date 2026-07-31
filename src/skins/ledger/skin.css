@@ -680,7 +680,7 @@
   color: var(--lg-paper);
 }
 
-/* The index field's visible label. This era labels rather than hints: an in-box hint
+/* The index field's visible label. This era labels rather than hints: a `placeholder`
  * vanishes as soon as you type, which is the wrong behaviour for a field whose entire
  * content is an account number. */
 .lg-index-label {
