@@ -1858,3 +1858,253 @@ Written into ARCHITECTURE.md §14 and CLAUDE.md as well as here, because the fai
 is a session seeing a red pacing number and treating it as a regression. The next session
 that wants pacing back should add an instrument that attributes a dropped frame to our
 code — `longTasks` already is one — rather than a fourth percentile.
+
+---
+
+## Phase 4, era/ledger — the authored era
+
+### 4.52 `authored` is a fifth provenance level, and it means "the spec states this"
+
+**Call.** `ProvenanceLevel` gains `'authored'`. It is used only by Ledger, and only for
+values `docs/ARCHITECTURE.md` §8 actually states. Everything §8 does not state is
+`derived`, with the arithmetic written into the note.
+
+**Reasoning.** §8 describes itself as "an authored spec sheet — the one place in Chronos
+where a number is normative because I wrote it rather than uncertain because I found it."
+That is a different epistemic status from all four existing levels: it is not a vendor's
+prose (`documented`), not a vendor's pixels (`measured`), not arithmetic over one of
+those (`derived`), and emphatically not unknown (`unverified`). Folding it into `derived`
+would lose the distinction a reader most needs — "the spec says the gutter is 40px"
+against "40px is what the arithmetic gave".
+
+The policy was raised before any chrome was built, because the alternative reading was
+available and would have destroyed the signal: tagging *every* number in the skin
+`authored` on the grounds that the era is invented. That makes `authored` mean "I picked
+this", which is exactly what provenance exists to distinguish from everything else. Seven
+values are `authored`, one is `unverified`, and the rest are `derived` with their
+derivations shown.
+
+**Consequence.** Reported as a contract addition. It is the third §8 cost — §8 predicted
+two and this is the one it did not.
+
+### 4.53 The face gate could not fail, and fixing it produced the derivation
+
+**Call.** `tools/font-compare/ledger-publicsans.mjs` gates on `stem >= cell`, established
+by a proof run over the Bayer matrix itself, and the empirical severed-run count is
+demoted to a reported curve.
+
+**Reasoning.** The first instrument rendered the era's real strings, applied the first
+bleach band, and counted ink runs retaining zero pixels. Six faces from Inter 700 to
+Archivo Black, ten sizes each: **sixty rows of zero**. `CLAUDE.md` names the failure —
+*a guard that cannot fail is not a guard* — and the cause was arithmetic rather than
+typographic. At band 1 the threshold knocks out four of sixteen cells and no Bayer row
+loses more than two of its four columns, so any run three pixels wide or more survives.
+The instrument was measuring the matrix, not the face.
+
+What discriminates is a stroke's width *along a row*: a run dies only when every one of
+its Bayer columns falls below the threshold, and every row of a vertical stem is a run
+one stem wide. Each Bayer row keeps one value at or above 10, so a four-pixel run covers
+all four residues and cannot be severed. The tool now *runs* that as a table rather than
+asserting it in a comment.
+
+**Consequence.** The gate demonstrably fails: Public Sans **Bold** does not reach a 4px
+rasterised stem until 26px, which settles empirically that §8's "type is heavy" means
+Black. Archivo Black passes 3px earlier and was still rejected — its rasterised stem is
+4,4,4,**3**,4 across 15–19px, a hole at exactly the size in question, where Public Sans
+Black has none at or above 18px. That tiebreak is objective and would not have existed
+without the fixed instrument.
+
+### 4.54 Bayer's lower half is the even sublattice, so the parity test cannot tell an ordered dither from the stipple
+
+**Call.** Ledger's disabled text is a **voided ledger line** — the label in carbon,
+struck with a 4px amber rule — not a dithered tone. `ledger-fidelity.spec.ts` runs
+`measureParity` against it and requires it to *fail* to find a checkerboard.
+
+**Reasoning.** `CLAUDE.md` forbids the stipple here: the mechanism governs System 1 and
+Windows 3.1 only, Mac OS 8 already dropped it, and an era fifty years later inheriting it
+would be a costume. The obvious replacement, given §8's ordered dither, is the label at a
+reduced ink level. It cannot be, and the reason is a property of the construction rather
+than a matter of taste.
+
+**Bayer's lower half is exactly the even `(x + y)` sublattice, at every cell size.** The
+recursion places `4v`, `4v+2`, `4v+3`, `4v+1` at the four corners of each quadrant and
+the two even-parity corners always take the two lower values, so for a 4x4 matrix values
+`0..7` sit on even parity and `8..15` on odd. An ordered dither at or below 50% ink is
+therefore pixel-for-pixel a checkerboard — and `measureParity`, the discriminator that
+proves `notPatBic` on Apple's bitmap and `GrayString` on Microsoft's, would have reported
+a 2035 era as wearing a 1984 mechanism. The test would have *agreed* with the mistake.
+
+A tone above 50% does break parity but barely reads as unavailable, trading a real signal
+for a technicality.
+
+**Consequence.** The voided line is premise-driven rather than styled — an unavailable
+command is a voided line item in an OS that presents itself as an account — and it is
+unmistakably not a stipple by any instrument. Recorded in `CLAUDE.md` because the trap
+generalises: any future era reaching for an ordered dither to express a disabled state
+will hit it.
+
+### 4.55 The 40px gutter is `border.right`, so §8's claim needs no contract addition
+
+**Call.** The cost gutter is declared to the window manager as part of `border.right` —
+4px frame plus 40px strip — rather than as a new field or a new region kind.
+
+**Reasoning.** §8's compromise is that the gutter "makes every layout in the OS 40px
+narrower than it wants to be". `WindowManager.chromeExtra()` already subtracts
+`border.left + border.right` from the content area when computing a window's minimum
+size, and the skin already owns where inside the frame it paints. So declaring the strip
+as border makes the claim *true* — every app gets a narrower box, the resize maths are
+right, and the window manager never learns that a regulatory disclosure exists.
+
+**Consequence.** One of three things that looked like they would need core changes and
+did not, alongside the suspension policy (a skin timer calling the era-neutral
+`wm.suspend`) and the Steward (`wm.open({ modalOwner })`). §8 predicted two additions and
+those three were the candidates for a third; none of them was.
+
+### 4.56 The rounding-up is a consequence of the column width, not a flourish
+
+**Call.** Gutter values are squeezed to three characters and rounded **up**, and the
+`+` mark says so on every rounded entry.
+
+**Reasoning.** §8 states the 40px strip and separately states that "the OS rounds every
+cost up and tells you it did, in the gutter, every time", without connecting them. They
+are the same fact: 40px less the 4px frame rule leaves 36, and 36px of 18px Public Sans
+Black holds three glyphs and no more. Every value is squeezed because the disclosure
+column is too narrow for the OS's own numbers, and squeezing upward is the choice a
+billing authority makes. The pettiness §8 asks for turns out to be a consequence rather
+than a decoration — a construction beating a number, the same shape as System 1's
+pull-down origin.
+
+**Consequence.** The mark is `+` and not `▲`, decided from the subset's coverage before
+the chrome was written rather than after a fringe test caught it. Public Sans carries no
+U+25B2.
+
+### 4.57 The governor is one clock with a priority lane, and it sleeps rather than dropping frames
+
+**Call.** `core/input/render-budget.ts` owns the only `requestAnimationFrame` in the
+system. `GestureController` takes its frames from the governor's unthrottled **priority
+lane**; everything else obeys the target rate. Below a frame period the governor sleeps
+on a timer and takes one rAF to land on a vsync boundary.
+
+**Reasoning.** Three things, none stylistic.
+
+*Throttling is not frame-dropping.* Waking sixty times a second to discard fifty-nine is
+the same main-thread work with less to show for it. An era whose premise is joules cannot
+implement its own headline behaviour as a no-op with extra steps. At 1Hz this is about
+one wakeup a second, and `sleptMs` is asserted to grow.
+
+*A private rAF cannot be counted.* The gutter bills from frames actually painted, so a
+loop the governor cannot see is work the accounting misses. Routing the drag loop through
+the governor is what makes a drag's cost real rather than invisible.
+
+*Direct manipulation is never throttled*, and that is §8's own sentence — "Rationing did
+not delete direct manipulation." A drag delivered at 1Hz is not a drag. The lane is a
+single slot rather than a list because pointer capture guarantees one gesture, and a slot
+costs one branch per frame where a list costs an iterator.
+
+**Consequence.** The perf gate was the risk and it is unmoved: `scriptPerFrame` 0.686ms
+against a 3ms bound, `longTasks=0`, `layouts=1`, squarely inside the 0.27–0.94ms band
+every previous run has reported. `poke()` lives in the dispatcher rather than in a skin,
+so an era gets burst-on-interaction for free and cannot forget it — the same reasoning
+that put the reduced-motion check in the window manager.
+
+### 4.58 `suspend()`/`resume()` is routed by the shell, and what is *not* verified is stated
+
+**Call.** `core/app/types.ts` declares `AppInstance` with `suspend()` and `resume()`
+**required, not optional**. `Shell.registerApp` routes the window manager's
+`suspended`/`resumed` events onto the instance. The harness directory view implements it.
+
+**Reasoning.** Required rather than optional because the asymmetry with `onFocus?()`
+beside it is real: focus is a notification an app may ignore, suspension is not. An era
+exists whose entire thesis is that unfocused work stops, and `CLAUDE.md` states the
+obligation as a correctness requirement. An optional method is one an app can forget, and
+the symptom of forgetting is a media player that keeps drawing while suspended — which
+looks like nothing until someone counts frames. Making it required turns that into a
+compile error, the mechanism §5 already uses to force all five widget states.
+
+The routing is in the shell because §2's first invariant is that the window manager knows
+nothing about apps. The WM owns `WindowState.suspended` — a fact about a *window* — and
+the shell is the only layer permitted to know both that and an instance.
+
+**Consequence, stated rather than implied.** This is **one harness view**, not six apps.
+The phase-5 gate is that every app survives the round trip with state intact — Paint's
+undo stack, the editor's cursor and selection, the terminal's scrollback — verified per
+app. What exists now proves the contract is wireable and nothing more, and saying so is
+the same discipline `MinimizeStyle`'s unexercised `'collapse'` member earned: a union
+member no era had declared was untested code, and every site that switched on it was
+wrong in a way nothing failed on.
+
+### 4.59 The Steward is a modal window, which makes the satire structural
+
+**Call.** The Steward opens as `wm.open({ modalOwner: target, closable: false })` rather
+than as a bespoke overlay with a new z-layer.
+
+**Reasoning.** §8 describes it as interrupting "to propose closing your work", which is
+not a system notice — it is an interruption *about* one window, and blocking that window
+while it asks is what makes a proposal feel like a demand. The window manager already
+implements exactly that: real `inert` blocking, focus redirect, and the era-correct
+rejection feedback for clicking through. Adding an alert layer to `base.css` for one
+consumer would have been inventing a mechanism that already existed.
+
+It also produces the best single expression of the era's thesis without writing a line
+about it: the Steward is a window, Ledger's chrome gives every window a 40px disclosure
+strip, so **the assistant that interrupts to complain about what your work costs shows
+what interrupting you costs.** A test asserts its gutter is there.
+
+**Consequence.** §8's "smallest target on screen" is honoured in the pointer target —
+12px, and a test asserts nothing on screen is smaller — while the keyboard path stays
+full size: a real button in the tab order, the era's full 4px focus ring, and Escape
+defers. A target that is merely small is an era being unpleasant; one that is unreachable
+is an era being broken, and `CLAUDE.md` forbids only the second. The 20-minute threshold
+is driven with Playwright's clock rather than waited out, so the era's most specified
+behaviour is verified rather than assumed.
+
+### 4.60 The model-call line reads zero, because nothing in phase 4 calls a model
+
+**Call.** The gutter's middle entry shows `0 mc` and will until an app makes a call.
+
+**Reasoning.** §8's premise is that "every search, every autocomplete, every 'what was I
+doing' is a model call". Phase 4 has no apps, so there is nothing that would call one. A
+number that climbed on a timer would look better in a screenshot and would be a lie — in
+the one strip whose entire stated purpose is disclosure, in an era whose thesis is that
+the OS does not hide the machine from you.
+
+**Consequence.** The joule figure is the opposite case and is stated as such: the frame
+counts are real and measured, the joules-per-frame coefficient is invented because no
+browser can measure a device's draw. The two coefficients are calibrated so that a session
+resembling §8's own example — `Letter — 3.1 kJ — 14 min` — produces §8's number, which is
+the closest thing this era has to a source figure.
+
+### 4.61 The refresh band is a region that reserves no space
+
+**Call.** The band is a second `ShellRegion`, `edge: 'top'`, `reservesSpace: false`,
+moved by a transform written from the governor's tick.
+
+**Reasoning.** A band that travels down the screen *is* an edge-anchored strip whose
+position changes, so the region contract expresses it with nothing added — and it is the
+first consumer of `reservesSpace: false`, which existed since Tiger and had never been
+exercised. A region that claimed 64px would push every window down for chrome that paints
+over them and moves on.
+
+**Consequence.** The band steps one band-height per delivered frame rather than sweeping,
+which is not a compromise: at 1Hz the governor delivers one frame per second, so a
+stepping band is the only thing physically available, and it is what a panel doing partial
+refreshes looks like. Under a burst it moves every frame and reads as a fast sweep — §8's
+"burst mode looks and behaves differently" out of one mechanism instead of two. The band
+is a direct readout of the governor, which is the throttle made visible.
+
+### 4.62 The collision decorator must not move the extension, and a test caught that it did
+
+**Call.** `ledgerNameDecorator` inserts its suffix *before* the extension:
+`Report.txt` → `Report 2.txt`, not `Report.txt 2`.
+
+**Reasoning.** The first version appended to the whole name, which is what the era's own
+display would suggest — Ledger keeps extensions and shows `#04412 report.txt`. The
+fidelity test caught it, and the correction is the mistake log's own rule: ask whether
+every consumer wanted the thing. The *stored* name is shared by all six eras. XP reads
+the extension to pick an icon, Windows 3.1 coerces it to 8.3, and both classic Mac codecs
+hide it — all from the same string. The era owns the decoration; it does not own the
+shape of the name.
+
+**Consequence.** The decoration is still this era's own — a plain ` 2`, not XP's ` (2)`
+and not the classic Mac's ` copy` — because a ledger that already numbers every entry has
+no collision to dress up.

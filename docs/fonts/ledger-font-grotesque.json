@@ -1,0 +1,1590 @@
+{
+  "cell": 4,
+  "bands": [
+    4,
+    8,
+    10,
+    12
+  ],
+  "gateLevel": 10,
+  "gateWidth": 4,
+  "matrix": [
+    [
+      0,
+      8,
+      2,
+      10
+    ],
+    [
+      12,
+      4,
+      14,
+      6
+    ],
+    [
+      3,
+      11,
+      1,
+      9
+    ],
+    [
+      15,
+      7,
+      13,
+      5
+    ]
+  ],
+  "proof": [
+    {
+      "level": 4,
+      "width": 1,
+      "severable": true
+    },
+    {
+      "level": 4,
+      "width": 2,
+      "severable": false
+    },
+    {
+      "level": 4,
+      "width": 3,
+      "severable": false
+    },
+    {
+      "level": 4,
+      "width": 4,
+      "severable": false
+    },
+    {
+      "level": 4,
+      "width": 5,
+      "severable": false
+    },
+    {
+      "level": 4,
+      "width": 6,
+      "severable": false
+    },
+    {
+      "level": 8,
+      "width": 1,
+      "severable": true
+    },
+    {
+      "level": 8,
+      "width": 2,
+      "severable": false
+    },
+    {
+      "level": 8,
+      "width": 3,
+      "severable": false
+    },
+    {
+      "level": 8,
+      "width": 4,
+      "severable": false
+    },
+    {
+      "level": 8,
+      "width": 5,
+      "severable": false
+    },
+    {
+      "level": 8,
+      "width": 6,
+      "severable": false
+    },
+    {
+      "level": 10,
+      "width": 1,
+      "severable": true
+    },
+    {
+      "level": 10,
+      "width": 2,
+      "severable": true
+    },
+    {
+      "level": 10,
+      "width": 3,
+      "severable": true
+    },
+    {
+      "level": 10,
+      "width": 4,
+      "severable": false
+    },
+    {
+      "level": 10,
+      "width": 5,
+      "severable": false
+    },
+    {
+      "level": 10,
+      "width": 6,
+      "severable": false
+    },
+    {
+      "level": 12,
+      "width": 1,
+      "severable": true
+    },
+    {
+      "level": 12,
+      "width": 2,
+      "severable": true
+    },
+    {
+      "level": 12,
+      "width": 3,
+      "severable": true
+    },
+    {
+      "level": 12,
+      "width": 4,
+      "severable": true
+    },
+    {
+      "level": 12,
+      "width": 5,
+      "severable": true
+    },
+    {
+      "level": 12,
+      "width": 6,
+      "severable": true
+    }
+  ],
+  "paper": "#F2EFE6",
+  "carbon": "#1B1714",
+  "strings": [
+    "Letter — 3.1 kJ — 14 min",
+    "Files - you/documents",
+    "#04412 letter",
+    "3.1 kJ  +  0 mc  +  14 min",
+    "ROUNDED UP",
+    "You haven’t touched Untitled 3 in 20 minutes. Shall I settle it?",
+    "Settle  Defer",
+    "Close  Minimize  Suspend",
+    "0123456789 kJ mc min"
+  ],
+  "verdicts": [
+    {
+      "face": "Archivo Black",
+      "licence": "SIL OFL 1.1",
+      "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/archivoblack/ArchivoBlack-Regular.ttf",
+      "note": "The heaviest plain grotesque in the library, as the survival ceiling.",
+      "passesAt": 15,
+      "stemAtPass": 4,
+      "thinAtPass": 2,
+      "rows": [
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 10,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1512,
+          "severed": [
+            18,
+            39,
+            288,
+            766
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 11,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1537,
+          "severed": [
+            12,
+            21,
+            253,
+            789
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 12,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1829,
+          "severed": [
+            4,
+            12,
+            184,
+            763
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 13,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1834,
+          "severed": [
+            2,
+            5,
+            298,
+            1082
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 14,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2109,
+          "severed": [
+            3,
+            4,
+            238,
+            1064
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 15,
+          "stem": 4,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2116,
+          "severed": [
+            3,
+            5,
+            217,
+            1049
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 16,
+          "stem": 4,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2372,
+          "severed": [
+            1,
+            2,
+            175,
+            1059
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 17,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2383,
+          "severed": [
+            1,
+            2,
+            143,
+            1324
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 18,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2669,
+          "severed": [
+            0,
+            1,
+            89,
+            1363
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 19,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2655,
+          "severed": [
+            1,
+            1,
+            70,
+            1289
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 20,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2900,
+          "severed": [
+            0,
+            0,
+            38,
+            1393
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 21,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 2,
+          "runs": 2901,
+          "severed": [
+            0,
+            0,
+            16,
+            1506
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 22,
+          "stem": 5,
+          "thin": 3,
+          "minRun": 2,
+          "runs": 3184,
+          "severed": [
+            0,
+            0,
+            18,
+            1612
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 24,
+          "stem": 5,
+          "thin": 3,
+          "minRun": 2,
+          "runs": 3499,
+          "severed": [
+            0,
+            0,
+            20,
+            1631
+          ]
+        },
+        {
+          "face": "Archivo Black",
+          "weight": 400,
+          "px": 26,
+          "stem": 6,
+          "thin": 4,
+          "minRun": 2,
+          "runs": 3770,
+          "severed": [
+            0,
+            0,
+            7,
+            1906
+          ]
+        }
+      ]
+    },
+    {
+      "face": "Public Sans Black",
+      "licence": "SIL OFL 1.1",
+      "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/publicsans/PublicSans%5Bwght%5D.ttf",
+      "note": "The US Web Design System face. Its origin is a government form, which is what the cost gutter legally is — §8 calls the strip \"a regulatory disclosure, not a preference\".",
+      "passesAt": 18,
+      "stemAtPass": 4,
+      "thinAtPass": 3,
+      "rows": [
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 10,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1299,
+          "severed": [
+            23,
+            54,
+            294,
+            749
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 11,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1509,
+          "severed": [
+            13,
+            30,
+            273,
+            772
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 12,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1513,
+          "severed": [
+            3,
+            9,
+            234,
+            767
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 13,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1882,
+          "severed": [
+            5,
+            8,
+            307,
+            1038
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 14,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2149,
+          "severed": [
+            5,
+            9,
+            292,
+            1130
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 15,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2158,
+          "severed": [
+            2,
+            5,
+            217,
+            1033
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 16,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2383,
+          "severed": [
+            2,
+            4,
+            168,
+            1095
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 17,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2384,
+          "severed": [
+            4,
+            5,
+            192,
+            1291
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 18,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2690,
+          "severed": [
+            2,
+            6,
+            160,
+            1364
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 19,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2696,
+          "severed": [
+            1,
+            3,
+            90,
+            1337
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 20,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2972,
+          "severed": [
+            1,
+            3,
+            62,
+            1423
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 21,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2977,
+          "severed": [
+            2,
+            2,
+            46,
+            1550
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 22,
+          "stem": 5,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3228,
+          "severed": [
+            1,
+            2,
+            27,
+            1611
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 24,
+          "stem": 4,
+          "thin": 4,
+          "minRun": 1,
+          "runs": 3528,
+          "severed": [
+            0,
+            0,
+            17,
+            1701
+          ]
+        },
+        {
+          "face": "Public Sans Black",
+          "weight": 900,
+          "px": 26,
+          "stem": 5,
+          "thin": 4,
+          "minRun": 1,
+          "runs": 3792,
+          "severed": [
+            0,
+            1,
+            10,
+            1925
+          ]
+        }
+      ]
+    },
+    {
+      "face": "Work Sans 800",
+      "licence": "SIL OFL 1.1",
+      "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/worksans/WorkSans%5Bwght%5D.ttf",
+      "note": "A second heavy grotesque, to show the survival number is a property of the weight rather than of one family.",
+      "passesAt": 18,
+      "stemAtPass": 4,
+      "thinAtPass": 3,
+      "rows": [
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 10,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1211,
+          "severed": [
+            4,
+            25,
+            217,
+            665
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 11,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1510,
+          "severed": [
+            7,
+            13,
+            260,
+            769
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 12,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1525,
+          "severed": [
+            9,
+            11,
+            232,
+            774
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 13,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1856,
+          "severed": [
+            19,
+            19,
+            303,
+            1087
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 14,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1860,
+          "severed": [
+            18,
+            19,
+            260,
+            1088
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 15,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2107,
+          "severed": [
+            6,
+            9,
+            189,
+            1042
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 16,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2118,
+          "severed": [
+            5,
+            8,
+            170,
+            1051
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 17,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2393,
+          "severed": [
+            2,
+            8,
+            155,
+            1256
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 18,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2390,
+          "severed": [
+            2,
+            14,
+            105,
+            1259
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 19,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2649,
+          "severed": [
+            11,
+            13,
+            66,
+            1298
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 20,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2654,
+          "severed": [
+            10,
+            13,
+            42,
+            1302
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 21,
+          "stem": 5,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2938,
+          "severed": [
+            9,
+            16,
+            40,
+            1508
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 22,
+          "stem": 5,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2944,
+          "severed": [
+            9,
+            11,
+            34,
+            1512
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 24,
+          "stem": 5,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3285,
+          "severed": [
+            10,
+            15,
+            33,
+            1643
+          ]
+        },
+        {
+          "face": "Work Sans 800",
+          "weight": 800,
+          "px": 26,
+          "stem": 5,
+          "thin": 4,
+          "minRun": 1,
+          "runs": 3520,
+          "severed": [
+            5,
+            15,
+            29,
+            1884
+          ]
+        }
+      ]
+    },
+    {
+      "face": "Bricolage Grotesque 800",
+      "licence": "SIL OFL 1.1",
+      "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/bricolagegrotesque/BricolageGrotesque%5Bopsz,wdth,wght%5D.ttf",
+      "note": "Deliberately wonky letterforms, as the \"strange and slightly wrong\" end of the field.",
+      "passesAt": 20,
+      "stemAtPass": 4,
+      "thinAtPass": 3,
+      "rows": [
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 10,
+          "stem": 1,
+          "thin": 1,
+          "minRun": 1,
+          "runs": 1568,
+          "severed": [
+            122,
+            201,
+            478,
+            887
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 11,
+          "stem": 2,
+          "thin": 1,
+          "minRun": 1,
+          "runs": 1585,
+          "severed": [
+            64,
+            119,
+            402,
+            818
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 12,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1849,
+          "severed": [
+            43,
+            122,
+            355,
+            846
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 13,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1866,
+          "severed": [
+            19,
+            31,
+            439,
+            1094
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 14,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2169,
+          "severed": [
+            17,
+            30,
+            384,
+            1108
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 15,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2171,
+          "severed": [
+            12,
+            20,
+            335,
+            1085
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 16,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2451,
+          "severed": [
+            3,
+            10,
+            275,
+            1097
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 17,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2453,
+          "severed": [
+            2,
+            5,
+            330,
+            1368
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 18,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2707,
+          "severed": [
+            4,
+            8,
+            304,
+            1387
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 19,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2712,
+          "severed": [
+            3,
+            6,
+            227,
+            1328
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 20,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 2944,
+          "severed": [
+            5,
+            9,
+            224,
+            1389
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 21,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3301,
+          "severed": [
+            9,
+            11,
+            208,
+            1677
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 22,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3314,
+          "severed": [
+            15,
+            20,
+            171,
+            1688
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 24,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3595,
+          "severed": [
+            6,
+            17,
+            96,
+            1757
+          ]
+        },
+        {
+          "face": "Bricolage Grotesque 800",
+          "weight": 800,
+          "px": 26,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3878,
+          "severed": [
+            4,
+            8,
+            48,
+            1983
+          ]
+        }
+      ]
+    },
+    {
+      "face": "Inter 700",
+      "licence": "SIL OFL 1.1",
+      "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf",
+      "note": "The control. CLAUDE.md names thin geometric sans as a 2015 concept-render default; Inter is the face that reads as stock, and it is here to be measured failing rather than dismissed on taste.",
+      "passesAt": 22,
+      "stemAtPass": 4,
+      "thinAtPass": 3,
+      "rows": [
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 10,
+          "stem": 1,
+          "thin": 1,
+          "minRun": 1,
+          "runs": 1641,
+          "severed": [
+            171,
+            311,
+            587,
+            957
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 11,
+          "stem": 1,
+          "thin": 1,
+          "minRun": 1,
+          "runs": 1651,
+          "severed": [
+            86,
+            184,
+            501,
+            929
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 12,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1845,
+          "severed": [
+            58,
+            167,
+            437,
+            905
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 13,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1839,
+          "severed": [
+            42,
+            88,
+            474,
+            1088
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 14,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2181,
+          "severed": [
+            6,
+            14,
+            427,
+            1133
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 15,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2181,
+          "severed": [
+            6,
+            12,
+            381,
+            1057
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 16,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2480,
+          "severed": [
+            3,
+            15,
+            337,
+            1137
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 17,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2490,
+          "severed": [
+            4,
+            4,
+            418,
+            1364
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 18,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2743,
+          "severed": [
+            1,
+            3,
+            357,
+            1417
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 19,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3084,
+          "severed": [
+            0,
+            5,
+            319,
+            1404
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 20,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 3083,
+          "severed": [
+            0,
+            3,
+            298,
+            1397
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 21,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3321,
+          "severed": [
+            0,
+            2,
+            268,
+            1664
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 22,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3321,
+          "severed": [
+            0,
+            5,
+            251,
+            1670
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 24,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3661,
+          "severed": [
+            0,
+            2,
+            167,
+            1812
+          ]
+        },
+        {
+          "face": "Inter 700",
+          "weight": 700,
+          "px": 26,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3927,
+          "severed": [
+            0,
+            1,
+            73,
+            2004
+          ]
+        }
+      ]
+    },
+    {
+      "face": "Public Sans Bold",
+      "licence": "SIL OFL 1.1",
+      "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/publicsans/PublicSans%5Bwght%5D.ttf",
+      "note": "The same face one weight down, tested to establish whether Black is actually required or merely heavier.",
+      "passesAt": 26,
+      "stemAtPass": 4,
+      "thinAtPass": 3,
+      "rows": [
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 10,
+          "stem": 1,
+          "thin": 1,
+          "minRun": 1,
+          "runs": 1355,
+          "severed": [
+            129,
+            253,
+            453,
+            847
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 11,
+          "stem": 1,
+          "thin": 1,
+          "minRun": 1,
+          "runs": 1645,
+          "severed": [
+            109,
+            230,
+            525,
+            932
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 12,
+          "stem": 2,
+          "thin": 1,
+          "minRun": 1,
+          "runs": 1655,
+          "severed": [
+            66,
+            150,
+            439,
+            902
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 13,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 1973,
+          "severed": [
+            57,
+            101,
+            482,
+            1087
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 14,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2174,
+          "severed": [
+            27,
+            44,
+            466,
+            1156
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 15,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2181,
+          "severed": [
+            9,
+            27,
+            374,
+            1060
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 16,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2486,
+          "severed": [
+            5,
+            18,
+            371,
+            1137
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 17,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2488,
+          "severed": [
+            6,
+            12,
+            429,
+            1368
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 18,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2845,
+          "severed": [
+            4,
+            8,
+            408,
+            1431
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 19,
+          "stem": 2,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 2845,
+          "severed": [
+            2,
+            7,
+            395,
+            1426
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 20,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3120,
+          "severed": [
+            2,
+            8,
+            307,
+            1435
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 21,
+          "stem": 3,
+          "thin": 2,
+          "minRun": 1,
+          "runs": 3116,
+          "severed": [
+            2,
+            5,
+            289,
+            1690
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 22,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3327,
+          "severed": [
+            4,
+            7,
+            269,
+            1668
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 24,
+          "stem": 3,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3638,
+          "severed": [
+            1,
+            2,
+            211,
+            1785
+          ]
+        },
+        {
+          "face": "Public Sans Bold",
+          "weight": 700,
+          "px": 26,
+          "stem": 4,
+          "thin": 3,
+          "minRun": 1,
+          "runs": 3916,
+          "severed": [
+            0,
+            2,
+            101,
+            1984
+          ]
+        }
+      ]
+    }
+  ]
+}

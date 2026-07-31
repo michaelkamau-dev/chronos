@@ -94,6 +94,17 @@ const ERAS: Record<string, () => Promise<EraBundle>> = {
       decorate: paths.system1NameDecorator,
     }
   },
+  ledger: async () => {
+    const [{ ledgerSkin }, paths] = await Promise.all([
+      import('./skins/ledger/index.js'),
+      import('./skins/ledger/paths.js'),
+    ])
+    return {
+      skin: ledgerSkin,
+      codec: paths.createLedgerCodec,
+      decorate: paths.ledgerNameDecorator,
+    }
+  },
 }
 
 const DEFAULT_ERA = 'winxp'
@@ -152,6 +163,26 @@ function openDirectoryWindow(startAt?: NodeId): WindowId {
     },
   })
   views.set(id, view)
+
+  /*
+   * Bind the view to its window as an `AppInstance`.
+   *
+   * This is the only place in phase 4 where the suspend/resume contract is actually
+   * exercised end to end: the shell routes the window manager's `suspended`/`resumed`
+   * events onto the instance, and the window manager still knows nothing about apps.
+   * The adapter is thin because `DirectoryView` is not an app — `menu`, `contextMenu`
+   * and `canClose` are what phase 5's real Files app supplies, and answering them
+   * minimally here is honest about that rather than pretending the harness is one.
+   */
+  shell.registerApp(id, {
+    menu: () => [],
+    contextMenu: () => null,
+    canClose: () => true,
+    suspend: () => view.suspend(),
+    resume: () => view.resume(),
+    destroy: () => view.destroy(),
+  })
+
   void view.start().then(() => {
     void fs.chain(view.currentDir()).then((chain) => {
       /*
@@ -311,6 +342,9 @@ declare global {
       era: string
       openDirectoryWindow(startAt?: NodeId): WindowId
       openWindows(n: number): WindowId[]
+      /** The directory view hosting a window, so a suite can assert its state
+       *  survived a suspend/resume round trip rather than only that the flag flipped. */
+      viewFor(id: WindowId): DirectoryView | undefined
       keymapUnknownKeys(): string[]
       reset(): Promise<void>
       wipeStorage(): Promise<void>
@@ -334,6 +368,9 @@ window.__chronos = {
   codec,
   era: eraId,
   openDirectoryWindow,
+  viewFor(id: WindowId): DirectoryView | undefined {
+    return views.get(id)
+  },
   openWindows(n: number): WindowId[] {
     const ids: WindowId[] = []
     for (let i = 0; i < n; i++) ids.push(shell.openWindow())

@@ -290,3 +290,38 @@ Any one of these, in descending order of preference:
 
 `era/win31` is complete through measurement and stops before the chrome, because
 `CLAUDE.md` forbids building on an unresolved font and this one is unresolved.
+
+---
+
+## Ledger — the one selection that is not a substitution
+
+Every other row in this directory substitutes for a face that really existed, against a
+metric target extracted from the source. Ledger has no original: `docs/ARCHITECTURE.md`
+§8 states the face as a *category* — "a chunky grotesque at generous sizes" — and states
+the reason as physics: "thin strokes do not survive dithering ... The physics picks the
+type, not taste."
+
+So the comparison is a **selection against the era's own constraint**, and the constraint
+is arithmetic over the era's dither rather than a similarity judgement. A stroke is
+severed when every one of its Bayer columns falls below the threshold; every Bayer row
+keeps one value at or above 10; therefore a run one cell wide covers all four column
+residues and cannot be severed. **The gate is `stem >= cell` — four pixels.**
+
+| Face | Licence | Smallest size reaching a 4px stem | Verdict |
+|---|---|---|---|
+| Archivo Black | OFL | 15px | rejected — its stem reads 4,4,4,**3**,4 across 15–19px, a hole inside its own passing range |
+| **Public Sans Black** | OFL | **18px** | **accepted** — no hole at or above 18px, and its origin is the US Web Design System, which is what a "regulatory disclosure" strip is |
+| Work Sans 800 | OFL | 18px | rejected — no advantage, generic register |
+| Bricolage Grotesque 800 | OFL | 20px | rejected — 2px larger for the same job |
+| Inter 700 | OFL | 22px | rejected — the control, and it failed on the number as well as the register |
+| Public Sans **Bold** | OFL | 26px | rejected — **and this is what proves the gate can fail** |
+
+Sheet: `ledger-font-grotesque.png` (1x beside the same string after the first bleach band,
+magnified 3x). Numbers: `ledger-font-grotesque.json`. Regenerate with `npm run fonts:ledger`.
+
+**Coverage decided a design choice before the chrome was written.** Public Sans carries
+U+2014, so §8's `Letter — 3.1 kJ — 14 min` works as written — unlike ChiKareGo2, whose
+missing em dash was found the hard way. It does **not** carry U+25B2, so the gutter's
+"rounded up" mark is `+` rather than `▲`. Source face and OFL text are committed here;
+the 11.1 KB subset keeps name IDs 0/13/14, because the copyright notice is what a licence
+audit reads.

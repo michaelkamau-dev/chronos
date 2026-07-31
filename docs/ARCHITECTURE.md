@@ -1284,7 +1284,7 @@ branch per era, `era/<id>`, each merging to `main`. See §13 for what is merged.
 | 1 | WM + focus model, one era, unstyled boxes | A Chrome Performance trace over a 10-second drag with 20 windows open showing frame times under 16.7ms and a flat allocation profile. Plus the invariant tests and the size budget check, both green from day one. |
 | 2 | FS layer + persistence | A scripted reload-survival test: create a tree, write files, reload, assert byte-identical. Plus two file manager windows proving live sync through `fs.watch`. |
 | 3 | **Windows XP at full fidelity** — the reference implementation | Pixel comparison against the 1:1 references in `docs/sources/`; all five states on every control; the full metrics table with provenance; keyboard-only operation of the entire shell. **Two hard preconditions, both before phase 3 starts** — see below. |
-| 4 | The other five eras against that contract | Same evidence per era. Any core change required by a later era is a contract bug and gets fixed in core, not patched in the skin, and is reported rather than absorbed. **Windows 3.1 done and merged**; System 1, Mac OS 8, Tiger and Ledger remain — order and rationale in §13. Four contract additions so far, listed in §13. |
+| 4 | The other five eras against that contract | Same evidence per era. Any core change required by a later era is a contract bug and gets fixed in core, not patched in the skin, and is reported rather than absorbed. **All six eras built** — Windows 3.1, Tiger, System 1, Mac OS 8 and Ledger against the XP reference. Eleven contract additions, listed in §13. Ledger cost the two §8 predicted plus `authored` on `ProvenanceLevel`. |
 | 5 | Apps | Each app exercised end-to-end: Paint writes a PNG that Files shows with the right icon and Media opens; Editor's guard blocks a close; Terminal manipulates the real tree. **Plus: every app survives `suspend()`/`resume()` with state intact** — Paint's undo stack, the editor's cursor and selection, the terminal's scrollback. Verified per app, not asserted. |
 | 6 | Sound, failure states, boot sequences | Each chime and each failure path triggered and verified. |
 
@@ -1359,6 +1359,9 @@ is fact about the repository as it stands, not plan.
 | `claude/new-session-aej4gm` | phases 1–3 (WM, FS, Windows XP Luna) | **merged to `main`** |
 | `era/win31` | Windows 3.1 | **merged to `main`** via pull request #1 |
 | `era/tiger` | Mac OS X Tiger | **merged to `main`** |
+| `era/system1` | Macintosh System 1 | **merged to `main`** |
+| `era/macos8` | Mac OS 8 Platinum | **merged to `main`** |
+| `era/ledger` | Ledger (2035) — the invented era | **built; phase 4 is complete with it** |
 
 Branch the next era off `main`, not off any merged branch. The convention is
 `era/<id>`, one per era, each merging back to `main`: `era/system1`, `era/macos8`,
@@ -1369,16 +1372,24 @@ Windows 3.1 second because it had 1:1 captures and is XP's closest structural si
 so it stress-tested the contract cheaply. Tiger third because it is the first era whose
 *shell* is more than a desktop — a menu bar and a Dock, both reserving space — so it
 was the one that forced §5's `ShellLayout` to exist rather than remain a design.
-Remaining: **System 1 and Mac OS 8**, on the Apple prose in §7; both are substantially
-sourced, and both inherit Tiger's shell regions for their own menu bars. Then **Ledger**
-last, because it is the era most hostile to the contract and the only one that needs
-`suspend()`/`resume()` to be visible and the render-budget governor to exist.
+System 1 and Mac OS 8 followed on the Apple prose in §7, both inheriting Tiger's shell
+regions for their own menu bars. **Ledger last**, because it is the era most hostile to
+the contract and the only one that needs `suspend()`/`resume()` to be visible and the
+render-budget governor to exist.
+
+**All six are built.** Ledger cost the two additions §8 predicted plus one it did not
+(`authored` on `ProvenanceLevel`), and three things that looked like they would need a
+core change went through the existing contract unchanged — the 40px cost gutter as
+`border.right`, the suspension policy as a skin timer calling `wm.suspend`, and the
+Steward as `wm.open({ modalOwner })`. That is the answer to §8's own question about
+whether the abstraction was real.
 
 ### Test counts, so a regression is obvious
 
-`npm test` runs all three suites. As of the Tiger merge: **171 green** — 11 invariant,
-7 budget, 153 browser. The browser suites are `wm`, `a11y`, `fs`, `perf`,
-`xp-fidelity` (28), `win31-fidelity` (20) and `tiger-fidelity` (34).
+`npm test` runs all three suites. As of the Ledger build: **269 green** — 11 invariant,
+7 budget, 251 browser. The browser suites are `wm`, `a11y`, `fs`, `perf`,
+`xp-fidelity` (28), `win31-fidelity` (20), `tiger-fidelity` (34), `system1-fidelity`,
+`macos8-fidelity` and `ledger-fidelity` (42).
 
 The fidelity suites each assert `window.__chronos.era` in a `beforeEach`. Without that a
 suite passes vacuously against whichever era is default, which is how four suites
@@ -1386,7 +1397,7 @@ silently tested XP when XP became the default in phase 3.
 
 ### The contract additions phase 4 has made so far
 
-Eight, all era-neutral. §11 says a core change a later era demands is a contract bug to
+Eleven, all era-neutral. §11 says a core change a later era demands is a contract bug to
 be fixed in core rather than patched in the skin; these are the record of that happening.
 Items 5–7 came from Tiger and are the reason `era/system1` and `era/macos8` should rebase
 onto `main` before building their menu bars — all three are things a Mac shell needs. Item 8
@@ -1423,10 +1434,59 @@ to perform.
    undo stack, the editor's cursor and selection, the terminal's scrollback — verified
    per app, not asserted.
 
-4. **The render-budget governor does not exist yet.** It is the one §8 addition still
-   outstanding, and it is Ledger's alone: a way to throttle the rAF loop to a target rate
-   below 60. Era-neutral by construction — it belongs in `core/input`, and only Ledger
-   sets a rate below 60. Build it when Ledger is built, not before.
+4. **`RenderBudget` in `core/input/render-budget.ts`** — the render-budget governor, now
+   built. It is the **single animation clock** for the whole system, and that is the part
+   worth knowing before touching it:
+
+   - **Throttling is not frame-dropping.** Below a frame period it sleeps on a timer and
+     takes one `requestAnimationFrame` to land the delivery on a vsync boundary, so a 1Hz
+     target really is about one wakeup a second rather than sixty wakeups discarding
+     fifty-nine. `stats().sleptMs` is what proves it, and a test asserts it grows.
+   - **The priority lane is never throttled.** `GestureController` takes its frames from
+     `requestPriority`, because §8 is explicit that "rationing did not delete direct
+     manipulation" and a drag at the target rate is not a drag. A single slot, not a list:
+     pointer capture guarantees one gesture. The perf gate is unmoved by the change —
+     `scriptPerFrame` 0.686ms against a 3ms bound.
+   - **A private rAF cannot be counted**, which is why the drag loop goes through the
+     governor rather than around it: an era that bills the viewer for rendering cannot
+     have a loop painting frames the accounting never sees.
+   - `Dispatcher` calls `poke()` on every pointer, key and wheel event, so burst-on-
+     interaction is something an era gets rather than something it can forget — the same
+     reasoning that put the reduced-motion check in the window manager. `poke()` is a
+     no-op when no target is set, which is five of the six eras.
+   - A skin declares the rate through `SkinManifest.renderBudget`; core never learns why.
+
+9. **`AppInstance` in `core/app/types.ts`, with `suspend()` and `resume()` required.**
+   Not optional, and the asymmetry with `onFocus?()` beside them is deliberate: focus is a
+   notification an app may ignore, suspension is a correctness requirement. An optional
+   method is one an app can forget, and the symptom is a media player that keeps drawing
+   while suspended — invisible until someone counts frames.
+
+   `Shell.registerApp(id, instance)` routes the window manager's `suspended`/`resumed`
+   events onto the instance, which is where the routing has to live: §2's first invariant
+   is that the WM knows nothing about apps, so it owns `WindowState.suspended` — a fact
+   about a *window* — and the shell is the only layer permitted to know both.
+
+   **What is not covered, stated here so a green suite is not misread.** There is one
+   harness implementation. The phase-5 gate is that every *app* survives the round trip
+   with state intact — Paint's undo stack, the editor's cursor and selection, the
+   terminal's scrollback — verified per app. What exists proves the contract is wireable
+   and nothing more.
+
+10. **`authored` on `ProvenanceLevel`.** The addition §8 did not predict. Five eras are
+    archaeology and their values are `documented`, `measured`, `derived` or `unverified`;
+    §8 is a *specification*, and its numbers are normative because they were written
+    rather than uncertain because they were found. That is a fifth relationship and
+    collapsing it into `derived` loses the distinction between "the spec says 40px" and
+    "40px is what the arithmetic gave". It means **the spec states this**, never "I picked
+    this" — a value the spec does not state is `derived` with the arithmetic in the note,
+    and the moment `authored` absorbs free choices it stops carrying any signal.
+
+11. **`ShellRegion.reservesSpace: false` finally has a consumer.** The flag existed from
+    Tiger and had never been exercised. Ledger's refresh band is a region at the top edge
+    that paints over every window and reserves nothing — a band travelling down the screen
+    *is* an edge-anchored strip whose position changes, so the region contract expressed it
+    with nothing added.
 
 5. **`SkinManifest.regions` — edge-anchored shell chrome.** §5's `ShellLayout`, finally
    implemented, because Tiger is the first era whose shell is more than a desktop.
@@ -1540,6 +1600,7 @@ committed there too, so a subset can be rebuilt without a network fetch.
 | Windows XP | Franklin Gothic Medium 14pt+, headers only | Libre Franklin | OFL | deferred; direct revival |
 | Windows 3.1 | `SYSTEM.FON` — the whole era | **Pixel Operator Bold @ 16px** | CC0 | advances diverge per glyph; 2px descender against 4px |
 | Mac OS X Tiger | Lucida Grande, 13/12/11/10/9pt — the whole era | **DejaVu Sans** | Bitstream Vera | ±6.3% against Apple's own rasterisation; narrower, rounder face; **bold deferred** |
+| Ledger | a chunky grotesque at generous sizes (§8 states a category, not a face) | **Public Sans Black @ 18px** | OFL | none — there is no original to lose against. The size is a *derivation*: `stem >= cell`, and Black is required because Bold does not reach a 4px stem until 26px |
 
 Two things about the 3.1 row that a fresh session will otherwise rediscover the hard
 way. **W95FA is not a candidate** — it is an OFL recreation of the *Windows 95* MS Sans
@@ -1620,7 +1681,16 @@ None of these blocks an era, and each is recorded with notes rather than guessed
    command line has content — so it gave the disabled state and left this open. The
    stylesheet deliberately does not move the label, so the unverified behaviour is
    absent rather than invented.
-3. **A 1:1 Tiger screenshot** would settle three things at once: the traffic lights'
+3. **Ledger has three of its own, all recorded in `src/skins/ledger/`** and none of them
+   blocking. The **joules-per-frame coefficient** is invented because no browser can
+   measure a device's draw — the frame counts are real and measured, and the two
+   coefficients are calibrated so a session resembling §8's own `Letter — 3.1 kJ — 14 min`
+   produces §8's number. The **Steward's re-ask interval** is the era's one `unverified`
+   value: §8 says it "can be deferred but not disabled" and states no interval. The
+   **model-call line reads zero**, honestly — phase 4 has nothing that would call a model,
+   and a number climbing on a timer would be a lie in the one strip whose purpose is
+   disclosure.
+4. **A 1:1 Tiger screenshot** would settle three things at once: the traffic lights'
    hover and pressed artwork and their glyphs — Apple's fifteen-state specimen sheet
    shows no glyph in any state and the prose never describes a rollover — plus the Dock
    shelf's fill and height, which the source figure composited against the white page.
@@ -1642,6 +1712,8 @@ None of these blocks an era, and each is recorded with notes rather than guessed
 | `tools/captures/measure-win31.py` | all three Windows 3.1 VGA captures, including the stipple parity proof |
 | `tools/font-compare/build.mjs` | renders candidate faces against a metric target |
 | `tools/font-compare/win31-system.mjs` | the 3.1 System font candidate verdicts |
+| `tools/font-compare/ledger-publicsans.mjs` | Ledger's face, scored against the era's own dither rather than against a metric target |
+| `tools/shots/ledger-render.mjs` | boots Ledger and measures the rendered surface — the dither is counted, not eyeballed |
 
 Extraction rules that cost real time to learn are in `CLAUDE.md` under "Figure
 extraction and measurement" — chiefly: extract the image XObject, never rasterise the

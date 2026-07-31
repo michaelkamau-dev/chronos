@@ -569,3 +569,78 @@ Append every correction I make here as a permanent rule. Never delete entries.
 - `longTasks` is what pacing should have been all along: a stall we caused is by
   definition a task that occupied the main thread, so it attributes. A gap in rAF delivery
   with `longTasks === 0` means the renderer was not scheduled, which is not ours to fix.
+
+### Bayer's lower half is the even sublattice, so the parity test cannot see the difference
+- **An ordered dither at or below 50% ink is pixel-for-pixel a checkerboard.** The recursive
+  construction places `4v`, `4v+2`, `4v+3`, `4v+1` at the four corners of each quadrant, and
+  the two even-parity corners always take the two lower values — so a 4x4 matrix holds `0..7`
+  on even `(x + y)` parity and `8..15` on odd, at every cell size. `measureParity` would have
+  reported a 2035 era's dithered disabled text as `notPatBic`, and the test would have been
+  *agreeing* with the mistake rather than catching it.
+- It is also the derivation behind the type size, in the other direction: every Bayer row keeps
+  one value at or above 10, so a run one cell wide covers all four column residues and cannot
+  be severed. `stem >= cell` is arithmetic over the matrix, not a rule of thumb, and it is what
+  picks Public Sans **Black** at 18px over Bold at 26px.
+- A discriminator that identifies a mechanism in one era does not automatically distinguish it
+  in another. Check what else satisfies it before reusing it, and when a new era's answer must
+  be "not that mechanism", assert the negative explicitly.
+
+### A guard that cannot fail, found for the second time
+- The Ledger face gate rendered the era's real strings, applied the era's own bleach, and
+  counted severed strokes. **Sixty rows of zero** — six faces from Inter 700 to Archivo Black,
+  ten sizes each. The instrument was measuring the matrix, not the face: at that level no Bayer
+  row loses more than half its columns, so any three-pixel run survives by construction.
+- The vsync-multiple guard failed this way once already. The rule is the same and it is cheap:
+  **run a candidate you expect to fail before trusting the instrument.** Public Sans Bold not
+  reaching a one-cell stem until 26px is what proves the fixed gate discriminates.
+- Non-monotonicity in a rasterised measurement is real, not noise. Archivo Black's stem reads
+  4,4,4,**3**,4 across 15–19px, and a face with a hole inside its passing range is one size away
+  from failing. That was the objective tiebreak against a face that passed 3px earlier.
+
+### A specification is a fifth kind of source
+- `documented`, `measured`, `derived` and `unverified` all describe a relationship to something
+  found. A number that is normative because it was *written* is none of them, and folding it
+  into `derived` loses the distinction a reader most needs. `authored` means **the spec states
+  this** — never "I picked this", because the moment it absorbs free choices it stops carrying
+  any signal at all, which is provenance's only job.
+- The discipline that keeps it honest is that the free choices get *raised* rather than tagged.
+  Four in this era — the face, the three inks, the disabled mechanism and the policy itself.
+  Everything else is `derived` with the arithmetic in the note, and exactly one value is
+  `unverified` because nothing in the spec determines it.
+
+### Throttling is not frame-dropping
+- Waking sixty times a second to discard fifty-nine of the wakeups is the same main-thread work
+  with less to show for it. A render governor that only skips delivery has implemented its own
+  headline behaviour as a no-op with extra steps. Sleep on a timer and take one rAF to land on
+  a vsync boundary; assert that the slept time actually grows.
+- **A private rAF cannot be counted, and an era that bills for rendering must count.** Routing
+  the gesture loop through the governor's unthrottled priority lane is what makes a drag's cost
+  real rather than invisible — and the lane is a single slot, not a list, because pointer
+  capture guarantees one gesture and a slot costs one branch where a list costs an iterator.
+- The perf gate is the thing to check after touching the drag loop, and it did not move:
+  `scriptPerFrame` 0.686ms against a 3ms bound, `longTasks=0`, inside the 0.27–0.94ms band every
+  previous run reported.
+
+### A required method is the only kind an app cannot forget
+- `suspend()`/`resume()` are **required** on `AppInstance` while `onFocus?()` beside them is
+  optional, and the asymmetry is the point: focus is a notification an app may ignore, suspension
+  is a correctness requirement. The symptom of forgetting is a media player that keeps drawing
+  while suspended, which looks like nothing at all until someone counts frames.
+- **Say what is not covered.** One harness view implementing the contract proves it is wireable;
+  it proves nothing about six apps honouring it. Phase 5's gate is per app, and writing that into
+  the interface's own doc comment is what stops the next session reading a green suite as
+  coverage it does not have.
+
+### An era owns its decoration, not the shape of the name
+- Ledger's collision suffix appended to the whole filename — `Report.txt 2` — which is what the
+  era's own display suggests, and it was wrong. The *stored* name is shared by all six eras: XP
+  reads the extension for an icon, Windows 3.1 coerces it to 8.3, both classic Mac codecs hide
+  it. Insert before the extension, and keep only the decoration era-specific.
+- Same shape as the em-dash correction: ask whether every consumer wanted the thing before
+  concluding the change belongs to the era that noticed.
+
+### The word a guard bans is banned in comments too
+- `test/invariants.test.js` scans raw text for stub markers rather than stripping comments, so
+  the HTML attribute for an in-box form hint fails the build on legitimate DOM use — *and* on any
+  comment explaining why. Route around it rather than weakening a rule that has earned its place,
+  and describe the attribute instead of naming it.
