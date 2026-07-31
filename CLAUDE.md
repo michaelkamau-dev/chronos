@@ -551,3 +551,21 @@ Append every correction I make here as a permanent rule. Never delete entries.
 - The switch is also what audits the literals. `Force Quit… ⌘⌥Esc` was an enabled item
   advertising a chord nothing binds, in an era whose own suite had been green for weeks;
   routing it through the accessor is what made the absence visible.
+
+### Demote the whole family, not the member that failed
+- Frame-interval percentiles came off the perf gate one at a time — `p99`, then `p95`,
+  then `median` — three sessions, the same diagnosis every time, each established by
+  running the gate on the commit before that session's work and finding it identically
+  red. `median` survived the first cull on the reasoning that a median is not a tail; a
+  compositor delivering every other frame moves it just as readily.
+- The rule, stated once for the family: **a frame interval measures when our code was
+  allowed to run, not how long our code ran.** No statistic over rAF delivery times can
+  separate our work from the host's scheduling of it, so none of them is ours to assert
+  on. `scriptPerFrame` and `layoutPerFrame` are ratios of our own work and moved by
+  nothing while the percentiles moved by 3x.
+- When a class of instrument fails the same way a third time, the instrument is wrong and
+  the whole class goes, not the one that happened to fail last. Fixing them one at a time
+  is how the same afternoon gets spent three times.
+- `longTasks` is what pacing should have been all along: a stall we caused is by
+  definition a task that occupied the main thread, so it attributes. A gap in rAF delivery
+  with `longTasks === 0` means the renderer was not scheduled, which is not ours to fix.

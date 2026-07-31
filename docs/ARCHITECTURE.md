@@ -1561,21 +1561,42 @@ class of candidate regardless of width.
 This changed, and a fresh session reading the old assertions would draw the wrong
 conclusion from a red gate.
 
-**Asserted** (all held across two container generations):
+**Asserted** (all held across every container generation so far):
 
-- `ScriptDuration / frames < 3ms` under 4× CPU throttling. Measured 0.55–0.69ms.
-- `LayoutDuration / frames < 0.5ms`. Measured 0.001ms.
-- One style recalculation per frame, `LayoutCount` bounded, median interval at vsync,
-  `longTasks === 0`, retained heap delta bounded.
+- `ScriptDuration / frames < 3ms` under 4× CPU throttling. Measured 0.27–0.94ms.
+- `LayoutDuration / frames < 0.5ms`. Measured 0.001–0.009ms.
+- One style recalculation per frame, `LayoutCount` bounded, `longTasks === 0`, retained
+  heap delta bounded.
 
-**Reported as diagnostics only, never asserted**: `p95`, `p99`, `over50`, frame count.
+**Reported as diagnostics only and asserted on never — this is permanent**: `median`,
+`p95`, `p99`, `max`, `over50`. Frame count keeps one floor, and it is a liveness and
+denominator check rather than a pacing one: `ScriptDuration / frames` needs a sane
+divisor, and a drag that never ran at all should fail.
 
-The reason is in `test/browser/perf.spec.ts` at length. Briefly: the container does not
-guarantee the renderer 60Hz of CPU, and the identical 4×-throttled drag reported p99
-16.80ms on one container generation and 50.00ms on the next from an unchanged bundle,
-with `longTasks=0` and `layouts=1` in both — reproduced on the commit before that day's
-work, which is what established it as the host. Asserting a percentile was measuring the
-scheduler.
+**Do not add a frame-interval assertion back.** The rule was learned three times, once
+per statistic, with the same diagnosis each time and each time established by running
+the gate on the commit *before* that session's work, where it failed identically:
+
+| Statistic | Asserted, then observed | Our instruments at the same moment |
+|---|---|---|
+| `p99` | 16.80ms → 50.00ms across a container generation | `longTasks=0`, `layouts=1` |
+| `p95` | same failure one session later | unchanged |
+| `median` | 33.30ms against a 17.5ms bound | `longTasks=0`, `scriptPerFrame=0.819ms` |
+
+A third recurrence is the signal that the instrument is wrong rather than the code, so
+the whole family was demoted rather than the member that happened to fail last. The
+reason is one sentence: **a frame interval measures when our code was allowed to run,
+not how long our code ran.** The claim the gate makes is that our work fits in a frame,
+and the container does not guarantee the renderer 60Hz of CPU, so no statistic over rAF
+delivery times can separate the two. The same bundle has reported a 16.70ms median and a
+33.30ms median hours apart, with `scriptPerFrame` at 0.272ms and 0.819ms — both far
+inside their bound.
+
+`longTasks` is the instrument that catches what the percentiles were reaching for and
+can actually attribute it: a stall we caused is by definition a task that occupied the
+main thread. A gap in rAF delivery with `longTasks === 0` means the renderer was not
+scheduled, which is not ours. If pacing is ever wanted back, the thing to add is another
+instrument that attributes a dropped frame to our code — not a percentile.
 
 One discarded instrument is worth not re-inventing. "Every long frame interval must be a
 whole multiple of the vsync period" looks like the exact discriminator between a frame

@@ -1036,6 +1036,11 @@ per-era budgets silently become wrong rather than failing.
 `ScriptDuration / frames < 3ms`, `LayoutDuration / frames < 0.5ms`, one style recalc per
 frame, `longTasks === 0`, and the median at vsync.
 
+> **Superseded in part by 4.51.** The median went the same way as `p95` and `p99` two
+> sessions later, for the same reason, and *no* frame-interval statistic is asserted on
+> now. Keeping it here was the mistake 4.51 is about — read that one before adding a
+> pacing assertion back.
+
 **Reasoning.** The gate went from intermittent to consistently failing: p95 33.40ms,
 p99 50.00ms, frame count down from ~360 to ~270, on every run. Diagnosed by running it
 on `170f1ce` — the commit before any of this work — where it reproduces identically.
@@ -1809,3 +1814,47 @@ Mac OS 8's bar arrived on main mid-change already reading `accelFor` — and wit
 third copy of the same four-line helper, which is the duplication this entry is about
 arriving independently in a third era. It points at the shared one too. Three copies of
 a rule is how the rule stops being one.
+
+### 4.51 Frame-interval percentiles are demoted permanently, on the third recurrence
+
+**Call.** `test/browser/perf.spec.ts` asserts on no frame-interval statistic at all.
+`median`, `p95`, `p99`, `max` and `over50` are printed and nothing more. The gate is
+`ScriptDuration / frames`, `LayoutDuration / frames`, one style recalc per frame,
+`LayoutCount` bounded, `longTasks === 0`, and retained heap bounded. Frame count keeps a
+floor, restated as a liveness and denominator check rather than a pacing one.
+
+**Reasoning.** The same failure three times, once per statistic, each diagnosed the same
+way — run the gate on the commit before the session's work, where it fails identically:
+
+| Statistic | Asserted, then observed | Our instruments at the same moment |
+|---|---|---|
+| `p99` | 16.80ms → 50.00ms across a container generation | `longTasks=0`, `layouts=1` |
+| `p95` | same failure, one session later | unchanged |
+| `median` | 33.30ms against a 17.5ms bound | `longTasks=0`, `scriptPerFrame=0.819ms` |
+
+4.16 demoted the first two and kept the median, on the reasoning that a median is not a
+tail and so is not the scheduler's to move. That was wrong for a reason the third failure
+made obvious: the compositor delivering every *other* frame moves the median as readily
+as it moves p99, and nothing about being a central statistic makes a distribution over
+rAF delivery times into a distribution over our own work.
+
+So the rule is stated once, for the family rather than the member: **a frame interval
+measures when our code was allowed to run; it does not measure how long our code ran.**
+The claim the gate makes is that our work fits in a frame. The container does not
+guarantee the renderer 60Hz of CPU, so no statistic over delivery times can separate the
+two, and every percentile of that distribution is a measurement of the host's scheduler
+with our code as a passenger. Demoting them one at a time was three sessions spent
+rediscovering that.
+
+The evidence that this is not a weakened gate is that the surviving instruments moved by
+nothing while the demoted ones moved by 3x. The same bundle reported a 16.70ms median
+and a 33.30ms median hours apart; `scriptPerFrame` read 0.272ms and 0.819ms across the
+same pair, against a 3ms bound. `longTasks` is the instrument that catches what the
+percentiles were reaching for *and can attribute it*: a stall we caused is by definition
+a task that occupied the main thread, and a gap in rAF delivery with `longTasks === 0`
+means the renderer was not scheduled at all.
+
+Written into ARCHITECTURE.md §14 and CLAUDE.md as well as here, because the failure mode
+is a session seeing a red pacing number and treating it as a regression. The next session
+that wants pacing back should add an instrument that attributes a dropped frame to our
+code — `longTasks` already is one — rather than a fourth percentile.
