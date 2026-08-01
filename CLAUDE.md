@@ -664,3 +664,64 @@ Append every correction I make here as a permanent rule. Never delete entries.
 - The same scan was reading WOFF2 files as UTF-8 and regex-matching the result. Binary
   assets are skipped now — as a denylist of known binary extensions, not an allowlist of
   text ones, so a new text format is still scanned.
+
+### A glyph is a category, not a character
+- The file list drew its kind marks with `▸`, `▤` and `♪`. No era face carries them —
+  they are subsets — and a missing glyph does not fail loudly: it falls back to the
+  browser's default face, which antialiases. **2,569 mid-grey pixels in a 1-bit window**,
+  from four characters, with every assertion in the suite still green. `CLAUDE.md` already
+  recorded this for U+2026 and U+2014 in a window title; it recurred the moment a new
+  surface spelled something new.
+- The fix is structural rather than a wider subset: the kit emits `data-glyph="<category>"`
+  and **no text at all**, and the skin draws the mark. An app cannot spell a character its
+  era's face lacks if it never spells a character.
+- The replacement then put the grey back twice over. `clip-path` antialiases every diagonal
+  it cuts, and a percentage geometry lands off the grid one step later — 12% of a 12px box
+  is 1.44px. Only axis-aligned `inset` shadows at integer pixel spreads survive an integer
+  display scale. Same for `border-radius: 50%` on a radio, which is why the view switch is
+  toggle buttons: all six eras shipped one that way regardless.
+
+### Extending a skin's selector reaches one rule, not the construction
+- Attaching `[data-ui='button']` to `.s1-button` gave the kit's buttons the outer shape and
+  none of the layers: System 1's interior is a clipped `::before` paper fill, so the label
+  rendered black on black, and the pressed toggle rendered paper on paper with no label at
+  all. `::before`, `:active` and the disabled stipple each needed the same extension.
+- Worse, the selector can be the *wrong widget entirely*. `.lg-btn` is Ledger's **caption**
+  button — a fixed `--lg-control-h` square carrying a drawn glyph — so every toolbar button
+  became a square the width of its own height and eight labels came out one letter wide.
+  A push button sizes to its label and a caption button never does; they share an era's ink
+  and its five states and nothing else. Read what a class *is* before reusing it.
+
+### An app's own surface is not covered by an era's own suite
+- `system1-fidelity.spec.ts` asserts no pixel anywhere is a mid grey, and it would have
+  passed whatever the Files window rendered: it builds its own two buttons and screenshots
+  the desktop and a menu. A green era suite is not coverage of a surface that era suite
+  never draws — the *guard that cannot fail* rule, arriving from a third direction.
+- Its instrument could not be borrowed either. The luma band (<40 or >208) was derived from
+  LCD fringes on **black text on white**, the only polarity that era's own surfaces render;
+  an inverted selected row fringes to lumas 51–189, straight through the band. Widening it
+  would have been the *loosen a threshold until a false assertion passes* failure, so the
+  claim was restated to the one that is true: **no region is flat grey**. Largest non-pure
+  connected component — 168 device pixels of glyph fringe against 27,760 for an injected
+  fill, bounded by one character cell derived from the era's own type. Ships with a probe
+  that injects a real grey and asserts the guard fires.
+
+### The surface that owns an event must not consume what it opened, again
+- The list's type-ahead called `preventDefault()` on every printable keydown, including the
+  ones typed into the rename editor the list itself was hosting — so `renamed` was written
+  to the filesystem as `a`. The list is the only tab stop, so anything else reporting focus
+  is a descendant widget: `if (e.target !== this.el) return`.
+- Third recurrence of DECISIONS 1.9. The first two were a pointerdown and an Enter reaching
+  a capture layer; this one is a keydown reaching an ancestor. The shape is the same and so
+  is the fix.
+
+### Suspend/resume is only interesting where the state lives in the DOM
+- The folder, the view mode, the sort and the selection are plain fields and survive by
+  accident. The scroll offset and a rename the user is part-way through do not: `resume()`
+  re-reads the filesystem and rebuilds every row, so the re-render that brings the window
+  back is the thing that destroys them. Capture on the way down, re-mount on the way up,
+  and assert the **caret offsets** — a rename that returns with its text and the cursor at
+  the start is not "state intact".
+- A suspend test that only checks the flag flipped proves nothing. Write to the filesystem
+  while suspended and assert the app did *not* follow it; that is the behaviour the era
+  exists for.

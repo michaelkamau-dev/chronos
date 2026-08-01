@@ -24,6 +24,7 @@ import { asAppId, type WindowId } from './core/wm/types.js'
 import { Filesystem } from './core/fs/fs.js'
 import { FsStore, nodeKey } from './core/fs/store.js'
 import { DirectoryView } from './harness/directory-view.js'
+import { filesApp, filesAppAt } from './apps/files/index.js'
 import type { FsApi, NodeId, PathCodec } from './core/fs/types.js'
 
 /** A name decorator is era knowledge: Windows appends " (2)", classic Mac " copy". */
@@ -129,7 +130,10 @@ const era = await ERAS[eraId]!()
 const codec: PathCodec = era.codec(fs)
 const decorate: NameDecorator = era.decorate
 
-const shell = new Shell(root, era.skin)
+// The app services are what `Shell.launchApp` needs and nothing else uses: an
+// app receives the codec and the name decorator through its `AppHost` because it
+// cannot import a skin and cannot render a filename without them.
+const shell = new Shell(root, era.skin, { fs, codec, decorate })
 shell.bindFocusFollowing()
 
 // The harness status strip reserves space at the bottom, *on top of* whatever the
@@ -204,6 +208,19 @@ function openDirectoryWindow(startAt?: NodeId): WindowId {
   return id
 }
 
+/**
+ * Launch the real Files app.
+ *
+ * Separate from `openDirectoryWindow` above rather than replacing it. The phase-2
+ * directory view proves a different claim — that the filesystem layer holds the
+ * only copy of the tree — and eleven browser tests across four suites drive it by
+ * name. Deleting it to make room would be removing working behaviour to make a
+ * new feature easier, which `CLAUDE.md` forbids outright.
+ */
+function openFilesWindow(startAt?: NodeId): WindowId {
+  return shell.launchApp(startAt === undefined ? filesApp : filesAppAt(startAt))
+}
+
 // A window closing must release its watcher, or a closed view keeps re-rendering
 // into detached DOM every time the folder changes.
 shell.wm.subscribe((e) => {
@@ -239,6 +256,10 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
 }
 
 button('New Files window', () => {
+  openFilesWindow()
+})
+
+button('New harness view', () => {
   openDirectoryWindow()
 })
 
@@ -329,7 +350,7 @@ async function refreshStorage(): Promise<void> {
 fs.watchAll(() => void refreshStorage())
 void refreshStorage()
 
-openDirectoryWindow()
+openFilesWindow()
 
 // Test surface for the browser suite.
 declare global {
@@ -341,6 +362,8 @@ declare global {
       /** Which era is loaded. Fidelity suites assert against the right one. */
       era: string
       openDirectoryWindow(startAt?: NodeId): WindowId
+      /** The real Files app, as opposed to the phase-2 harness view above. */
+      openFilesWindow(startAt?: NodeId): WindowId
       openWindows(n: number): WindowId[]
       /** The directory view hosting a window, so a suite can assert its state
        *  survived a suspend/resume round trip rather than only that the flag flipped. */
@@ -368,6 +391,7 @@ window.__chronos = {
   codec,
   era: eraId,
   openDirectoryWindow,
+  openFilesWindow,
   viewFor(id: WindowId): DirectoryView | undefined {
     return views.get(id)
   },

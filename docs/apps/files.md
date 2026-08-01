@@ -1,130 +1,211 @@
 # Files — phase 5
 
-Branch `app/files`. Written before any app code, because the survey that was
-supposed to take an hour found the app layer is not there.
+Branch `app/files`. Base `fb6e189`.
+
+**Verified:** `npm test` — 12 invariant, 7 budget, 295 browser. The browser suite was
+269 at base, so this adds 26 and changes none. The perf gate is unmoved:
+`scriptPerFrame` 0.503ms against a 3ms bound, `longTasks=0`, inside the 0.27–0.94ms
+band every previous run reported. Rendered and looked at in all six eras.
 
 ---
 
-## 1. The blocker: §5's app layer does not exist in the tree
+## 1. The dialog question, answered before anything was built
 
-§5 specifies four things and the repository has one of them.
+**Open and Save are a core service on `WindowHandle`. Files does not export them.**
 
-| §5 declares | In the tree? | Where |
-|---|---|---|
-| `AppInstance` | **yes** | `src/core/app/types.ts` |
-| `AppModule` (`id`, `defaultSize`, `minSize`, `resizable`, `mount`) | no | — |
-| `AppHost` (`root`, `fs`, `win`, `ui`, `sound`, `clipboard`) | no | — |
-| `WindowHandle` (`setTitle`, `setDirty`, `requestClose`, `openDialog`) | no | — |
-| `UiKit` — tier 1 widgets | no | — |
-| `SkinManifest.widgets` — tier 2 `WidgetRenderer` | no | `SkinManifest` has `chrome`, `menu`, `keymap`, `viewport`, `regions`, `renderBudget`, `generatedProperties` |
-| `SoundApi`, `ClipboardApi` | no | — |
-| `src/apps/` | no | the invariant scan already walks the path, so the slot is reserved and empty |
+`host.win.openFile(…)`, `host.win.saveFile(…)`, `host.win.chooseFolder(…)`,
+`host.win.message(…)`, `host.win.openDialog(…)` — implemented in
+`src/core/ui/dialogs.ts`, rendered from the active skin's tier-1 widgets, opened as a
+modal owned by the *calling* window.
 
-Verified by reading `src/core/app/types.ts`, `src/shell/shell.ts`, `src/core/wm/types.ts`
-and by grepping the whole tree: `UiKit`, `AppHost`, `AppModule`, `WindowHandle` and
-`openDialog` appear **nowhere in `src/`**. The only matches are `Shell.registerApp` in
-`src/shell/shell.ts:355` and its one caller in `src/main.ts:177`.
+Five reasons, in order of what they cost to get wrong:
 
-What phase 4 actually built is the *routing*: `Shell.registerApp(id, instance)` turns the
-window manager's `suspended`/`resumed`/`focused`/`closed` events into calls on an
-`AppInstance`, and registers `canClose` as the WM's close guard. `core/app/types.ts` says
-this in its own doc comment — one harness implementation, proof the contract is wireable
-and nothing more. That is exactly right and it is not the same thing as an app layer.
+1. **§5's contract line already said so** — `win: WindowHandle // setTitle, setDirty,
+   requestClose, openDialog`. Nothing anywhere described it as a Files export.
+2. **"An app knows core and nothing else."** Editor calling Files for Save As breaks
+   the top invariant in `CLAUDE.md` and makes five branches depend on a sixth's build
+   order.
+3. **Files may be closed.** The alternative is an always-mounted Files singleton
+   holding an `fs.watch` after the user quit it.
+4. **The modal's owner is the caller's window** (`wm.open({ modalOwner })`, as
+   Ledger's Steward proved). Routing through Files would put it under the wrong owner
+   and break the shell's existing blocked-click feedback.
+5. **The eras agree.** `comdlg32`'s `GetOpenFileName`, the Standard File Package,
+   `NSOpenPanel` — OS services, which is why every app's Open box looked identical and
+   none looked like the file manager's own window.
 
-So the brief's instruction — *"You write `ui.button(...)`, never a class name"* — has no
-callable subject today. Neither has *"Tier 1 widgets resolve through UiKit"*.
+Files owns the *conventions* the dialog reuses — sort order, `wellKnown` naming,
+acceptance rules — inside the shared list widget, not in an app-to-app call.
 
-### Why this is not mine to fix on `app/files`
-
-It is not a contract *change* discovered mid-build; it is the phase-5 foundation, and it
-is identical for all six app sessions. If each of the six builds the widget kit it needs,
-`main` gets six incompatible `UiKit`s, six `AppHost` shapes and six merge conflicts in
-`core/` — and five of them get thrown away. §11's rule is that a core change is fixed in
-core and reported rather than absorbed; the same reasoning applies with more force to core
-code that does not exist yet.
-
-**`core/app` + `core/ui` has to land on `main` before the six app branches write widget
-code.** Which session builds it is the call to make; the sequencing is not optional.
-
-### Three gaps in §5 itself, found while checking the above
-
-These need answers whoever builds the layer, so they are recorded here rather than
-discovered six times.
-
-1. **`AppHost` has no `PathCodec` and no `NameDecorator`.** Files cannot render a single
-   row without `codec.displayName(node)`, cannot draw a location bar without
-   `codec.format(chain)` or `codec.volumeName()`, and cannot create "New Folder" without
-   `decorate` for the collision suffix. An app may not import a skin, so there is no other
-   route. `main.ts` hands both to `DirectoryView` directly, out of band — which works for
-   a harness constructed in `main.ts` and does not survive contact with `AppModule.mount`.
-   Same shape of omission as `ShellRegionHost.accelFor`: the accessor exists one layer up
-   and not on the surface that needs it.
-
-2. **`AppHost.sound` would be a stub.** §9 is phase 6; there is no `SoundApi` and nothing
-   to put behind it. CLAUDE.md forbids shipping the placeholder that would result. Either
-   sound lands minimally now with something real behind it, or `AppHost` omits the field
-   until phase 6 adds it. Omission is the honest option and costs one line later.
-
-3. **§5 puts the file-list view in tier 2**, i.e. each skin exports its structure. That
-   makes the Files app's central surface skin-supplied, and it means six skins gain a
-   file-list `WidgetRenderer` — work in the skin layer that no app session owns and that
-   blocks Files specifically. Worth re-deciding: the *structure* of a name/size/kind/date
-   list is the same in all six eras, and what differs is chrome, metrics and the column
-   set. Tier 1 with a `data-ui="filelist"` vocabulary would put it inside the kit and let
-   each skin's CSS paint it, the same way §5 already handles tabs and group boxes. The
-   icon view is a stronger tier-2 candidate than the list view is.
+**For the other five sessions:** call `host.win.openFile({ accept: ['image/'] })` and
+`host.win.saveFile({ suggestedName: 'Untitled.txt' })`. Both resolve to `null` on
+cancel. `saveFile` returns `{ parent, name }` — a location and a *canonical stored
+name*, not a decorated one; the era's spelling is the codec's business. Three browser
+tests exercise them through a real `WindowHandle`, not through Files.
 
 ---
 
-## 2. The open/save dialogs: **core provides them. Files does not export them.**
+## 2. What was built, and why core grew
 
-This is the answer the other five sessions are waiting on, so it is stated first and
-argued second.
+§5's app layer was specified and absent. `AppInstance` and `Shell.registerApp` existed;
+`AppModule`, `AppHost`, `WindowHandle`, `UiKit` and `src/apps/` did not. Building Files
+meant building the layer under it. **This is shared code that five other sessions need
+and cannot see until it merges** — it is listed here in full so the merge is reviewable.
 
-`host.win.openDialog(...)` — a core service reachable from every app's `WindowHandle`,
-rendered from the active skin's widgets, opened as a modal owned by the *calling* window.
-Files is its heaviest consumer and owns none of it.
+| Added | Where |
+|---|---|
+| `UiKit` — tier-1 widgets, `data-ui` + `data-state` vocabulary | `src/core/ui/kit.ts` |
+| `DialogService` — modal, message, open, save, choose-folder | `src/core/ui/dialogs.ts` |
+| `AppModule`, `AppHost`, `WindowHandle`, `LaunchOptions` | `src/core/app/types.ts` |
+| `Shell.launchApp`, `appFor`, `handleFor`, `appMenuFor`, `AppServices` | `src/shell/shell.ts` |
+| Tier-1 widget *structure* | `src/shell/base.css` |
+| Tier-1 widget *appearance*, six skins | `src/skins/*/skin.css` |
+| The Files app | `src/apps/files/` |
 
-Five reasons, in order of how much they cost to get wrong.
+Three departures from §5 as written, each with a reason:
 
-1. **§5 already says so and it is in the contract line, not the prose.** `win:
-   WindowHandle // setTitle, setDirty, requestClose, openDialog`. The dialog was specified
-   as a window-handle capability from the start; nothing anywhere describes it as a Files
-   export.
+1. **`AppHost` carries `codec` and `decorate`.** §5 omitted both. An app cannot render
+   one filename without `codec.displayName`, cannot draw a location bar without
+   `codec.format`, and cannot create "New Folder" without the era's collision suffix —
+   and it may not import a skin. `main.ts` handed them to the harness view out of band,
+   which worked only while the sole consumer was constructed in `main.ts`.
+2. **`AppHost` has no `sound`.** §9 is phase 6 and nothing exists behind it. A field
+   that resolves to nothing is the unfinished work `CLAUDE.md` forbids shipping; adding
+   it later costs one line.
+3. **The file list is tier 1, not tier 2.** §5 puts it in tier 2, which would make the
+   app's central surface six skins' work before Files could render at all. It ships as
+   tier 1 *by construction*: it emits `listrow`/`listcell`/`listheader` into the same
+   attribute vocabulary and each skin paints them. **Raised, not resolved** — if tier 2
+   is wanted for the list, a skin can already override every rule, and the icon view is
+   the stronger tier-2 candidate.
 
-2. **"An app knows core and nothing else."** If Editor calls Files for Save As, Editor
-   knows Files exists. That is the top invariant in CLAUDE.md, broken directly, and it
-   makes five app branches depend on the build order of a sixth.
+**Not built, deliberately.** Tabs (§5 lists them tier 1; Files uses none, and a widget
+that cannot be verified against six skins is worse than no widget). Scroll bars and
+per-era icon artwork (both genuine tier-2 additions and therefore contract changes —
+raised rather than taken). One exception: System 1's list scroll bar got a two-tone
+face, because a native Chromium scroll bar renders three mid greys in an era that has
+none. That is the no-grey obligation, not the tier-2 widget.
 
-3. **Files is not necessarily running.** A dialog that lives in the Files app fails when
-   the user has closed Files — or Files becomes an always-mounted singleton service, which
-   is worse, because now an app that the user quit is still holding a filesystem watch.
-
-4. **The modal belongs to the caller's window.** The mechanism is
-   `wm.open({ modalOwner })`, already proven by Ledger's Steward. The owner of that modal
-   is the window that asked, so the dialog's lifetime is the caller's — including
-   `flashModal`'s rejection feedback when the user clicks the blocked parent. Routing it
-   through Files would put the modal under the wrong owner and break the blocked-click
-   behaviour the shell already implements.
-
-5. **It is historically backwards as well.** These were OS services, not file-manager
-   features: `comdlg32.dll`'s `GetOpenFileName` on both Windows eras, the Standard File
-   Package on the classic Macs, `NSOpenPanel` on Tiger. An app got the dialog from the
-   system, which is why every app's Open box looked identical and none of them looked like
-   the Finder's window. Building it as a Files export would reproduce a coupling the real
-   eras did not have.
-
-**What Files does own:** the browsing conventions the dialog reuses — sort order, the
-`wellKnown` folder naming, the "can this node be chosen" rules, extension filtering. Those
-belong in the shared file-list widget both surfaces render, not in an app-to-app call.
-
-**What this costs core:** one `openDialog` on `WindowHandle`, a `FileDialogSpec`/result
-pair, and one implementation over `FsApi` + the file-list widget. It is a core addition,
-which is why it is raised here and not built.
+`DirectoryView` and `openDirectoryWindow` are untouched. Eleven tests across four
+suites drive the phase-2 harness by name, and it proves a different claim; deleting it
+would be removing working behaviour to make a new feature easier.
 
 ---
 
-## 3. Verified baseline at the time of writing
+## 3. The phase-5 gate
 
-`main` and both branches at `fb6e189`. `npm run typecheck` clean; `npm run test:invariants`
-12/12. Browser suites not re-run — no source has changed.
+`suspend()` → `resume()` with state intact, per app, asserted rather than assumed.
+
+What survives, and where it lives:
+
+| State | Kind |
+|---|---|
+| current folder, view mode, sort key and direction | plain fields |
+| selection and keyboard cursor | identity-based, in the list widget |
+| **scroll offset** | **in the DOM** |
+| **an in-progress rename — text and both caret offsets** | **in the DOM** |
+
+The last two are the test. `resume()` re-reads the filesystem and rebuilds every row,
+so a rename half-typed at the moment of suspension is destroyed by the very re-render
+that brings the window back — unless it is read out on the way down and re-mounted on
+the way up. The suite types `half-typed`, puts the caret at offset 4 (neither end, so a
+restore that selects everything or collapses to zero fails), suspends, writes to the
+filesystem to prove the app does *no work* while suspended, resumes, and asserts the
+text, the caret, the selection, the folder and the scroll offset are all identical —
+and that the editor is really back on screen rather than only remembered in a field.
+
+The round trip also runs in all six eras.
+
+---
+
+## 4. Bugs found by rendering it, not by testing it
+
+Every one of these passed the assertions and was wrong on screen.
+
+1. **The list's type-ahead ate the rename editor's keystrokes.** `preventDefault()` on
+   a printable keydown stops it reaching the input, so `renamed` arrived as `a`. The
+   list is the only tab stop, so anything else reporting focus is a descendant widget:
+   `if (e.target !== this.el) return`. Same shape as DECISIONS 1.9 — the surface that
+   owns an event must not consume the events belonging to what it opened.
+
+2. **Category glyphs were characters, and no era face carries them.** `▸` `▤` `♪` fell
+   back to the browser's default face and antialiased: **2,569 mid-grey pixels** in a
+   1-bit window. `ListRow.glyph` is now a *category* (`folder`, `document`, …) written
+   as `data-glyph` with no text at all, and the skin draws it. `CLAUDE.md` records the
+   identical trap for U+2014 in a window title.
+
+3. **`clip-path` antialiases its diagonals.** The replacement silhouettes were polygons
+   and put the grey straight back. Percentages have the same problem one step later —
+   12% of a 12px box is 1.44px. Every mark is now concentric `inset` shadows at integer
+   pixel spreads, which land on the grid at any integer display scale.
+
+4. **`border-radius: 50%` on a radio is a grey in a 1-bit era.** The view switch is
+   toggle buttons instead — and not as a concession to one era: all six shipped their
+   view switch as toolbar buttons or a menu, never a radio column. `ButtonSpec.pressed`
+   is the vocabulary.
+
+5. **Extending a skin's selector reaches one layer, not the construction.** System 1's
+   button is an element plus a clipped `::before` paper interior; attaching `[data-ui]`
+   to the outer rule alone gave black-on-black. Its `::before`, `:active` and disabled
+   rules all needed the same treatment.
+
+6. **`.lg-btn` is Ledger's *caption* button** — a fixed `--lg-control-h` square — so
+   attaching the kit's buttons to it made every toolbar button a square the width of
+   its own height and crushed eight labels to one letter each. Ledger now has a push
+   button that sizes to its label, sharing the era's ink and its five states and
+   nothing else.
+
+7. **A flex toolbar button shrinks below its own label.** `flex: 0 0 auto` is in
+   `base.css`, not a skin: a button whose label is a single letter is unusable, not
+   differently styled.
+
+8. `1 bytes` is not a size.
+
+---
+
+## 5. The no-grey gate is this app's to make, and its instrument had to change
+
+`system1-fidelity.spec.ts` asserts no pixel anywhere is a mid grey — and it would have
+passed whatever Files rendered, because it builds its own two buttons and screenshots
+the desktop and a menu. Reading it as coverage of a new surface is the mistake
+`CLAUDE.md` records twice under *a guard that cannot fail*, so the app that added the
+surface adds the assertion.
+
+Its instrument could not be reused. That suite's discriminator is a luma band — below
+40 or above 208 — derived from Chromium's LCD fringes on **black text on white**, the
+only polarity its surfaces render. A selected row inverts, and white-on-black fringes
+to a different set: measured here at lumas 51, 54, 81, 91, 126, 163, 168 and 189,
+squarely inside the band. Widening the band until this passes is precisely the
+*loosen a threshold until a false assertion passes* failure.
+
+So the claim is restated to the one that is true and is the actual point: **no region
+is flat grey.** A fill has a large connected region of non-pure pixels; a fringed edge
+is confined to one glyph. Measured: the largest non-pure component in the Files window
+is **168** device pixels, an injected `#808080` row is **27,760**, and the bound is one
+character cell — `(font-size × display-scale)²` — derived from the era's own type
+rather than picked. Per `CLAUDE.md`'s own rule, a second test injects a real grey fill
+and asserts the probe catches it.
+
+---
+
+## 6. Open, and not blocking
+
+1. **App menus carry no accelerators.** DECISIONS 4.47: an enabled item's accelerator
+   must come from the active keymap, and `AppHost` exposes no `accelFor` — deliberately,
+   since an app that could read the keymap could disagree with it. Every item is bare
+   and reachable by walking the menu. If apps should bind commands, that is a contract
+   decision, not a Files one.
+2. **`AppModule.mount` takes only a host**, so a start folder cannot travel through it.
+   `filesAppAt(dir)` closes over the folder instead — the same mechanism `main.ts`
+   already uses for era bundles, and it costs the contract nothing.
+3. **One `defaultSize` meets six type scales.** 460×300 is comfortable in five eras and
+   tight in Ledger, whose 18px Black type wraps the toolbar to three rows. The window is
+   resizable and the app must not know which era it is in; if this matters, the fix is a
+   size the *skin* scales, not a conditional in the app.
+4. **Opening a file shows its properties**, because no type→app registry exists yet.
+   Stated in the code rather than left as a silent no-op.
+5. **Tiger's and Mac OS 8's control geometry is derived, not measured.** Neither source
+   publishes a push-button, list-row or text-field bitmap and `docs/sources/` has no 1:1
+   capture of either. Every such value is marked in the stylesheet. The four skins that
+   already had measured control faces reuse them by selector, so no measured value is
+   duplicated.

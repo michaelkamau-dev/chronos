@@ -745,3 +745,214 @@
 .tg-win[data-suspended='true'] .tg-content {
   filter: grayscale(0.4) brightness(0.97);
 }
+
+/* --------------------------------------------- tier-1 widgets (phase 5) */
+
+/*
+ * Structure is in src/shell/base.css; this is the Aqua face for it.
+ *
+ * **Provenance, stated because this era had none of these controls measured.**
+ * Apple's Tiger HIG documents the *type* sizes and the title-bar artwork, which
+ * is what `metrics.ts` carries. It publishes no push-button, list-row or
+ * text-field bitmap, and `docs/sources/` holds no 1:1 Aqua capture — so the
+ * geometry below is **derived from the documented type**, not measured, and is
+ * marked as such here rather than presented as fidelity. `--tg-font-view` is
+ * Apple's own documented size for list views and is used for exactly that.
+ *
+ * The list row height is the view font plus 5px of leading. The 3px corner radius
+ * reuses `--tg-corner`, which is the measured window corner, on the reasoning that
+ * Aqua used one corner family throughout — that is a derivation and not a source.
+ */
+
+.desktop[data-skin='tiger'] [data-app='files'] {
+  background: #FFFFFF;
+  font-family: var(--tg-font);
+  font-size: var(--tg-font-view);
+  color: #000000;
+}
+
+.desktop[data-skin='tiger'] [data-ui='toolbar'] {
+  gap: 4px;
+  padding: 5px 6px;
+  background: var(--tg-body);
+  border-bottom: var(--tg-hairline) solid var(--tg-frame);
+  font-size: var(--tg-font-small);
+}
+
+.desktop[data-skin='tiger'] [data-ui='button'] {
+  min-width: 0;
+  /* derived: documented 20px small push button, less the shadow the spec excludes. */
+  height: 19px;
+  padding: 0 10px;
+  border: var(--tg-hairline) solid #9A9A9A;
+  border-radius: var(--tg-corner);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F1F1F1 48%, #E4E4E4 52%, #FDFDFD 100%);
+  font-family: var(--tg-font);
+  font-size: var(--tg-font-small);
+  color: #000000;
+}
+
+.desktop[data-skin='tiger'] [data-ui='button'][data-state='hover'] {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F7F7F7 48%, #EDEDED 52%, #FFFFFF 100%);
+}
+
+.desktop[data-skin='tiger'] [data-ui='button'][data-state='active'] {
+  background: linear-gradient(180deg, #C6C6C6 0%, #D6D6D6 48%, #CFCFCF 52%, #E8E8E8 100%);
+}
+
+.desktop[data-skin='tiger'] [data-ui='button'][data-state='focus'] {
+  outline: 2px solid var(--tg-focus-1);
+  outline-offset: 0;
+}
+
+.desktop[data-skin='tiger'] [data-ui='button'][data-state='disabled'] {
+  color: #A6A6A6;
+  border-color: #C8C8C8;
+  background: #F4F4F4;
+}
+
+/* Aqua's default button is the blue one, not a heavier outline. */
+.desktop[data-skin='tiger'] [data-ui='button'][data-default='true'] {
+  background: linear-gradient(180deg, #B8D6F5 0%, #7FB2EE 48%, #5E9BE4 52%, #A9CEF3 100%);
+  border-color: #4A7FBE;
+}
+
+.desktop[data-skin='tiger'] [data-ui='field'] {
+  height: 19px;
+  padding: 1px 4px;
+  border: var(--tg-hairline) solid #8E8E8E;
+  border-radius: 2px;
+  background: #FFFFFF;
+  font-family: var(--tg-font);
+  font-size: var(--tg-font-small);
+  color: #000000;
+}
+
+.desktop[data-skin='tiger'] [data-ui='field'][data-state='focus'] {
+  outline: 2px solid var(--tg-focus-1);
+  outline-offset: -1px;
+}
+
+.desktop[data-skin='tiger'] [data-ui='field'][data-state='disabled'] {
+  background: #F2F2F2;
+  color: #A6A6A6;
+}
+
+.desktop[data-skin='tiger'] [data-ui-role='viewmodes'] {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.desktop[data-skin='tiger'] [data-ui-role='location'] {
+  padding: 3px 8px;
+  background: var(--tg-body);
+  border-bottom: var(--tg-hairline) solid var(--tg-frame);
+  font-size: var(--tg-font-mini);
+}
+
+.desktop[data-skin='tiger'] [data-ui='list'] {
+  background: #FFFFFF;
+}
+
+.desktop[data-skin='tiger'] [data-ui='listheader'] {
+  background: linear-gradient(180deg, #FDFDFD 0%, #EDEDED 100%);
+  border-bottom: var(--tg-hairline) solid #C6C6C6;
+  font-size: var(--tg-font-mini);
+}
+
+.desktop[data-skin='tiger'] [data-ui='listheader'] [data-ui='listcell'] {
+  padding: 2px 6px;
+  border-right: var(--tg-hairline) solid #D4D4D4;
+}
+
+.desktop[data-skin='tiger'] [data-ui='listrow'] {
+  /* derived: documented 11px view font plus 5px leading. */
+  min-height: 16px;
+  padding: 0 6px;
+  gap: 5px;
+}
+
+/*
+ * Alternating row tint is Tiger's own list behaviour, and it is the reason a
+ * hover face would be wrong here: Aqua lists highlighted on selection, not on
+ * pointer position.
+ */
+.desktop[data-skin='tiger'] [data-ui='listrow']:nth-child(even) {
+  background: #EDF3FE;
+}
+
+.desktop[data-skin='tiger'] [data-ui='listrow'][aria-selected='true'],
+.desktop[data-skin='tiger'] [data-ui='listrow'][data-drop-target='true'] {
+  background: var(--tg-menu-hl);
+  color: var(--tg-menu-hl-ink);
+}
+
+.desktop[data-skin='tiger'] [data-ui='listrow'][data-cursor='true'] {
+  outline: var(--tg-hairline) solid var(--tg-focus-1);
+  outline-offset: -1px;
+}
+
+.desktop[data-skin='tiger'] [data-ui='listrow'][aria-disabled='true'] {
+  color: #A6A6A6;
+}
+
+.desktop[data-skin='tiger'] [data-ui='listcell'] {
+  padding: 0 2px;
+}
+
+.desktop[data-skin='tiger'] [data-ui='list'][data-layout='grid'] [data-ui='listrow'] {
+  width: 84px;
+  padding: 5px 2px;
+  margin: 3px;
+  gap: 3px;
+  border-radius: var(--tg-corner);
+}
+
+.desktop[data-skin='tiger'] [data-ui='statusbar'] {
+  padding: 3px 8px;
+  background: var(--tg-body);
+  border-top: var(--tg-hairline) solid var(--tg-frame);
+  font-size: var(--tg-font-mini);
+}
+
+.desktop[data-skin='tiger'] [data-ui='dialog'] {
+  background: var(--tg-body);
+  font-family: var(--tg-font);
+  font-size: var(--tg-font-system);
+  color: #000000;
+}
+
+.desktop[data-skin='tiger'] [data-ui='dialogbody'] {
+  padding: 14px;
+  gap: 8px;
+}
+
+/* The Mac puts the default button at the right of the row. */
+.desktop[data-skin='tiger'] [data-ui='dialogbuttons'] {
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.desktop[data-skin='tiger'] [data-ui-role='properties'] {
+  gap: 4px 12px;
+}
+
+.desktop[data-skin='tiger'] [data-ui-role='property-name'] {
+  color: #666666;
+  text-align: right;
+}
+
+.desktop[data-skin='tiger'] [data-ui-role='chooser-header'],
+.desktop[data-skin='tiger'] [data-ui-role='chooser-name'] {
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+/* A pressed toggle button — the view switch — reads as held in, using the era's
+ * own selection inks rather than a new pair. */
+.desktop[data-skin='tiger'] [data-ui='button'][data-pressed='true'] {
+  background: var(--tg-menu-hl);
+  color: var(--tg-menu-hl-ink);
+}
