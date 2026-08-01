@@ -20,6 +20,11 @@
 
 import type { HitTarget } from '../input/dispatcher.js'
 import type { MenuSpec } from '../input/menu.js'
+import type { UiKit } from '../ui/kit.js'
+import type { DialogSpec, FileOpenSpec, FileSaveSpec, FileSaveTarget, MessageSpec } from '../ui/dialogs.js'
+import type { FsApi, NameDecorator, NodeId, PathCodec } from '../fs/types.js'
+import type { AppId, WindowId } from '../wm/types.js'
+import type { Size } from '../geometry.js'
 
 /**
  * A mounted app.
@@ -62,3 +67,92 @@ export interface AppInstance {
 
   destroy(): void
 }
+
+/**
+ * What an app may do to its own window.
+ *
+ * Deliberately five methods. An app that could reach the window manager could
+ * move, raise and close *other* windows, and §2's first invariant works in both
+ * directions — the WM knows nothing about apps, and an app knows nothing about
+ * the WM beyond the window it was given.
+ */
+export interface WindowHandle {
+  readonly id: WindowId
+  setTitle(title: string): void
+  /** Drives the era's dirty indicator and the close guard. */
+  setDirty(dirty: boolean): void
+  /** Asks the window manager to close, which consults `AppInstance.canClose`. */
+  requestClose(): void
+
+  /**
+   * A modal dialog owned by this window.
+   *
+   * Resolves to the index of the button that dismissed it. Owned by the *calling*
+   * window rather than by whichever app implements the dialog, which is what makes
+   * the shell's existing blocked-click feedback work without the dialog knowing it
+   * exists.
+   */
+  openDialog(spec: DialogSpec): Promise<number>
+  /** A message or confirmation. Resolves to the index of the button pressed. */
+  message(spec: MessageSpec): Promise<number>
+  /** The system Open dialog. Resolves to the chosen file, or null if cancelled. */
+  openFile(spec?: FileOpenSpec): Promise<NodeId | null>
+  /** The system Save dialog. Resolves to a parent and a name, or null. */
+  saveFile(spec?: FileSaveSpec): Promise<FileSaveTarget | null>
+  /**
+   * Choose a folder. Resolves to the folder, or null.
+   *
+   * The keyboard path for dragging something onto a folder, which `CLAUDE.md`
+   * requires every mouse gesture to have.
+   */
+  chooseFolder(spec?: FileOpenSpec): Promise<NodeId | null>
+}
+
+/**
+ * Everything an app is given, and nothing else.
+ *
+ * `codec` and `decorate` are here because an app cannot import a skin and cannot
+ * render a single filename without them: `codec.displayName` decides whether a
+ * node shows as `Documents` or `My Documents` and whether its extension is
+ * visible, `codec.format` builds a location string, and `decorate` supplies the
+ * era's collision suffix when a new folder lands on a taken name. §5's original
+ * table omitted both, which worked only for as long as the sole consumer was a
+ * harness constructed in `main.ts` and handed them out of band.
+ *
+ * There is no `sound` field. §9 is phase 6, nothing exists behind it, and a field
+ * that resolves to nothing is precisely the unfinished work `CLAUDE.md` forbids
+ * shipping. Adding it when there is something real to put there costs one line.
+ */
+export interface AppHost {
+  /** The frame's `[data-content]`. The app owns everything inside it. */
+  readonly root: HTMLElement
+  readonly fs: FsApi
+  readonly codec: PathCodec
+  readonly decorate: NameDecorator
+  readonly win: WindowHandle
+  readonly ui: UiKit
+}
+
+/**
+ * An app, as the shell sees it before anything is mounted.
+ *
+ * `mount` is called once per window, so opening a second Files window builds a
+ * second independent instance over the same filesystem — which is the invariant
+ * phase 2 was gated on and the reason two windows on one folder stay in step
+ * without knowing about each other.
+ */
+export interface AppModule {
+  readonly id: AppId
+  readonly title: string
+  readonly defaultSize: Size
+  readonly minSize: Size
+  readonly resizable: boolean
+  mount(host: AppHost): AppInstance
+}
+
+/** Where a launch should start, for an app that opens onto a location. */
+export interface LaunchOptions {
+  startAt?: NodeId
+  title?: string
+}
+

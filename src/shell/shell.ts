@@ -21,7 +21,10 @@ import { Keymap, KeymapStack, type Binding } from '../core/input/keymap.js'
 import { MenuController, type MenuRenderer, type MenuSpec } from '../core/input/menu.js'
 import { RenderBudget, type RenderBudgetSpec } from '../core/input/render-budget.js'
 import { asAppId, type ChromeRenderer, type WindowId } from '../core/wm/types.js'
-import type { AppInstance } from '../core/app/types.js'
+import type { AppHost, AppInstance, AppModule, LaunchOptions, WindowHandle } from '../core/app/types.js'
+import { createUiKit } from '../core/ui/kit.js'
+import { DialogService } from '../core/ui/dialogs.js'
+import type { FsApi, NameDecorator, PathCodec } from '../core/fs/types.js'
 import type { Rect } from '../core/geometry.js'
 
 /**
@@ -151,6 +154,20 @@ export interface SkinManifest {
 /** Supplies the MenuSpec for a right-click on a given target. */
 export type ContextMenuProvider = (hit: HitTarget) => MenuSpec | null
 
+/**
+ * What the shell needs before it can launch an app.
+ *
+ * Optional on the constructor because the window manager, the switcher and the
+ * whole of phase 1–4 work without a filesystem, and a required argument would
+ * make every window-manager test construct one. `launchApp` is the only thing
+ * that needs them and it says so.
+ */
+export interface AppServices {
+  fs: FsApi
+  codec: PathCodec
+  decorate: NameDecorator
+}
+
 export class Shell {
   readonly display: Display
   readonly wm: WindowManager
@@ -180,8 +197,13 @@ export class Shell {
   /** Edges claimed by anything else, currently the harness status strip. */
   private extraReserved = { top: 0, right: 0, bottom: 0, left: 0 }
   private untitledCount = 0
+  private readonly services: AppServices | null
+  private readonly dialogs: DialogService | null
+  /** Mounted app instances, so a right-click can reach the app that owns the window. */
+  private readonly apps = new Map<WindowId, AppInstance>()
+  private readonly appHandles = new Map<WindowId, WindowHandle>()
 
-  constructor(root: HTMLElement, skin: SkinManifest) {
+  constructor(root: HTMLElement, skin: SkinManifest, services?: AppServices) {
     this.display = new Display(root, skin.viewport ?? { mode: 'native' })
     this.teardowns.push(this.display.attach())
 
@@ -242,10 +264,24 @@ export class Shell {
     })
     this.wm.setWorkArea(this.display.workArea())
 
+    this.services = services ?? null
+    this.dialogs =
+      services === undefined
+        ? null
+        : new DialogService({
+            wm: this.wm,
+            fs: services.fs,
+            codec: services.codec,
+            decorate: services.decorate,
+          })
+
     this.skinKeymap = skin.keymap
     this.activeKeymap = new Keymap(skin.keymap)
     this.keymaps.push(this.activeKeymap)
+    // Defaults first: providers are consulted most-recently-registered first, so
+    // an app's own menu for a click inside its content outranks the chrome menu.
     this.registerDefaultContextMenus()
+    this.registerAppContextMenus()
     this.teardowns.push(this.registerCommands())
     this.mountRegions(skin.regions ?? [])
     this.teardowns.push(this.dispatcher.attach())
@@ -384,6 +420,104 @@ export class Shell {
     })
     this.teardowns.push(un)
     return un
+  }
+
+  /**
+   * Open a window and mount an app into it.
+   *
+   * The shell is the layer that may know both halves — §2's first invariant is
+   * that the window manager knows nothing about apps, and §5's is that an app
+   * knows core and nothing else, so the wiring between them belongs to neither
+   * and has to live here. What an app receives is an `AppHost` and no route back
+   * to the window manager, the skin, or any other window.
+   *
+   * Every teardown is registered against the window's own `closed` event rather
+   * than against the shell's, because an app window outliving its kit's delegated
+   * listeners is a leak that only shows up after a few hundred opens.
+   */
+  launchApp(module: AppModule, opts: LaunchOptions = {}): WindowId {
+    const services = this.services
+    const dialogs = this.dialogs
+    if (!services || !dialogs) {
+      throw new Error('Shell.launchApp needs AppServices; construct the shell with them')
+    }
+
+    const id = this.wm.open({
+      appId: module.id,
+      title: opts.title ?? module.title,
+      minSize: module.minSize,
+      resizable: module.resizable,
+      rect: this.cascadeRect(module.defaultSize),
+    })
+    const frame = this.wm.handleOf(id)
+    if (!frame) return id
+
+    const ui = createUiKit(frame.content)
+    const win: WindowHandle = {
+      id,
+      setTitle: (title) => this.wm.setTitle(id, title),
+      setDirty: (dirty) => this.wm.setDirty(id, dirty),
+      requestClose: () => void this.wm.close(id),
+      openDialog: (spec) => dialogs.open(id, spec),
+      message: (spec) => dialogs.message(id, spec),
+      openFile: (spec) => dialogs.openFile(id, spec),
+      saveFile: (spec) => dialogs.saveFile(id, spec),
+      chooseFolder: (spec) => dialogs.chooseFolder(id, spec),
+    }
+    const host: AppHost = {
+      root: frame.content,
+      fs: services.fs,
+      codec: services.codec,
+      decorate: services.decorate,
+      win,
+      ui,
+    }
+
+    const instance = module.mount(host)
+    this.apps.set(id, instance)
+    this.appHandles.set(id, win)
+    const unregister = this.registerApp(id, instance)
+
+    const un = this.wm.subscribe((e) => {
+      if (e.id !== id || e.type !== 'closed') return
+      // `registerApp` already called `destroy()` on the instance; this releases
+      // the kit's listeners and the shell's own reference to the app.
+      this.apps.delete(id)
+      this.appHandles.delete(id)
+      ui.destroy()
+      un()
+    })
+    this.teardowns.push(() => {
+      un()
+      unregister()
+      this.apps.delete(id)
+      this.appHandles.delete(id)
+      ui.destroy()
+    })
+    return id
+  }
+
+  /** The app instance mounted in a window, or undefined if the window hosts none. */
+  appFor(id: WindowId): AppInstance | undefined {
+    return this.apps.get(id)
+  }
+
+  /**
+   * The window handle an app was given.
+   *
+   * Public because the dialogs on it are a *service*: anything that legitimately
+   * acts on behalf of a window — a menu bar item, a shell command — needs the same
+   * route to them that the app has, and rebuilding a second handle would mean two
+   * objects claiming to speak for one window.
+   */
+  handleFor(id: WindowId): WindowHandle | undefined {
+    return this.appHandles.get(id)
+  }
+
+  /** The app mounted in a window, for a menu bar that renders the app's own menus. */
+  appMenuFor(id: WindowId): MenuSpec | null {
+    const spec = this.apps.get(id)?.menu()
+    return spec && spec.length > 0 ? spec : null
   }
 
   openWindow(title?: string): WindowId {
@@ -529,6 +663,34 @@ export class Shell {
       ],
       { duration: 360, easing: 'steps(1, end)' },
     )
+  }
+
+  /**
+   * A cascaded rect at the app's declared size, clamped into the work area.
+   *
+   * The clamp is what keeps an app honest on a 512x342 screen: a 640px default
+   * size is not a reason to open a window wider than the display, and an app is
+   * not allowed to know which era would do that to it.
+   */
+  private cascadeRect(size: { w: number; h: number }): Rect {
+    const work = this.wm.workArea()
+    const step = this.wm.metrics.cascadeStep * (this.wm.list().length % 8)
+    const w = Math.min(size.w, work.w)
+    const h = Math.min(size.h, work.h)
+    return {
+      x: Math.min(work.x + step, work.x + work.w - w),
+      y: Math.min(work.y + step, work.y + work.h - h),
+      w,
+      h,
+    }
+  }
+
+  /** Right-click inside an app's content reaches that app, and nothing else does. */
+  private registerAppContextMenus(): void {
+    this.addContextMenuProvider((hit) => {
+      if (hit.kind !== 'content' || hit.windowId === null) return null
+      return this.apps.get(hit.windowId)?.contextMenu(hit) ?? null
+    })
   }
 
   private registerDefaultContextMenus(): void {

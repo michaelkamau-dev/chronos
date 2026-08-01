@@ -457,7 +457,8 @@
   height: var(--lg-control-h);
 }
 
-.lg-index-field {
+.lg-index-field,
+.desktop[data-skin='ledger'] [data-ui='field'] {
   width: 100%;
   height: 100%;
   padding: 0 var(--lg-cell);
@@ -686,4 +687,214 @@
 .lg-index-label {
   color: var(--lg-amber);
   flex: 0 0 auto;
+}
+
+/* --------------------------------------------- tier-1 widgets (phase 5) */
+
+/*
+ * Structure is in src/shell/base.css; this is the thermal face for it.
+ *
+ * Two inks and nothing between: `--lg-paper` and `--lg-carbon`, with `--lg-amber`
+ * for the one thing the era lets itself shout about. Every value below is
+ * `authored` in §8's sense — the spec states the ink policy, the cell size and the
+ * type — or `derived` from `--lg-cell`, which is what keeps a run one cell wide
+ * from being severed by the dither.
+ *
+ * The button rules above already carry the era's control face and the `[data-ui]`
+ * selectors were added to them, so nothing here is a second copy.
+ */
+
+.desktop[data-skin='ledger'] [data-app='files'] {
+  background: var(--lg-paper);
+  color: var(--lg-carbon);
+  font-family: 'Public Sans Ledger', sans-serif;
+  font-weight: 900;
+  font-size: var(--lg-fs);
+  line-height: var(--lg-line);
+}
+
+.desktop[data-skin='ledger'] [data-ui='toolbar'] {
+  gap: var(--lg-cell);
+  padding: var(--lg-cell);
+  background: var(--lg-paper);
+  border-bottom: var(--lg-rule) solid var(--lg-carbon);
+}
+
+.desktop[data-skin='ledger'] [data-ui='toolbar'] [data-ui='button'] {
+  min-width: 0;
+  padding: 0 var(--lg-control-pad);
+}
+
+.desktop[data-skin='ledger'] [data-ui-role='viewmodes'] {
+  display: flex;
+  gap: var(--lg-cell);
+  margin-left: auto;
+}
+
+.desktop[data-skin='ledger'] [data-ui-role='location'] {
+  padding: var(--lg-cell) var(--lg-control-pad);
+  background: var(--lg-paper);
+  border-bottom: var(--lg-rule) solid var(--lg-carbon);
+}
+
+.desktop[data-skin='ledger'] [data-ui='list'] {
+  background: var(--lg-paper);
+}
+
+.desktop[data-skin='ledger'] [data-ui='listheader'] {
+  background: var(--lg-carbon);
+  color: var(--lg-paper);
+}
+
+.desktop[data-skin='ledger'] [data-ui='listheader'] [data-ui='listcell'] {
+  padding: var(--lg-cell) var(--lg-control-pad);
+}
+
+.desktop[data-skin='ledger'] [data-ui='listrow'] {
+  min-height: var(--lg-control-h);
+  padding: 0 var(--lg-control-pad);
+  gap: var(--lg-control-pad);
+  border-bottom: var(--lg-rule) solid var(--lg-carbon);
+}
+
+/*
+ * Selection is a full inversion, not a tint. There is no third ink to tint with,
+ * and the dither that would produce one averages to exactly the mid grey this era
+ * has no way to print.
+ */
+.desktop[data-skin='ledger'] [data-ui='listrow'][aria-selected='true'],
+.desktop[data-skin='ledger'] [data-ui='listrow'][data-drop-target='true'] {
+  background: var(--lg-carbon);
+  color: var(--lg-paper);
+}
+
+.desktop[data-skin='ledger'] [data-ui='listrow'][data-drop-target='true'] {
+  outline: var(--lg-rule) solid var(--lg-amber);
+  outline-offset: calc(-1 * var(--lg-rule));
+}
+
+.desktop[data-skin='ledger'] [data-ui='listrow'][data-cursor='true'] {
+  outline: var(--lg-rule) solid var(--lg-amber);
+  outline-offset: calc(-1 * var(--lg-rule));
+}
+
+.desktop[data-skin='ledger'] [data-ui='listrow'][aria-disabled='true'] {
+  /* The era's dither, which is an ordered matrix rather than the classic
+   * checkerboard — see the note on Bayer's lower half in ARCHITECTURE.md §8. */
+  opacity: 1;
+  background-image: var(--lg-tile-amber-8);
+}
+
+.desktop[data-skin='ledger'] [data-ui='listcell'] {
+  padding: 0 var(--lg-cell);
+}
+
+.desktop[data-skin='ledger'] [data-ui='list'][data-layout='grid'] [data-ui='listrow'] {
+  width: calc(var(--lg-cell) * 20);
+  padding: var(--lg-control-pad) var(--lg-cell);
+  gap: var(--lg-cell);
+  border: var(--lg-rule) solid var(--lg-carbon);
+  margin: var(--lg-cell);
+}
+
+.desktop[data-skin='ledger'] [data-ui='statusbar'] {
+  padding: var(--lg-cell) var(--lg-control-pad);
+  background: var(--lg-paper);
+  border-top: var(--lg-rule) solid var(--lg-carbon);
+}
+
+.desktop[data-skin='ledger'] [data-ui='statusbar'][data-error='true'] {
+  background: var(--lg-amber);
+  color: var(--lg-carbon);
+}
+
+.desktop[data-skin='ledger'] [data-ui='dialog'] {
+  background: var(--lg-paper);
+  color: var(--lg-carbon);
+  font-family: 'Public Sans Ledger', sans-serif;
+  font-weight: 900;
+  font-size: var(--lg-fs);
+}
+
+.desktop[data-skin='ledger'] [data-ui='dialogbody'] {
+  padding: var(--lg-control-pad);
+  gap: var(--lg-control-pad);
+}
+
+.desktop[data-skin='ledger'] [data-ui='dialogbuttons'] {
+  justify-content: flex-end;
+  gap: var(--lg-control-pad);
+  padding: var(--lg-control-pad);
+  border-top: var(--lg-rule) solid var(--lg-carbon);
+}
+
+.desktop[data-skin='ledger'] [data-ui='button'][data-default='true'] {
+  background: var(--lg-carbon);
+  color: var(--lg-paper);
+}
+
+.desktop[data-skin='ledger'] [data-ui-role='properties'] {
+  gap: var(--lg-cell) var(--lg-control-pad);
+}
+
+.desktop[data-skin='ledger'] [data-ui-role='chooser-header'],
+.desktop[data-skin='ledger'] [data-ui-role='chooser-name'] {
+  gap: var(--lg-control-pad);
+  padding-bottom: var(--lg-control-pad);
+}
+
+/* A pressed toggle button — the view switch — reads as held in, using the era's
+ * own selection inks rather than a new pair. */
+.desktop[data-skin='ledger'] [data-ui='button'][data-pressed='true'] {
+  background: var(--lg-carbon);
+  color: var(--lg-paper);
+}
+
+/*
+ * The push button.
+ *
+ * Separate from `.lg-btn` above, which is the *caption* button — a fixed
+ * `--lg-control-h` square carrying a drawn glyph. Attaching the kit's buttons to it
+ * made every toolbar button a square the width of its own height, so eight labels
+ * came out one letter wide. A push button sizes to its label; a caption button never
+ * does. They share the era's ink and its five states and nothing else.
+ *
+ * The state model is the era's own, copied in reasoning rather than in declarations:
+ * hover inverts to paper, active is that inversion with the carbon dither over it —
+ * this era's only "darker" — focus is a full amber ring because focus is the thing
+ * that starts costing, and disabled is the struck-amber void treatment.
+ */
+.desktop[data-skin='ledger'] [data-ui='button'] {
+  flex: 0 0 auto;
+  height: var(--lg-control-h);
+  padding: 0 var(--lg-control-pad);
+  border: var(--lg-rule) solid var(--lg-carbon);
+  background: var(--lg-paper);
+  color: var(--lg-carbon);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.desktop[data-skin='ledger'] [data-ui='button'][data-state='hover'] {
+  background: var(--lg-carbon);
+  color: var(--lg-paper);
+}
+
+.desktop[data-skin='ledger'] [data-ui='button'][data-state='active'] {
+  background-color: var(--lg-carbon);
+  background-image: var(--lg-tile-ink-8);
+  color: var(--lg-paper);
+}
+
+.desktop[data-skin='ledger'] [data-ui='button'][data-state='focus'] {
+  outline: var(--lg-rule) solid var(--lg-amber);
+  outline-offset: 0;
+}
+
+.desktop[data-skin='ledger'] [data-ui='button'][data-state='disabled'] {
+  background-color: var(--lg-paper);
+  background-image: var(--lg-tile-amber-8);
+  color: var(--lg-carbon);
+  cursor: default;
 }

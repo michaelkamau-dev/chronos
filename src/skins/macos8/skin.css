@@ -528,3 +528,215 @@
   background: var(--m8-menu-title-hi);
   color: var(--m8-menu-title-hi-text);
 }
+
+/* --------------------------------------------- tier-1 widgets (phase 5) */
+
+/*
+ * Structure is in src/shell/base.css; this is the Platinum face for it.
+ *
+ * **Provenance.** The Mac OS 8 HIG figures gave the grey ramp, the bevel rings
+ * and the title bar, all of which `metrics.ts` carries and all of which are
+ * reused here by variable. What the HIG does not give is a push-button or
+ * list-row bitmap, so the *geometry* below is derived from the documented type
+ * and the ramp, and is marked rather than presented as measured.
+ *
+ * The button is the era's own model, not an enumeration of sides: **two closed
+ * bevel rings, one outset and one inset, lit from a single top-left source.** That
+ * is the reading the frame already uses, and writing it any other way here would
+ * put four hand-maintained lists next to a two-variable one.
+ */
+
+.desktop[data-skin='macos8'] [data-app='files'] {
+  background: var(--m8-white);
+  color: var(--m8-ink);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+}
+
+.desktop[data-skin='macos8'] [data-ui='toolbar'] {
+  gap: 4px;
+  padding: 4px;
+  background: var(--m8-menu-face);
+  border-bottom: 1px solid var(--m8-shadow);
+}
+
+.desktop[data-skin='macos8'] [data-ui='button'] {
+  min-width: 0;
+  /* derived: the era's line box plus 6px of vertical padding. */
+  height: calc(var(--m8-line-box) + 6px);
+  padding: 0 10px;
+  background: var(--m8-ramp-6);
+  color: var(--m8-ink);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+  border: 1px solid var(--m8-ink);
+  border-radius: 3px;
+  /* The outset ring: light top-left, dark bottom-right, one source. */
+  box-shadow:
+    inset 1px 1px 0 0 var(--m8-white),
+    inset -1px -1px 0 0 var(--m8-ramp-3);
+}
+
+.desktop[data-skin='macos8'] [data-ui='button'][data-state='hover'] {
+  background: var(--m8-ramp-7);
+}
+
+/* Pressed inverts the ring rather than moving the label — the same lighting model
+ * run the other way, which is what the HIG's pressed specimens show. */
+.desktop[data-skin='macos8'] [data-ui='button'][data-state='active'] {
+  background: var(--m8-ramp-4);
+  box-shadow:
+    inset 1px 1px 0 0 var(--m8-ramp-2),
+    inset -1px -1px 0 0 var(--m8-white);
+}
+
+.desktop[data-skin='macos8'] [data-ui='button'][data-state='focus'] {
+  outline: 2px solid var(--m8-accent-face);
+  outline-offset: 1px;
+}
+
+/*
+ * Disabled is a solid `#888888`-family ink, **not** a stipple. Platinum dropped
+ * `notPatBic`: the parity proof gives 127 ink pixels split 64/63, against the
+ * 37-on-one-parity that proves the checkerboard in the 1-bit eras. A Platinum skin
+ * that inherited the stipple would read four years out of date.
+ */
+.desktop[data-skin='macos8'] [data-ui='button'][data-state='disabled'],
+.desktop[data-skin='macos8'] [data-ui='listrow'][aria-disabled='true'] {
+  color: var(--m8-dim);
+}
+
+.desktop[data-skin='macos8'] [data-ui='button'][data-state='disabled'] {
+  background: var(--m8-ramp-6);
+  border-color: var(--m8-dim);
+  box-shadow: none;
+}
+
+.desktop[data-skin='macos8'] [data-ui='field'] {
+  height: calc(var(--m8-line-box) + 4px);
+  padding: 1px 4px;
+  background: var(--m8-white);
+  color: var(--m8-ink);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+  border: 1px solid var(--m8-ink);
+  /* The inset ring, the outset one reversed. */
+  box-shadow:
+    inset 1px 1px 0 0 var(--m8-ramp-3),
+    inset -1px -1px 0 0 var(--m8-white);
+}
+
+.desktop[data-skin='macos8'] [data-ui='field'][data-state='focus'] {
+  outline: 2px solid var(--m8-accent-face);
+  outline-offset: 0;
+}
+
+.desktop[data-skin='macos8'] [data-ui='field'][data-state='disabled'] {
+  background: var(--m8-ramp-6);
+  color: var(--m8-dim);
+}
+
+.desktop[data-skin='macos8'] [data-ui-role='viewmodes'] {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.desktop[data-skin='macos8'] [data-ui-role='location'] {
+  padding: 2px 6px;
+  background: var(--m8-menu-face);
+  border-bottom: 1px solid var(--m8-shadow);
+}
+
+.desktop[data-skin='macos8'] [data-ui='list'] {
+  background: var(--m8-white);
+}
+
+.desktop[data-skin='macos8'] [data-ui='listheader'] {
+  background: var(--m8-ramp-6);
+  border-bottom: 1px solid var(--m8-ink);
+  box-shadow: inset 0 1px 0 0 var(--m8-white);
+}
+
+.desktop[data-skin='macos8'] [data-ui='listheader'] [data-ui='listcell'] {
+  padding: 1px 6px;
+  border-right: 1px solid var(--m8-shadow);
+}
+
+.desktop[data-skin='macos8'] [data-ui='listrow'] {
+  min-height: var(--m8-menu-item-h);
+  padding: 0 4px;
+  gap: 4px;
+}
+
+.desktop[data-skin='macos8'] [data-ui='listrow'][aria-selected='true'],
+.desktop[data-skin='macos8'] [data-ui='listrow'][data-drop-target='true'] {
+  background: var(--m8-accent-face);
+  color: var(--m8-ink);
+}
+
+.desktop[data-skin='macos8'] [data-ui='listrow'][data-cursor='true'] {
+  outline: 1px solid var(--m8-ink);
+  outline-offset: -1px;
+}
+
+.desktop[data-skin='macos8'] [data-ui='listcell'] {
+  padding: 0 3px;
+}
+
+.desktop[data-skin='macos8'] [data-ui='list'][data-layout='grid'] [data-ui='listrow'] {
+  width: 80px;
+  padding: 4px 2px;
+  margin: 2px;
+  gap: 2px;
+}
+
+.desktop[data-skin='macos8'] [data-ui='statusbar'] {
+  padding: 2px 6px;
+  background: var(--m8-menu-face);
+  border-top: 1px solid var(--m8-white);
+  box-shadow: inset 0 1px 0 0 var(--m8-shadow);
+}
+
+.desktop[data-skin='macos8'] [data-ui='dialog'] {
+  background: var(--m8-menu-face);
+  color: var(--m8-ink);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+}
+
+.desktop[data-skin='macos8'] [data-ui='dialogbody'] {
+  padding: 12px;
+  gap: 8px;
+}
+
+/* The Mac puts the default button at the right of the row. */
+.desktop[data-skin='macos8'] [data-ui='dialogbuttons'] {
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+/* Platinum's default button is the double ring, which is its own artwork. */
+.desktop[data-skin='macos8'] [data-ui='button'][data-default='true'] {
+  outline: 2px solid var(--m8-ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.desktop[data-skin='macos8'] [data-ui-role='properties'] {
+  gap: 3px 10px;
+}
+
+.desktop[data-skin='macos8'] [data-ui-role='chooser-header'],
+.desktop[data-skin='macos8'] [data-ui-role='chooser-name'] {
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+/* A pressed toggle button — the view switch — reads as held in, using the era's
+ * own selection inks rather than a new pair. */
+.desktop[data-skin='macos8'] [data-ui='button'][data-pressed='true'] {
+  background: var(--m8-accent-face);
+  color: var(--m8-ink);
+}

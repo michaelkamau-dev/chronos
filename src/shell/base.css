@@ -193,3 +193,306 @@ body {
   position: absolute;
   z-index: var(--layer-switcher);
 }
+
+/*
+ * Tier-1 widget structure.
+ *
+ * `CLAUDE.md`: before writing a rule into a skin, ask whether a skin that omitted
+ * it would be *wrong*. Every rule below fails that test — a list that does not
+ * scroll, a status bar pushed off the bottom of its own window, a rename field
+ * that does not fill the cell it replaced, or a dialog whose buttons are above its
+ * message are broken rather than differently styled. So the geometry that makes a
+ * widget work is here, once, and everything about how one *looks* — colour, border,
+ * type, padding, and all five interactive states — stays with the skin.
+ *
+ * The split is the same one `[data-resize]` above already draws: position and
+ * pointer behaviour are structural, grab slop and cursors are the era's.
+ */
+
+[data-ui='toolbar'] {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  /* Chrome, not a document: a drag across the toolbar must not select its labels. */
+  user-select: none;
+}
+
+/*
+ * A toolbar button never shrinks below its own label.
+ *
+ * Flex items default to `min-width: auto` but *do* shrink, and eight buttons in a
+ * narrow window at an era with 18px Black type came out one letter wide each — `U`,
+ * `N`, `R`, `M`, `T`… A button whose label is a single letter is not a differently
+ * styled button, it is an unusable one, so this is structural rather than the skin's.
+ * The toolbar wraps instead, which every era's did.
+ */
+[data-ui='toolbar'] > [data-ui='button'],
+[data-ui='toolbar'] [data-ui-role='viewmodes'] > [data-ui='button'] {
+  flex: 0 0 auto;
+}
+
+[data-ui-role='viewmodes'] {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+[data-ui='statusbar'] {
+  flex: 0 0 auto;
+  user-select: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
+ * The list.
+ *
+ * `min-height: 0` is the rule whose absence is invisible until a folder is full:
+ * without it a flex child refuses to shrink below its content, so the list grows
+ * past the window and the status bar is pushed out of sight instead of the list
+ * scrolling.
+ */
+[data-ui='list'] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  user-select: none;
+}
+
+[data-ui='list'] > [data-ui-body] {
+  display: flex;
+  flex-direction: column;
+}
+
+[data-ui='list'][data-layout='grid'] > [data-ui-body] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+/* The header scrolls horizontally with the rows and stays put vertically. */
+[data-ui='listheader'] {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+[data-ui='listheader'][hidden] {
+  display: none;
+}
+
+[data-ui='listrow'] {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+[data-ui='list'][data-layout='grid'] [data-ui='listrow'] {
+  flex-direction: column;
+  text-align: center;
+}
+
+[data-ui='listcell'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+[data-ui='listcell'][data-align='end'] {
+  text-align: right;
+}
+
+[data-ui='list'][data-layout='grid'] [data-ui='listcell'] {
+  text-align: center;
+  /* An icon-view caption wraps rather than truncating, which every era did. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+[data-ui-glyph] {
+  flex: 0 0 auto;
+}
+
+/*
+ * A rename editor replaces a cell's text in place, so it has to take the cell's
+ * width exactly. Left to a skin, an era that forgot it would show a default-width
+ * input overhanging every column to its right.
+ */
+[data-ui-role='rename'] {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Apps are laid out as a column: chrome, content that scrolls, chrome. */
+[data-app] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+[data-app] > [data-ui-role='location'] {
+  flex: 0 0 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
+ * Dialogs.
+ *
+ * The button row sits below the body and the body takes the remaining height, in
+ * every era. Which end of the row the default button sits at is emphatically *not*
+ * structural — Windows put OK first and the Mac put it last — so that is the skin's
+ * to set with `flex-direction`.
+ */
+[data-ui='dialog'] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+[data-ui='dialogbody'] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-ui='dialogbuttons'] {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+[data-ui-role='properties'] {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+
+[data-ui-role='chooser-header'],
+[data-ui-role='chooser-name'] {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+[data-ui-role='chooser-header'] > [data-ui-role='location'],
+[data-ui-role='chooser-name'] > [data-ui='field'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A checkbox or radio is a label wrapping its own input, so it needs to be a row. */
+[data-ui='checkbox'],
+[data-ui='radio'] {
+  display: inline-flex;
+  align-items: center;
+}
+
+/*
+ * Suppress the drag-over highlight's own pointer events, so `elementFromPoint`
+ * during a drag reports the row underneath rather than any decoration on top of it.
+ */
+[data-ui='list'][data-dragging='true'] [data-ui-glyph],
+[data-ui='list'][data-dragging='true'] [data-ui='listcell'] {
+  pointer-events: none;
+}
+
+/*
+ * A checkbox or radio draws its own artwork, and the browser's is wrong in all six
+ * eras — it is a 2010s control in a 1984, 1992, 1997, 2001, 2005 and 2035 window
+ * alike. Removing it is structural for the same reason the resize-handle rules are:
+ * a skin that omitted this would be shipping something demonstrably not its era, and
+ * leaving it to six stylesheets means the one that forgets is the one nobody checks.
+ *
+ * The skin supplies the replacement artwork. Without one the control is invisible,
+ * which is loud rather than subtle — the failure mode that gets noticed.
+ */
+[data-ui='checkbox'] > input,
+[data-ui='radio'] > input {
+  appearance: none;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/*
+ * Category marks.
+ *
+ * The *silhouette* is here because it must be drawn without type: an app may not
+ * emit a character its era's face might lack, which is how a `▸` put grey pixels in
+ * a 1-bit window. Filling with `currentColor` is what makes the mark invert with its
+ * row for free — ink on paper normally, paper on ink when selected — in every era
+ * and without a second rule per skin.
+ *
+ * **Axis-aligned, whole-pixel rings only.** The first version drew folder and
+ * document silhouettes with `clip-path` polygons, and every diagonal edge of those
+ * polygons antialiases: 40 grey pixels per row in an era that has none. A percentage
+ * geometry has the same problem one step later, because 12%% of a 12px box is 1.44px.
+ * So every mark below is concentric `inset` shadows at integer pixel spreads, which
+ * land on the grid at any integer display scale.
+ *
+ * **What this is not.** It is not the era's icon. Real per-era icon artwork is a
+ * tier-2 widget under §5 and a contract change, so it is raised rather than taken;
+ * a skin that wants its own may override `background` and `box-shadow` entirely.
+ */
+[data-ui-glyph] {
+  display: inline-block;
+  width: var(--ui-glyph-size, 1em);
+  height: var(--ui-glyph-size, 1em);
+  background: currentColor;
+}
+
+/* A container: solid. */
+[data-ui-glyph][data-glyph='folder'] {
+  background: currentColor;
+}
+
+/* A document: an outline, hollow. */
+[data-ui-glyph][data-glyph='document'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+/* A picture: an outline with a solid block inside it. */
+[data-ui-glyph][data-glyph='image'] {
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 1px currentColor,
+    inset 0 0 0 3px transparent,
+    inset 0 0 0 99px currentColor;
+}
+
+/* Sound: an outline with a bar down one side. */
+[data-ui-glyph][data-glyph='sound'] {
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 1px currentColor,
+    inset 4px 0 0 0 currentColor;
+}
+
+/* The trash: two concentric rings. */
+[data-ui-glyph][data-glyph='trash'] {
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 1px currentColor,
+    inset 0 0 0 3px transparent,
+    inset 0 0 0 4px currentColor;
+}
+
+/* An icon view wants the mark large enough to be the item's identity. */
+[data-ui='list'][data-layout='grid'] [data-ui-glyph] {
+  width: calc(var(--ui-glyph-size, 1em) * 2);
+  height: calc(var(--ui-glyph-size, 1em) * 2);
+}

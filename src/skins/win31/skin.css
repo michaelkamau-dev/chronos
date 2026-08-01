@@ -323,7 +323,8 @@
  * The black outline's corners are notched, so it cannot be a `border`; the clip-path
  * cuts the four corner pixels the way XP's 1px command-button indent does.
  */
-.w31-button {
+.w31-button,
+.desktop[data-skin='win31'] [data-ui='button'] {
   width: var(--w31-btn-w, 70px);
   height: var(--w31-btn-h, 23px);
   padding: 0;
@@ -403,12 +404,16 @@
  * reason this era renders in a fixed 640x480 viewport scaled by a whole number.
  */
 .w31-button,
-.w31-menu-item {
+.w31-menu-item,
+.desktop[data-skin='win31'] [data-ui='button'],
+.desktop[data-skin='win31'] [data-ui='listrow'] {
   position: relative;
 }
 
 .w31-button:disabled::after,
-.w31-menu-item[aria-disabled='true']::after {
+.w31-menu-item[aria-disabled='true']::after,
+.desktop[data-skin='win31'] [data-ui='button'][data-state='disabled']::after,
+.desktop[data-skin='win31'] [data-ui='listrow'][aria-disabled='true']::after {
   content: '';
   position: absolute;
   /* Inside the 1px outline plus 2px bevel, so the bevel is never stippled. */
@@ -424,10 +429,19 @@
   pointer-events: none;
 }
 
-/* A menu item has no bevel to protect, and its knockout is the menu's white. */
-.w31-menu-item[aria-disabled='true']::after {
+/* A menu item has no bevel to protect, and its knockout is the menu's white. A
+ * list row is the same case: no bevel, and it knocks out against the list's white. */
+.w31-menu-item[aria-disabled='true']::after,
+.desktop[data-skin='win31'] [data-ui='listrow'][aria-disabled='true']::after {
   inset: 0;
   --w31-knockout: var(--w31-window);
+}
+
+/* Selected and disabled knocks out against the navy, exactly as a highlighted
+ * disabled menu item does — same mechanism, same reason. */
+.desktop[data-skin='win31']
+  [data-ui='listrow'][aria-disabled='true'][aria-selected='true']::after {
+  --w31-knockout: var(--w31-caption-active);
 }
 
 /* 3.1 let you walk onto a greyed item. Highlighted, the stipple knocks out against
@@ -439,7 +453,9 @@
 
 /* The label keeps its ink colour. A colour change here would be the 95 treatment. */
 .w31-button:disabled,
-.w31-menu-item[aria-disabled='true'] {
+.w31-menu-item[aria-disabled='true'],
+.desktop[data-skin='win31'] [data-ui='button'][data-state='disabled'],
+.desktop[data-skin='win31'] [data-ui='listrow'][aria-disabled='true'] {
   color: var(--w31-ink);
 }
 
@@ -450,7 +466,8 @@
  * which is one of the most visible differences between 3.1 and every recreation
  * built from a 95 palette.
  */
-.w31-textbox {
+.w31-textbox,
+.desktop[data-skin='win31'] [data-ui='field'] {
   height: 20px;
   padding: 2px 3px;
   border: 1px solid var(--w31-ink);
@@ -682,4 +699,139 @@
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* --------------------------------------------- tier-1 widgets (phase 5) */
+
+/*
+ * Structure is in src/shell/base.css; this is the 3.1 face for it.
+ *
+ * Row height reuses `--w31-menu-item-h` rather than inventing one. That is a
+ * measured value from the VGA captures, and a list row and a menu item are the
+ * same thing to `SYSTEM.FON`: one line of the era's single face with the era's
+ * own leading. Inventing a second number would put an unmeasured value beside a
+ * measured one for no gain.
+ *
+ * The disabled treatment is the stipple — a 50% checkerboard knocked out of the
+ * black glyph, `--w31-knockout` — because Windows 95's grey-plus-white-shadow is
+ * one era too late and is what nearly every recreation gets wrong.
+ */
+
+.desktop[data-skin='win31'] [data-app='files'] {
+  background: var(--w31-window);
+  color: var(--w31-ink);
+}
+
+.desktop[data-skin='win31'] [data-ui='toolbar'] {
+  gap: 4px;
+  padding: 4px;
+  background: var(--w31-face);
+  border-bottom: 1px solid var(--w31-shadow);
+}
+
+.desktop[data-skin='win31'] [data-ui='toolbar'] [data-ui='button'] {
+  min-width: 0;
+  width: auto;
+  padding: 0 8px;
+}
+
+.desktop[data-skin='win31'] [data-ui-role='viewmodes'] {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.desktop[data-skin='win31'] [data-ui-role='location'] {
+  padding: 2px 4px;
+  background: var(--w31-face);
+  border-bottom: 1px solid var(--w31-shadow);
+}
+
+.desktop[data-skin='win31'] [data-ui='list'] {
+  background: var(--w31-window);
+}
+
+.desktop[data-skin='win31'] [data-ui='listheader'] {
+  background: var(--w31-face);
+  border-bottom: 1px solid var(--w31-ink);
+}
+
+.desktop[data-skin='win31'] [data-ui='listheader'] [data-ui='listcell'] {
+  padding: 0 4px;
+  border-right: 1px solid var(--w31-shadow);
+}
+
+.desktop[data-skin='win31'] [data-ui='listrow'] {
+  min-height: var(--w31-menu-item-h);
+  padding: 0 2px;
+  gap: 4px;
+}
+
+/*
+ * 3.1 selects by inverting to the caption navy, which is the only highlight the
+ * era's 16-colour palette offers. There is no hover face: 3.1 had no hot-tracking
+ * anywhere, and adding one would be a Windows 95 behaviour.
+ */
+.desktop[data-skin='win31'] [data-ui='listrow'][aria-selected='true'],
+.desktop[data-skin='win31'] [data-ui='listrow'][data-drop-target='true'] {
+  background: var(--w31-caption-active);
+  color: var(--w31-caption-text-active);
+}
+
+.desktop[data-skin='win31'] [data-ui='listrow'][data-cursor='true'] {
+  outline: 1px dotted var(--w31-ink);
+  outline-offset: -1px;
+}
+
+/* The disabled row's stipple is the era's own knockout overlay, hooked into the
+ * rules above rather than reconstructed here — one construction, three consumers. */
+
+.desktop[data-skin='win31'] [data-ui='listcell'] {
+  padding: 0 3px;
+}
+
+.desktop[data-skin='win31'] [data-ui='list'][data-layout='grid'] [data-ui='listrow'] {
+  width: 80px;
+  padding: 4px 2px;
+  margin: 2px;
+  gap: 2px;
+}
+
+.desktop[data-skin='win31'] [data-ui='statusbar'] {
+  padding: 2px 4px;
+  background: var(--w31-face);
+  border-top: 1px solid var(--w31-shadow);
+}
+
+.desktop[data-skin='win31'] [data-ui='dialog'] {
+  background: var(--w31-face);
+  color: var(--w31-ink);
+}
+
+.desktop[data-skin='win31'] [data-ui='dialogbody'] {
+  padding: 8px;
+  gap: 6px;
+}
+
+.desktop[data-skin='win31'] [data-ui='dialogbuttons'] {
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.desktop[data-skin='win31'] [data-ui-role='properties'] {
+  gap: 2px 10px;
+}
+
+.desktop[data-skin='win31'] [data-ui-role='chooser-header'],
+.desktop[data-skin='win31'] [data-ui-role='chooser-name'] {
+  gap: 6px;
+  padding-bottom: 6px;
+}
+
+/* A pressed toggle button — the view switch — reads as held in, using the era's
+ * own selection inks rather than a new pair. */
+.desktop[data-skin='win31'] [data-ui='button'][data-pressed='true'] {
+  background: var(--w31-caption-active);
+  color: var(--w31-caption-text-active);
 }

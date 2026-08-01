@@ -374,7 +374,8 @@
  * pixels, which is what the clip-path below produces. XP.css's 3px radius is
  * that project's interpretation and is not used.
  */
-.xp-button {
+.xp-button,
+.desktop[data-skin='winxp'] [data-ui='button'] {
   min-width: 75px;
   height: 23px;
   padding: 0 12px;
@@ -390,7 +391,8 @@
   );
 }
 
-.xp-button:hover:not(:disabled) {
+.xp-button:hover:not(:disabled),
+.desktop[data-skin='winxp'] [data-ui='button'][data-state='hover'] {
   /* Luna's amber hover glow. */
   background: linear-gradient(180deg, #FFFCF0 0%, #FFE7A8 45%, #FDD474 88%, #F5BE3E 100%);
 }
@@ -399,22 +401,26 @@
  * Pressed swaps the gradient. The label does NOT move: the 1px label shift is
  * classic-Windows behaviour and is wrong for Luna.
  */
-.xp-button:active:not(:disabled) {
+.xp-button:active:not(:disabled),
+.desktop[data-skin='winxp'] [data-ui='button'][data-state='active'] {
   background: linear-gradient(180deg, #CDCAC3 0%, #E3E3DB 10%, #E5E5DE 92%, #F2F2F1 100%);
 }
 
-.xp-button:focus-visible {
+.xp-button:focus-visible,
+.desktop[data-skin='winxp'] [data-ui='button'][data-state='focus'] {
   outline: 1px dotted #000000;
   outline-offset: -4px;
 }
 
-.xp-button:disabled {
+.xp-button:disabled,
+.desktop[data-skin='winxp'] [data-ui='button'][data-state='disabled'] {
   color: var(--xp-disabled-control);
   background: var(--xp-face);
   border-color: #C3C2B8;
 }
 
-.xp-textbox {
+.xp-textbox,
+.desktop[data-skin='winxp'] [data-ui='field'] {
   height: 20px;
   padding: 2px 3px;
   border: 1px solid var(--xp-textbox-border);
@@ -580,4 +586,180 @@
   .xp-button {
     transition: none !important;
   }
+}
+
+/* --------------------------------------------- tier-1 widgets (phase 5) */
+
+/*
+ * Structure is in src/shell/base.css; this is the Luna face for it.
+ *
+ * The command-button rules above already carry the documented 75x23 and the
+ * 1px indent, and the kit's `[data-ui]` selectors were added to those rules
+ * rather than repeated here — there is one copy of each measured value.
+ *
+ * Sizes below that Microsoft's sources do not state are marked. Explorer's list
+ * metrics are not in the Luna guidelines and no 1:1 capture of a list view is in
+ * `docs/sources/`, so the row height is derived from the documented type rather
+ * than measured: Tahoma 8pt rasterises at 11px and 3px of leading gives 17.
+ */
+
+.desktop[data-skin='winxp'] [data-app='files'] {
+  background: var(--xp-window-bg);
+  font-family: 'XP UI', sans-serif;
+  font-size: var(--xp-fs-8);
+  color: var(--xp-text);
+}
+
+.desktop[data-skin='winxp'] [data-ui='toolbar'] {
+  gap: 2px;
+  padding: 3px;
+  background: var(--xp-face);
+  border-bottom: 1px solid #D2CFC4;
+}
+
+/* A toolbar button is not a command button, so the documented 75px minimum does
+ * not apply to it — that width is stated for dialog buttons. */
+.desktop[data-skin='winxp'] [data-ui='toolbar'] [data-ui='button'] {
+  min-width: 0;
+  height: 21px;
+  padding: 0 7px;
+}
+
+.desktop[data-skin='winxp'] [data-ui-role='viewmodes'] {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  padding-right: 2px;
+}
+
+.desktop[data-skin='winxp'] [data-ui-role='location'] {
+  padding: 3px 6px;
+  background: var(--xp-face-light);
+  border-bottom: 1px solid #D2CFC4;
+}
+
+.desktop[data-skin='winxp'] [data-ui='list'] {
+  background: var(--xp-window-bg);
+}
+
+.desktop[data-skin='winxp'] [data-ui='listheader'] {
+  background: var(--xp-face);
+  border-bottom: 1px solid #D2CFC4;
+}
+
+.desktop[data-skin='winxp'] [data-ui='listheader'] [data-ui='listcell'] {
+  padding: 2px 6px;
+  border-right: 1px solid #D2CFC4;
+  cursor: default;
+}
+
+.desktop[data-skin='winxp'] [data-ui='listrow'] {
+  /* derived: 11px Tahoma + 3px leading. Not a documented Explorer metric. */
+  min-height: 17px;
+  padding: 0 4px;
+  gap: 4px;
+}
+
+.desktop[data-skin='winxp'] [data-ui='listrow']:hover {
+  background: #E8F0FC;
+}
+
+.desktop[data-skin='winxp'] [data-ui='listrow'][aria-selected='true'] {
+  background: var(--xp-menu-highlight);
+  color: #FFFFFF;
+}
+
+.desktop[data-skin='winxp'] [data-ui='listrow'][data-cursor='true'] {
+  outline: 1px dotted #000000;
+  outline-offset: -1px;
+}
+
+.desktop[data-skin='winxp'] [data-ui='listrow'][aria-disabled='true'] {
+  color: var(--xp-disabled-control);
+}
+
+.desktop[data-skin='winxp'] [data-ui='listrow'][data-drop-target='true'] {
+  background: var(--xp-menu-highlight);
+  color: #FFFFFF;
+  outline: 1px solid var(--xp-btn-border);
+  outline-offset: -1px;
+}
+
+.desktop[data-skin='winxp'] [data-ui='listcell'] {
+  padding: 1px 3px;
+}
+
+.desktop[data-skin='winxp'] [data-ui='list'][data-layout='grid'] [data-ui='listrow'] {
+  width: 76px;
+  padding: 4px 2px;
+  margin: 2px;
+  gap: 2px;
+}
+
+.desktop[data-skin='winxp'] [data-ui-glyph] {
+  font-size: var(--xp-fs-11);
+}
+
+.desktop[data-skin='winxp'] [data-ui='statusbar'] {
+  padding: 2px 6px;
+  background: var(--xp-face);
+  border-top: 1px solid #FFFFFF;
+}
+
+.desktop[data-skin='winxp'] [data-ui='statusbar'][data-error='true'] {
+  color: #A00000;
+}
+
+.desktop[data-skin='winxp'] [data-ui='field'][data-state='disabled'] {
+  background: var(--xp-textbox-disabled-fill);
+  color: var(--xp-disabled-control);
+}
+
+.desktop[data-skin='winxp'] [data-ui='field'][data-state='focus'] {
+  outline: none;
+  border-color: var(--xp-btn-border);
+}
+
+/* Windows puts the default button first in the row. */
+.desktop[data-skin='winxp'] [data-ui='dialog'] {
+  background: var(--xp-face);
+  font-family: 'XP UI', sans-serif;
+  font-size: var(--xp-fs-8);
+  color: var(--xp-text);
+}
+
+.desktop[data-skin='winxp'] [data-ui='dialogbody'] {
+  padding: 10px;
+  gap: 6px;
+}
+
+.desktop[data-skin='winxp'] [data-ui='dialogbuttons'] {
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.desktop[data-skin='winxp'] [data-ui='button'][data-default='true'] {
+  border-width: 2px;
+}
+
+.desktop[data-skin='winxp'] [data-ui-role='properties'] {
+  gap: 3px 10px;
+}
+
+.desktop[data-skin='winxp'] [data-ui-role='property-name'] {
+  color: #4A4A48;
+}
+
+.desktop[data-skin='winxp'] [data-ui-role='chooser-header'],
+.desktop[data-skin='winxp'] [data-ui-role='chooser-name'] {
+  gap: 6px;
+  padding-bottom: 6px;
+}
+
+/* A pressed toggle button — the view switch — reads as held in, using the era's
+ * own selection inks rather than a new pair. */
+.desktop[data-skin='winxp'] [data-ui='button'][data-pressed='true'] {
+  background: var(--xp-menu-highlight);
+  color: #FFFFFF;
 }

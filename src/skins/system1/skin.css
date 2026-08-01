@@ -269,7 +269,12 @@
 .s1-button:focus-visible,
 .s1-textbox:focus-visible,
 .s1-check:focus-visible,
-.s1-radio:focus-visible {
+.s1-radio:focus-visible,
+.desktop[data-skin='system1'] [data-ui='button']:focus-visible,
+.desktop[data-skin='system1'] [data-ui='field']:focus-visible,
+.desktop[data-skin='system1'] [data-ui='list']:focus-visible,
+.desktop[data-skin='system1'] [data-ui='checkbox'] > input:focus-visible,
+.desktop[data-skin='system1'] [data-ui='radio'] > input:focus-visible {
   outline: 2px solid var(--s1-ink);
   outline-offset: 1px;
 }
@@ -393,7 +398,8 @@
  * paper layer sits at `z-index: -1` so it paints above the ink background and below
  * the label.
  */
-.s1-button {
+.s1-button,
+.desktop[data-skin='system1'] [data-ui='button'] {
   position: relative;
   z-index: 0;
   min-width: var(--s1-btn-w);
@@ -409,7 +415,8 @@
   cursor: default;
 }
 
-.s1-button::before {
+.s1-button::before,
+.desktop[data-skin='system1'] [data-ui='button']::before {
   content: '';
   position: absolute;
   inset: 1px;
@@ -425,11 +432,13 @@
  * button, the button highlights (inverts)" (p229). The label inverts with it, so the
  * paper layer becomes ink and the text becomes paper.
  */
-.s1-button:active:not(:disabled) {
+.s1-button:active:not(:disabled),
+.desktop[data-skin='system1'] [data-ui='button'][data-state='active'] {
   color: var(--s1-paper);
 }
 
-.s1-button:active:not(:disabled)::before {
+.s1-button:active:not(:disabled)::before,
+.desktop[data-skin='system1'] [data-ui='button'][data-state='active']::before {
   background: var(--s1-ink);
 }
 
@@ -447,11 +456,13 @@
 /* The close box is already absolutely positioned in the title bar and must stay that
  * way — it is not in the flex flow. Its own knockout layer resolves against it. */
 .s1-button,
-.s1-menu-item {
+.s1-menu-item,
+.desktop[data-skin='system1'] [data-ui='button'] {
   position: relative;
 }
 
 .s1-button:disabled::after,
+.desktop[data-skin='system1'] [data-ui='button'][data-state='disabled']::after,
 .s1-menu-item[aria-disabled='true']::after {
   content: '';
   position: absolute;
@@ -470,7 +481,8 @@
 
 /* The label keeps its ink colour. Changing it would be the Windows 95 treatment. */
 .s1-button:disabled,
-.s1-menu-item[aria-disabled='true'] {
+.s1-menu-item[aria-disabled='true'],
+.desktop[data-skin='system1'] [data-ui='button'][data-state='disabled'] {
   color: var(--s1-ink);
 }
 
@@ -504,7 +516,8 @@
  * bevel, because there is nothing to bevel with — and no focus border either, since
  * the era showed a field's focus with the caret.
  */
-.s1-textbox {
+.s1-textbox,
+.desktop[data-skin='system1'] [data-ui='field'] {
   height: var(--s1-textbox-h);
   padding: 2px 4px;
   border: 1px solid var(--s1-ink);
@@ -515,7 +528,8 @@
   color: var(--s1-ink);
 }
 
-.s1-textbox:disabled {
+.s1-textbox:disabled,
+.desktop[data-skin='system1'] [data-ui='field'][data-state='disabled'] {
   background: var(--s1-paper);
   color: var(--s1-ink);
   background-image: repeating-conic-gradient(
@@ -535,7 +549,9 @@
  * figure, so that one shape is unverified and says so in metrics.ts.
  */
 .s1-check,
-.s1-radio {
+.s1-radio,
+.desktop[data-skin='system1'] [data-ui='checkbox'] > input,
+.desktop[data-skin='system1'] [data-ui='radio'] > input {
   width: var(--s1-check);
   height: var(--s1-check);
   margin: 0;
@@ -547,7 +563,8 @@
   color: var(--s1-ink);
 }
 
-.s1-radio {
+.s1-radio,
+.desktop[data-skin='system1'] [data-ui='radio'] > input {
   border-radius: 50%;
 }
 
@@ -880,4 +897,219 @@
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* --------------------------------------------- tier-1 widgets (phase 5) */
+
+/*
+ * Structure is in src/shell/base.css; this is the 1984 face for it.
+ *
+ * **There is no grey in this era.** Every colour below is `--s1-ink` or
+ * `--s1-paper` and nothing between, which `system1-fidelity.spec.ts` asserts as
+ * "every pixel luma <40 or >208". A flat grey fill lands at ~128 and fails, and so
+ * does a checkerboard sampled at a fractional scale — which is what the
+ * integer-scaled viewport exists to prevent.
+ *
+ * Selection is inversion, because on a 1-bit display it is the only highlight
+ * there is. Disabled is `notPatBic` — the 50% checkerboard knocked out of the
+ * glyph — reusing the era's own construction from the button rules above rather
+ * than a second copy of it.
+ *
+ * Row height reuses `--s1-menu-item-h`: a list row and a menu item are one line of
+ * Chicago with the era's leading, and that value is measured where a new one would
+ * be invented.
+ */
+
+.desktop[data-skin='system1'] [data-app='files'] {
+  background: var(--s1-paper);
+  color: var(--s1-ink);
+  line-height: var(--s1-line);
+}
+
+.desktop[data-skin='system1'] [data-ui='toolbar'] {
+  gap: 4px;
+  padding: 2px;
+  background: var(--s1-paper);
+  border-bottom: 1px solid var(--s1-ink);
+}
+
+.desktop[data-skin='system1'] [data-ui='toolbar'] [data-ui='button'] {
+  min-width: 0;
+  width: auto;
+  padding: 0 6px;
+}
+
+.desktop[data-skin='system1'] [data-ui-role='viewmodes'] {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.desktop[data-skin='system1'] [data-ui-role='location'] {
+  padding: 1px 4px;
+  background: var(--s1-paper);
+  border-bottom: 1px solid var(--s1-ink);
+}
+
+.desktop[data-skin='system1'] [data-ui='list'] {
+  background: var(--s1-paper);
+}
+
+.desktop[data-skin='system1'] [data-ui='listheader'] {
+  background: var(--s1-paper);
+  border-bottom: 1px solid var(--s1-ink);
+}
+
+.desktop[data-skin='system1'] [data-ui='listheader'] [data-ui='listcell'] {
+  padding: 0 4px;
+}
+
+.desktop[data-skin='system1'] [data-ui='listrow'] {
+  min-height: var(--s1-menu-item-h);
+  padding: 0 2px;
+  gap: 4px;
+  position: relative;
+}
+
+/* Inversion. No hover face: a 1984 Finder had no hot-tracking of any kind. */
+.desktop[data-skin='system1'] [data-ui='listrow'][aria-selected='true'],
+.desktop[data-skin='system1'] [data-ui='listrow'][data-drop-target='true'] {
+  background: var(--s1-ink);
+  color: var(--s1-paper);
+}
+
+.desktop[data-skin='system1'] [data-ui='listrow'][data-cursor='true'] {
+  box-shadow: inset 0 0 0 1px var(--s1-ink);
+}
+
+.desktop[data-skin='system1']
+  [data-ui='listrow'][aria-selected='true'][data-cursor='true'] {
+  box-shadow: inset 0 0 0 1px var(--s1-paper);
+}
+
+/* `notPatBic`: the glyph with a 50% checkerboard knocked out of it. */
+.desktop[data-skin='system1'] [data-ui='listrow'][aria-disabled='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-conic-gradient(
+    var(--s1-knockout, var(--s1-paper)) 0% 25%,
+    transparent 0% 50%
+  );
+  background-size: var(--s1-stipple, 2px) var(--s1-stipple, 2px);
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+.desktop[data-skin='system1']
+  [data-ui='listrow'][aria-disabled='true'][aria-selected='true']::after {
+  --s1-knockout: var(--s1-ink);
+}
+
+.desktop[data-skin='system1'] [data-ui='listcell'] {
+  padding: 0 3px;
+}
+
+.desktop[data-skin='system1'] [data-ui='list'][data-layout='grid'] [data-ui='listrow'] {
+  width: 72px;
+  padding: 3px 2px;
+  margin: 2px;
+  gap: 2px;
+}
+
+.desktop[data-skin='system1'] [data-ui='statusbar'] {
+  padding: 1px 4px;
+  background: var(--s1-paper);
+  border-top: 1px solid var(--s1-ink);
+}
+
+.desktop[data-skin='system1'] [data-ui='dialog'] {
+  background: var(--s1-paper);
+  color: var(--s1-ink);
+}
+
+.desktop[data-skin='system1'] [data-ui='dialogbody'] {
+  padding: 8px;
+  gap: 6px;
+}
+
+/* The Mac puts the default button at the right of the row. */
+.desktop[data-skin='system1'] [data-ui='dialogbuttons'] {
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px;
+}
+
+.desktop[data-skin='system1'] [data-ui-role='properties'] {
+  gap: 2px 8px;
+}
+
+.desktop[data-skin='system1'] [data-ui-role='chooser-header'],
+.desktop[data-skin='system1'] [data-ui-role='chooser-name'] {
+  gap: 6px;
+  padding-bottom: 6px;
+}
+
+/*
+ * The list's scroll bar.
+ *
+ * **What this is and is not.** §5 puts scroll bars in tier 2 — the skin supplies the
+ * structure — and a tier-2 addition is a contract change to be raised rather than
+ * taken, so the era's real scroll bar is *not* built here: no 16x16 arrow boxes with
+ * their measured glyphs, no fixed 16x16 thumb, no split pairs. What is here is the
+ * two-tone obligation, which this app owns whether or not the widget is tier 2: a
+ * native Chromium scroll bar renders `#bebebe`, `#989898` and `#7b7b7b`, which is
+ * three mid greys in an era that has none, and it fails the era's own no-grey gate.
+ *
+ * The trough is the measured pattern rather than a flat fill — QuickDraw `ltGray`,
+ * 25% on a 4x2 cell, from `metrics.ts`. Collapsing it to the desktop's 50%
+ * checkerboard is the commonest classic-Mac error and it is invisible until measured.
+ */
+.desktop[data-skin='system1'] [data-ui='list'] {
+  scrollbar-width: auto;
+}
+
+.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar {
+  width: var(--s1-scroll-w, 16px);
+  height: var(--s1-scroll-w, 16px);
+}
+
+.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar-track {
+  background-color: var(--s1-paper);
+  /* 25% on a 4x2 cell: one ink pixel per 4x2 block, which is what ltGray is. */
+  background-image: repeating-linear-gradient(
+      to right,
+      var(--s1-ink) 0 1px,
+      transparent 1px 4px
+    ),
+    repeating-linear-gradient(to bottom, var(--s1-ink) 0 1px, transparent 1px 2px);
+  background-blend-mode: multiply;
+  box-shadow: inset 1px 0 0 0 var(--s1-ink);
+}
+
+.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar-thumb {
+  background: var(--s1-paper);
+  box-shadow: inset 0 0 0 1px var(--s1-ink);
+}
+
+.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar-corner {
+  background: var(--s1-paper);
+}
+
+/*
+ * A held-in toggle button — the view switch.
+ *
+ * It reuses the era's *pressed* construction rather than swapping a background,
+ * because a System 1 button is layered: the interior is a `::before` paper fill
+ * clipped to the button's rounded shape, painted over whatever the element's own
+ * background is. Setting `background` on the element therefore changes nothing
+ * visible and setting `color` alone makes the label paper-on-paper — which is
+ * exactly what happened: the pressed "Details" button rendered with no label at all.
+ */
+.desktop[data-skin='system1'] [data-ui='button'][data-pressed='true'] {
+  color: var(--s1-paper);
+}
+
+.desktop[data-skin='system1'] [data-ui='button'][data-pressed='true']::before {
+  background: var(--s1-ink);
 }
