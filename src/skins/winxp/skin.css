@@ -763,3 +763,62 @@
   background: var(--xp-menu-highlight);
   color: #FFFFFF;
 }
+
+/*
+ * The text surface and the find bar.
+ *
+ * **The document face is a stated substitution, not a measurement.** XP's Notepad
+ * set documents in Lucida Console 10pt, and §13's substitution table names four XP
+ * faces — Tahoma, Trebuchet MS Bold, Verdana Bold and Franklin Gothic Medium — with
+ * a substitute for each. Lucida Console is a fifth this project has never resolved,
+ * so the document renders in the era's system face rather than in an invented
+ * stand-in. Recorded as open in docs/apps/editor.md.
+ *
+ * Every other value here is the era's own text-box artwork, reused rather than
+ * restated: the same border colour, the same white fill, the same disabled fill and
+ * the same focus border the measured `[data-ui='field']` rule already uses.
+ */
+.desktop[data-skin='winxp'] [data-ui='textarea'] {
+  padding: 2px 3px;
+  border: 1px solid var(--xp-textbox-border);
+  background: #FFFFFF;
+  font-family: 'XP UI', sans-serif;
+  font-size: var(--xp-fs-8);
+  color: var(--xp-text);
+}
+
+.desktop[data-skin='winxp'] [data-ui='textarea'][data-state='hover'] {
+  border-color: #5E8AB4;
+}
+
+.desktop[data-skin='winxp'] [data-ui='textarea'][data-state='focus'] {
+  outline: none;
+  border-color: var(--xp-btn-border);
+}
+
+.desktop[data-skin='winxp'] [data-ui='textarea'][data-state='active'] {
+  border-color: var(--xp-btn-border);
+}
+
+.desktop[data-skin='winxp'] [data-ui='textarea'][data-state='disabled'] {
+  background: var(--xp-textbox-disabled-fill);
+  color: var(--xp-disabled-control);
+}
+
+.desktop[data-skin='winxp'] [data-ui='textarea']::selection {
+  background: var(--xp-menu-highlight);
+  color: #FFFFFF;
+}
+
+/*
+ * The find bar is a stack of `[data-ui='toolbar']` rows, so each row already has
+ * the era's toolbar face, padding and button sizing. All the container adds is the
+ * rule that separates it from the document above.
+ */
+.desktop[data-skin='winxp'] [data-ui-role='findbar'] {
+  border-top: 1px solid #D2CFC4;
+}
+
+.desktop[data-skin='winxp'] [data-ui-role='findrow'] {
+  border-bottom: 0;
+}

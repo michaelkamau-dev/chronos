@@ -835,3 +835,61 @@
   background: var(--w31-caption-active);
   color: var(--w31-caption-text-active);
 }
+
+/*
+ * The text surface and the find bar.
+ *
+ * **The document face is a stated substitution.** Notepad 3.1 set documents in
+ * Fixedsys, a fixed-pitch bitmap face this project has never resolved and for which
+ * §13's table names no substitute. The era's own `SYSTEM.FON` stand-in is used
+ * instead, so the document is at least in a face this era shipped. Recorded as open
+ * in docs/apps/editor.md.
+ *
+ * The frame is the era's edit-field construction unchanged: **a plain 1px black
+ * rectangle with a white fill**. The sunken two-tone field is a Windows 95 feature
+ * and putting one here would date the window three years forward, which is the
+ * correction already recorded in CLAUDE.md.
+ */
+.desktop[data-skin='win31'] [data-ui='textarea'] {
+  padding: 2px 3px;
+  border: 1px solid var(--w31-ink);
+  background: var(--w31-window);
+  font-family: 'W31 System', monospace;
+  font-size: var(--w31-fs);
+  color: var(--w31-ink);
+}
+
+/* 3.1 gave an edit field no rollover and no focus ring — the caret was the whole
+ * indication — so hover and focus are the rest face, declared rather than omitted
+ * so all five states are defined. */
+.desktop[data-skin='win31'] [data-ui='textarea'][data-state='hover'],
+.desktop[data-skin='win31'] [data-ui='textarea'][data-state='focus'],
+.desktop[data-skin='win31'] [data-ui='textarea'][data-state='active'] {
+  outline: none;
+  border-color: var(--w31-ink);
+  background: var(--w31-window);
+}
+
+.desktop[data-skin='win31'] [data-ui='textarea'][data-state='disabled'] {
+  background: var(--w31-face);
+  color: var(--w31-ink);
+}
+
+.desktop[data-skin='win31'] [data-ui='textarea']::selection {
+  background: var(--w31-caption-active);
+  color: var(--w31-caption-text-active);
+}
+
+/*
+ * The find bar is a stack of `[data-ui='toolbar']` rows, so each row already has
+ * the era's toolbar face, padding and — the part that matters — its `width: auto`
+ * button rule. A 3.1 command button is a fixed `--w31-btn-w`, and `Replace All` in
+ * one renders as `Replace`.
+ */
+.desktop[data-skin='win31'] [data-ui-role='findbar'] {
+  border-top: 1px solid var(--w31-shadow);
+}
+
+.desktop[data-skin='win31'] [data-ui-role='findrow'] {
+  border-bottom: 0;
+}

@@ -740,3 +740,64 @@
   background: var(--m8-accent-face);
   color: var(--m8-ink);
 }
+
+/*
+ * The text surface and the find bar.
+ *
+ * SimpleText set documents in Geneva; this skin's resolved face is its Chicago
+ * stand-in, and the document uses it rather than introducing a face the skin has
+ * never scrutinised — the same call System 1 makes one era earlier.
+ *
+ * The frame is Platinum's inset bevel ring, taken from the era's own text-field
+ * rule rather than restated: one closed ring, lit from the top left, which is the
+ * model CLAUDE.md records as replacing four hand-maintained per-side lists.
+ */
+.desktop[data-skin='macos8'] [data-ui='textarea'] {
+  padding: 2px 4px;
+  background: var(--m8-white);
+  color: var(--m8-ink);
+  font-family: var(--m8-font), sans-serif;
+  font-size: var(--m8-font-size);
+  border: 1px solid var(--m8-ink);
+  box-shadow:
+    inset 1px 1px 0 0 var(--m8-ramp-3),
+    inset -1px -1px 0 0 var(--m8-white);
+}
+
+/* Platinum gave a text field no rollover; the I-beam was the indication. Declared
+ * so all five states are defined rather than left to the cascade. */
+.desktop[data-skin='macos8'] [data-ui='textarea'][data-state='hover'],
+.desktop[data-skin='macos8'] [data-ui='textarea'][data-state='active'] {
+  border-color: var(--m8-ink);
+  background: var(--m8-white);
+}
+
+.desktop[data-skin='macos8'] [data-ui='textarea'][data-state='focus'] {
+  outline: 2px solid var(--m8-accent-face);
+  outline-offset: 0;
+}
+
+/* A solid dim ink, not a stipple. The knockout checkerboard ends at Platinum:
+ * by 1997 8-bit colour is assumed and disabled text is the same glyph artwork in
+ * a different ink, proven by the parity test in CLAUDE.md. */
+.desktop[data-skin='macos8'] [data-ui='textarea'][data-state='disabled'] {
+  background: var(--m8-ramp-6);
+  color: var(--m8-dim);
+}
+
+.desktop[data-skin='macos8'] [data-ui='textarea']::selection {
+  background: var(--m8-accent-face);
+  color: var(--m8-ink);
+}
+
+/*
+ * The find bar is a stack of `[data-ui='toolbar']` rows, so each row already has
+ * the era's toolbar face, padding and button sizing.
+ */
+.desktop[data-skin='macos8'] [data-ui-role='findbar'] {
+  border-top: 1px solid var(--m8-shadow);
+}
+
+.desktop[data-skin='macos8'] [data-ui-role='findrow'] {
+  border-bottom: 0;
+}

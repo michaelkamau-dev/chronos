@@ -452,7 +452,19 @@ class FileChooser {
       sorted.map((node) => ({
         id: node.id,
         cells: [codec.displayName(node)],
-        glyph: isDir(node) ? '▸' : '·',
+        /*
+         * A **category**, not a character.
+         *
+         * `ListRow.glyph` documents this at length and this call site was the one
+         * that did not follow it: it passed `▸` and `·`, so the kit wrote
+         * `data-glyph="▸"` and every skin's rule — which matches `folder`,
+         * `document`, `image`, `sound` and `trash` — missed, leaving the file
+         * chooser drawing an empty box in front of every row in all six eras. Not
+         * the grey-pixel failure the categories were introduced to stop, because
+         * the kit emits no text either way; the other half of it, where the mark
+         * simply never appears.
+         */
+        glyph: isDir(node) ? 'folder' : 'document',
         // A file the caller will not accept is shown and not choosable, which is
         // what every era did — the alternative hides the user's own file and
         // makes the dialog look broken.

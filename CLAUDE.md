@@ -725,3 +725,67 @@ Append every correction I make here as a permanent rule. Never delete entries.
 - A suspend test that only checks the flag flipped proves nothing. Write to the filesystem
   while suspended and assert the app did *not* follow it; that is the behaviour the era
   exists for.
+
+### A suspend test over a dirty buffer is a guard that cannot fail
+- Files' rule above is right and it is not sufficient. The Editor's first round trip
+  wrote to the filesystem while suspended *and* had an edited buffer — so the app
+  correctly refused to adopt the change, `resume()` wrote nothing to the text surface,
+  and **every assertion passed with the capture and the re-mount both deleted**. The
+  thing that makes a re-render destructive is that it *renders something different*;
+  arranging for the file to change is only half of it when the app is entitled to
+  ignore the change.
+- Save first, so the buffer is clean and the undo stack is still loaded, and replace
+  the file with the same string upper-cased — same length, so an offset and a scroll
+  position still mean something on the other side rather than testing clamping. Then
+  three separate deletions each fail it.
+- **It is what found the bug.** `suspend()` set its own flag before calling its capture
+  methods, and both refuse to run while suspended — they read the live DOM, and a
+  suspended app's DOM is a frozen picture. Both calls were no-ops, silently, because
+  nothing had destroyed the state *yet*.
+
+### Capture belongs next to the write, not at the top of the render
+- Capturing before an `await` captures a value that is about to go stale: anything the
+  user does during the filesystem read — clicking into the document, dragging a
+  selection, typing into a field — happens after the capture and before the restore, so
+  the restore puts the old position back and the interaction is silently undone.
+- And the mirror of it: **the DOM is the truth only while the DOM is showing what the
+  app thinks it is showing.** After a programmatic edit the buffer has moved and the
+  surface has not, so capturing its caret overwrites the position the edit just
+  computed. One comparison of value against buffer decides it, and the symptom without
+  it is Replace All leaving the cursor wherever it happened to be.
+
+### `document.fonts.check` does not answer the coverage question
+- The entry above under "Coverage is part of verifying a substitute face" names it as
+  the instrument. It is the wrong call: it reports whether the *faces* the text needs
+  are loaded, not whether a face has a glyph. A character the era's face lacks is drawn
+  by the browser's default, which counts as available, so it returns true for every
+  character in every era — a guard that cannot fail, found for the fifth time.
+- The advance width is the obvious replacement and fails the other way: Pixel Operator
+  Bold at 16px matches the browser's default advance for two dozen ordinary Latin
+  letters, so it called `n`, `o` and every digit missing in Windows 3.1.
+- Rasterise the character twice and compare pixels — but **anchor both renders to the
+  same fallback**. Era-face-versus-nonexistent-family does not work: a missing *glyph*
+  falls back through the system font list while a missing *family* falls back to the
+  default font, and the two land on different faces. Appending the same generic to both
+  stacks makes the fallback identical by construction.
+- It found a third instance of the trap it exists for: a status bar setting U+00B7 in
+  ChiKareGo2, which has no middle dot.
+
+### A class is a kind of control, and a fixed width is what makes that visible
+- `.lg-btn` taught this once. It recurred with the *contract* vocabulary rather than a
+  skin's classes: `[data-ui='button']` in a find bar rendered `Replace All` as
+  `Replace` in Windows 3.1, because a 3.1 command button is a fixed `--w31-btn-w` and
+  every skin already draws a separate, label-sized *toolbar* button for exactly that
+  reason.
+- The fix is to emit the row as a `ui.toolbar()` so it picks up the rule each skin
+  already wrote — not to add a second copy of that rule to six stylesheets, which is
+  six places to drift from the first.
+
+### A category is a category at every call site, including core's own
+- `ListRow.glyph` documents at length that it takes a category and never a character,
+  and `core/ui/dialogs.ts` passed `▸` and `·`. Not the grey-pixel failure the
+  categories were introduced to stop — the kit emits no text either way — but the other
+  half of it: `data-glyph="▸"` matches no skin rule, so the file chooser drew an empty
+  box in front of every row in all six eras, in shared code every app reaches.
+- A doc comment on a type is not enforcement. The union of legal categories is small
+  and closed and belongs in the type.

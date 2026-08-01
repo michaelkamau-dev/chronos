@@ -25,6 +25,7 @@ import { Filesystem } from './core/fs/fs.js'
 import { FsStore, nodeKey } from './core/fs/store.js'
 import { DirectoryView } from './harness/directory-view.js'
 import { filesApp, filesAppAt } from './apps/files/index.js'
+import { editorApp, editorAppAt } from './apps/editor/index.js'
 import type { FsApi, NodeId, PathCodec } from './core/fs/types.js'
 
 /** A name decorator is era knowledge: Windows appends " (2)", classic Mac " copy". */
@@ -221,6 +222,11 @@ function openFilesWindow(startAt?: NodeId): WindowId {
   return shell.launchApp(startAt === undefined ? filesApp : filesAppAt(startAt))
 }
 
+/** The Editor, empty or opened onto a document. */
+function openEditorWindow(file?: NodeId): WindowId {
+  return shell.launchApp(file === undefined ? editorApp : editorAppAt(file))
+}
+
 // A window closing must release its watcher, or a closed view keeps re-rendering
 // into detached DOM every time the folder changes.
 shell.wm.subscribe((e) => {
@@ -257,6 +263,10 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
 
 button('New Files window', () => {
   openFilesWindow()
+})
+
+button('New Editor window', () => {
+  openEditorWindow()
 })
 
 button('New harness view', () => {
@@ -364,6 +374,8 @@ declare global {
       openDirectoryWindow(startAt?: NodeId): WindowId
       /** The real Files app, as opposed to the phase-2 harness view above. */
       openFilesWindow(startAt?: NodeId): WindowId
+      /** The Editor, empty or opened onto a document. */
+      openEditorWindow(file?: NodeId): WindowId
       openWindows(n: number): WindowId[]
       /** The directory view hosting a window, so a suite can assert its state
        *  survived a suspend/resume round trip rather than only that the flag flipped. */
@@ -392,6 +404,7 @@ window.__chronos = {
   era: eraId,
   openDirectoryWindow,
   openFilesWindow,
+  openEditorWindow,
   viewFor(id: WindowId): DirectoryView | undefined {
     return views.get(id)
   },
