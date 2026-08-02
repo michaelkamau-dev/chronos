@@ -1069,12 +1069,14 @@
   scrollbar-width: auto;
 }
 
-.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar {
+.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar,
+.desktop[data-skin='system1'] [data-ui-role='console']::-webkit-scrollbar {
   width: var(--s1-scroll-w, 16px);
   height: var(--s1-scroll-w, 16px);
 }
 
-.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar-track {
+.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar-track,
+.desktop[data-skin='system1'] [data-ui-role='console']::-webkit-scrollbar-track {
   background-color: var(--s1-paper);
   /* 25% on a 4x2 cell: one ink pixel per 4x2 block, which is what ltGray is. */
   background-image: repeating-linear-gradient(
@@ -1087,12 +1089,14 @@
   box-shadow: inset 1px 0 0 0 var(--s1-ink);
 }
 
-.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar-thumb {
+.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar-thumb,
+.desktop[data-skin='system1'] [data-ui-role='console']::-webkit-scrollbar-thumb {
   background: var(--s1-paper);
   box-shadow: inset 0 0 0 1px var(--s1-ink);
 }
 
-.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar-corner {
+.desktop[data-skin='system1'] [data-ui='list']::-webkit-scrollbar-corner,
+.desktop[data-skin='system1'] [data-ui-role='console']::-webkit-scrollbar-corner {
   background: var(--s1-paper);
 }
 
@@ -1112,4 +1116,92 @@
 
 .desktop[data-skin='system1'] [data-ui='button'][data-pressed='true']::before {
   background: var(--s1-ink);
+}
+
+/* ------------------------------------------------------- the terminal (phase 5) */
+
+/*
+ * The Worksheet.
+ *
+ * §12 records this window as the project's one deliberate anachronism: 1984 had no
+ * shell of any kind, and the era gets the same MPW-styled window the later classic
+ * Mac does. What MPW's Worksheet was is the plainest window in the system — paper,
+ * ink, and text you could select anywhere — so there is nothing here but the era's
+ * two colours and its leading.
+ *
+ * **There is no grey in this era**, so there is no error colour either. An error
+ * line is the same ink as every other line, which is what the Worksheet did: it had
+ * no second colour to reach for and neither has this.
+ */
+.desktop[data-skin='system1'] [data-app='terminal'] {
+  background: var(--s1-paper);
+  color: var(--s1-ink);
+  line-height: var(--s1-line);
+}
+
+.desktop[data-skin='system1'] [data-app='terminal'] > [data-ui-role='console'] {
+  padding: 1px 4px;
+}
+
+.desktop[data-skin='system1'] [data-app='terminal'] > [data-ui-role='prompt'] {
+  padding: 0 4px 2px;
+}
+
+.desktop[data-skin='system1'] [data-app='terminal'] [data-ui-role='command'] {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  caret-color: var(--s1-ink);
+  outline: none;
+}
+
+/*
+ * Disabled, the era's own way.
+ *
+ * A dimmed ink is not available here — half of black is the flat grey the whole
+ * viewport decision exists to prevent — so the command line says "not now" with
+ * `notPatBic`: the glyphs with a 50% checkerboard knocked out of them, the same
+ * construction the menus and buttons above use, reached through the same custom
+ * properties rather than through a second copy of the pattern.
+ */
+.desktop[data-skin='system1'] [data-app='terminal'] > [data-ui-role='prompt'] {
+  position: relative;
+}
+
+.desktop[data-skin='system1']
+  [data-app='terminal']
+  [data-ui-role='command'][data-state='disabled'] {
+  caret-color: transparent;
+}
+
+.desktop[data-skin='system1']
+  [data-app='terminal']
+  > [data-ui-role='prompt']:has([data-ui-role='command'][data-state='disabled'])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-conic-gradient(
+    var(--s1-paper) 0% 25%,
+    transparent 0% 50%
+  );
+  background-size: var(--s1-stipple, 2px) var(--s1-stipple, 2px);
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+/*
+ * The console's scroll bar, for the same reason the list has one.
+ *
+ * A native Chromium scroll bar renders three mid greys, and this era has none — so
+ * the two-tone obligation reaches every scrolling surface in the window, not only
+ * the one that happened to be built first. The measured `ltGray` trough lives in the
+ * list's rule above and this joins that selector rather than restating the pattern.
+ */
+.desktop[data-skin='system1'] [data-ui-role='console'] {
+  scrollbar-width: auto;
 }

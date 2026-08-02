@@ -25,6 +25,7 @@ import { Filesystem } from './core/fs/fs.js'
 import { FsStore, nodeKey } from './core/fs/store.js'
 import { DirectoryView } from './harness/directory-view.js'
 import { filesApp, filesAppAt } from './apps/files/index.js'
+import { terminalApp, terminalAppAt } from './apps/terminal/index.js'
 import type { FsApi, NodeId, PathCodec } from './core/fs/types.js'
 
 /** A name decorator is era knowledge: Windows appends " (2)", classic Mac " copy". */
@@ -221,6 +222,18 @@ function openFilesWindow(startAt?: NodeId): WindowId {
   return shell.launchApp(startAt === undefined ? filesApp : filesAppAt(startAt))
 }
 
+/**
+ * Launch the Terminal.
+ *
+ * The window title is deliberately not set here: the app replaces it with the name
+ * its shell carries — the MS-DOS Prompt, MPW, or Terminal — as soon as it can read
+ * the codec's separator, and this module choosing one would be the entry point
+ * making an era decision that the skin already made.
+ */
+function openTerminalWindow(startAt?: NodeId): WindowId {
+  return shell.launchApp(startAt === undefined ? terminalApp : terminalAppAt(startAt))
+}
+
 // A window closing must release its watcher, or a closed view keeps re-rendering
 // into detached DOM every time the folder changes.
 shell.wm.subscribe((e) => {
@@ -257,6 +270,10 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
 
 button('New Files window', () => {
   openFilesWindow()
+})
+
+button('New Terminal window', () => {
+  openTerminalWindow()
 })
 
 button('New harness view', () => {
@@ -364,6 +381,7 @@ declare global {
       openDirectoryWindow(startAt?: NodeId): WindowId
       /** The real Files app, as opposed to the phase-2 harness view above. */
       openFilesWindow(startAt?: NodeId): WindowId
+      openTerminalWindow(startAt?: NodeId): WindowId
       openWindows(n: number): WindowId[]
       /** The directory view hosting a window, so a suite can assert its state
        *  survived a suspend/resume round trip rather than only that the flag flipped. */
@@ -392,6 +410,7 @@ window.__chronos = {
   era: eraId,
   openDirectoryWindow,
   openFilesWindow,
+  openTerminalWindow,
   viewFor(id: WindowId): DirectoryView | undefined {
     return views.get(id)
   },

@@ -22,6 +22,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import type { FilesApp } from '../../src/apps/files/index.js'
 import type { WindowId } from '../../src/core/wm/types.js'
+import { characterCellArea, largestNonPureRegion } from './nogrey.js'
 
 const ERAS = ['winxp', 'win31', 'tiger', 'system1', 'macos8', 'ledger'] as const
 
@@ -698,99 +699,16 @@ test.describe('files: the system file dialogs', () => {
  * `CLAUDE.md` records twice under "a guard that cannot fail", so the app that
  * added the surface adds the assertion over it.
  *
- * **The instrument is not that suite's, and the reason is a real finding.** Its
- * discriminator is a luma band — every pixel below 40 or above 208 — and that band
- * was derived from Chromium's LCD fringes on *black text on white*, the only
- * polarity the era's own surfaces render. A selected row inverts, and white text on
- * black fringes to a different set: measured here at lumas 51, 54, 81, 91, 126,
- * 163, 168 and 189, squarely inside the band. The band is therefore an artefact of
- * one polarity rather than a statement about the era, and widening it until this
- * passes is exactly the "loosen a threshold until a false assertion passes" failure
- * `CLAUDE.md` names.
+ * **The instrument is not that suite's, and the reason is a real finding** — the
+ * luma band is an artefact of one polarity and a selected row inverts. It is in
+ * `./nogrey.ts` with the measurements that established it, because the terminal has
+ * to make the same claim over its own window and a second copy is a second thing
+ * that can drift.
  *
- * So the claim is restated to the one that is actually true and actually the point:
- * **no region is flat grey.** A grey *fill* has interior pixels surrounded entirely
- * by other non-pure pixels; an antialiased or subpixel-fringed *edge* is always one
- * or two pixels sitting against ink or paper. Testing for "a non-pure pixel with no
- * pure neighbour" separates the two, is independent of polarity, and is what the
- * integer-scaled viewport genuinely guarantees.
- *
- * And per `CLAUDE.md`'s own rule — run a candidate you expect to fail before
- * trusting the instrument — the second test injects a real grey fill and asserts
- * this one catches it.
+ * Per `CLAUDE.md`'s own rule — run a candidate you expect to fail before trusting
+ * the instrument — the second test injects a real grey fill and asserts this one
+ * catches it.
  */
-/**
- * The instrument: the largest connected region of non-pure pixels.
- *
- * Subpixel fringing is confined to the edges of a *single glyph*, so its components
- * cannot exceed one character cell. A flat fill spans a row or a control. Measured
- * on this app in this era: the largest fringe component is 168 device pixels and an
- * injected `#808080` row is 27,760 — two orders of magnitude apart, with the bound
- * derived from the era's own type rather than picked to make a number pass.
- */
-const COMPONENT_PROBE = `
-  (async (bytes) => {
-    const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' })
-    const bmp = await createImageBitmap(blob)
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
-    const ctx = c.getContext('2d')
-    ctx.drawImage(bmp, 0, 0)
-    const d = ctx.getImageData(0, 0, bmp.width, bmp.height).data
-    const W = bmp.width, H = bmp.height
-    const pure = (i) => {
-      const r = d[i], g = d[i + 1], b = d[i + 2]
-      return (r === 0 && g === 0 && b === 0) || (r === 255 && g === 255 && b === 255)
-    }
-    const seen = new Uint8Array(W * H)
-    let biggest = 0
-    let where = ''
-    for (let p = 0; p < W * H; p++) {
-      if (seen[p] || pure(p * 4)) continue
-      let n = 0
-      const stack = [p]
-      seen[p] = 1
-      while (stack.length) {
-        const q = stack.pop()
-        n++
-        const qx = q % W, qy = (q / W) | 0
-        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-          const nx = qx + dx, ny = qy + dy
-          if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue
-          const r = ny * W + nx
-          if (seen[r] || pure(r * 4)) continue
-          seen[r] = 1
-          stack.push(r)
-        }
-      }
-      if (n > biggest) { biggest = n; where = (p % W) + ',' + ((p / W) | 0) }
-    }
-    return { total: W * H, biggest, where }
-  })
-`
-
-async function largestNonPureRegion(page: Page, selector: string) {
-  const shot = [...(await page.locator(selector).screenshot())]
-  return page.evaluate(
-    ({ bytes, src }) =>
-      (eval(src) as (b: number[]) => Promise<{
-        total: number
-        biggest: number
-        where: string
-      }>)(bytes),
-    { bytes: shot, src: COMPONENT_PROBE },
-  )
-}
-
-/** One character cell in device pixels: fringing cannot exceed a single glyph. */
-async function characterCellArea(page: Page): Promise<number> {
-  return page.evaluate(() => {
-    const list = document.querySelector<HTMLElement>('[data-app="files"] [data-ui="list"]')!
-    const px = parseFloat(getComputedStyle(list).fontSize)
-    const scale = window.__chronos.shell.display.scale()
-    return (px * scale) ** 2
-  })
-}
-
 test.describe('files: no grey in a 1-bit era', () => {
   test('the Files window has no flat non-pure region', async ({ page }) => {
     await boot(page, 'system1')
@@ -806,7 +724,7 @@ test.describe('files: no grey in a 1-bit era', () => {
     ).toBeVisible()
 
     const stats = await largestNonPureRegion(page, '[data-app="files"]')
-    const cell = await characterCellArea(page)
+    const cell = await characterCellArea(page, '[data-app="files"] [data-ui="list"]')
     expect(stats.total, 'the app surface was actually captured').toBeGreaterThan(1000)
     expect(
       stats.biggest,
@@ -830,7 +748,7 @@ test.describe('files: no grey in a 1-bit era', () => {
     })
 
     const stats = await largestNonPureRegion(page, '[data-app="files"]')
-    const cell = await characterCellArea(page)
+    const cell = await characterCellArea(page, '[data-app="files"] [data-ui="list"]')
     expect(stats.biggest, 'the probe sees an injected grey fill').toBeGreaterThan(cell)
   })
 })

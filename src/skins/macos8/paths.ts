@@ -160,6 +160,22 @@ export function createMacos8Codec(fs: FsApi): PathCodec {
         body = text
       }
 
+      /*
+       * A *trailing* separator is not an empty component.
+       *
+       * The era's parent syntax is a colon *between* components — `::name` is the
+       * parent, `:::name` the grandparent — and a folder path ends in a colon by
+       * construction: `format` emits `Macintosh HD:Documents:` because that is how the
+       * classic Mac wrote a folder. Reading that last colon as another step up made
+       * `format` and `parse` disagree about the same folder, so the path the prompt
+       * printed resolved to the volume root when it was typed back. Four of the six
+       * codecs round-trip; these two did not, and every consumer wants them to.
+       *
+       * It also fixes the bare parent forms, which counted one level too many: `::`
+       * split to two empty components and reached the grandparent.
+       */
+      if (body.endsWith(SEP)) body = body.slice(0, -SEP.length)
+
       for (const part of body.split(SEP)) {
         // An empty component from `::` means "up one", the era's parent syntax.
         if (part.length === 0) {

@@ -835,3 +835,56 @@
   background: var(--w31-caption-active);
   color: var(--w31-caption-text-active);
 }
+
+/* ------------------------------------------------------- the terminal (phase 5) */
+
+/*
+ * The MS-DOS Prompt.
+ *
+ * §12 settles this window as the fully authentic one of the six, and what it was is
+ * a VGA text screen inside a 3.1 frame. **The two colours are the text mode's, not
+ * the era's chrome palette**: attribute `07` is light grey on black, and light grey
+ * in the standard VGA text palette is `#AAAAAA`. They are their own properties so
+ * nothing mistakes them for measured chrome, and the frame around them stays the
+ * era's ordinary sizing frame — which is what the window actually looked like.
+ */
+.desktop[data-skin='win31'] [data-app='terminal'] {
+  --w31-console-paper: #000000;
+  --w31-console-ink: #AAAAAA;
+  background: var(--w31-console-paper);
+  color: var(--w31-console-ink);
+}
+
+.desktop[data-skin='win31'] [data-app='terminal'] > [data-ui-role='console'] {
+  padding: 2px 4px;
+}
+
+.desktop[data-skin='win31'] [data-app='terminal'] > [data-ui-role='prompt'] {
+  padding: 0 4px 3px;
+}
+
+/* Bright white is attribute `0F`, which is what the text mode had above `07`. */
+.desktop[data-skin='win31'] [data-app='terminal'] [data-tone='error'] {
+  color: #FFFFFF;
+}
+
+.desktop[data-skin='win31'] [data-app='terminal'] [data-ui-role='command'] {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  caret-color: var(--w31-console-ink);
+  outline: none;
+}
+
+/*
+ * Disabled is `08` — dark grey — which is the text mode's own answer and not the
+ * era's `GrayString` checkerboard. The stipple is for *chrome* on a 4-bit desktop;
+ * a character cell has a whole attribute byte and used it.
+ */
+.desktop[data-skin='win31'] [data-app='terminal'] [data-ui-role='command'][data-state='disabled'] {
+  color: #555555;
+  caret-color: transparent;
+}

@@ -956,3 +956,56 @@
   background: var(--tg-menu-hl);
   color: var(--tg-menu-hl-ink);
 }
+
+/* ------------------------------------------------------- the terminal (phase 5) */
+
+/*
+ * Terminal.
+ *
+ * The one era of the six whose terminal was not a guest from somewhere else, and the
+ * only one that opened on *paper* rather than on a text screen: its default window
+ * was black on white, which is the window body this skin already declares. So there
+ * is nothing to invert and nothing new to colour — the console is an ordinary Aqua
+ * window body with a scrollback in it.
+ */
+.desktop[data-skin='tiger'] [data-app='terminal'] {
+  background: var(--tg-body);
+  color: var(--tg-menu-ink);
+  font-size: var(--tg-font-system);
+}
+
+.desktop[data-skin='tiger'] [data-app='terminal'] > [data-ui-role='console'] {
+  padding: 3px 6px;
+}
+
+.desktop[data-skin='tiger'] [data-app='terminal'] > [data-ui-role='prompt'] {
+  padding: 0 6px 5px;
+}
+
+/*
+ * An error line.
+ *
+ * This era is the first of the six that can say it in colour without inventing an
+ * ink: the close light's own red is a measured value from the source figures, and
+ * reusing it means the terminal's one warning colour is the same red the window
+ * frame already uses for the destructive control.
+ */
+.desktop[data-skin='tiger'] [data-app='terminal'] [data-tone='error'] {
+  color: var(--tg-light-close);
+}
+
+.desktop[data-skin='tiger'] [data-app='terminal'] [data-ui-role='command'] {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  caret-color: var(--tg-menu-ink);
+  outline: none;
+}
+
+.desktop[data-skin='tiger'] [data-app='terminal'] [data-ui-role='command'][data-state='disabled'] {
+  color: var(--tg-menu-off);
+  caret-color: transparent;
+}

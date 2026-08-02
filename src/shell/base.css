@@ -496,3 +496,112 @@ body {
   width: calc(var(--ui-glyph-size, 1em) * 2);
   height: calc(var(--ui-glyph-size, 1em) * 2);
 }
+
+/*
+ * The terminal's structure.
+ *
+ * `CLAUDE.md`: before writing a rule into a skin, ask whether a skin that omitted it
+ * would be *wrong*. Every rule below fails that test — a scrollback that does not
+ * scroll, a command line that does not sit beside its prompt, a listing whose columns
+ * do not line up, or a tree whose depth is invisible are broken rather than
+ * differently styled. What a terminal *looks* like — its ink, its paper, whether it
+ * inverts — is entirely the skin's, and two of the six do invert.
+ *
+ * **Why the tabular output is a grid rather than padded text.** A terminal aligns
+ * columns because its face is monospaced, and not one of the six faces this project
+ * ships is: measured advances for `i` against `W` are 4.00/12.00, 6.00/9.00,
+ * 3.61/12.85, 4.00/12.00, 4.00/12.00 and 5.13/18.19. Padding a name out with spaces
+ * would align nothing, in any era. `max-content` columns align exactly under every
+ * one of them, and the browser does the measuring.
+ */
+
+[data-app='terminal'] > [data-ui-role='console'] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  /*
+   * A console is a document, not chrome: selecting its text is how a transcript
+   * leaves the window, and every one of these terminals allowed it.
+   */
+  user-select: text;
+  /* Runs of spaces in `echo` output are the user's, and wrapping is what a narrow
+   * window did rather than clipping the line. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+[data-app='terminal'] > [data-ui-role='prompt'] {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+[data-app='terminal'] [data-term-prompt] {
+  flex: 0 0 auto;
+  white-space: pre;
+  user-select: text;
+}
+
+/*
+ * The command line fills what the prompt leaves.
+ *
+ * `min-width: 0` is the rule whose absence is invisible until the path is long: an
+ * input's intrinsic width is not zero, so without it a deep working directory pushes
+ * the field out of the window instead of the field shrinking.
+ */
+[data-app='terminal'] [data-ui-role='command'] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+[data-term-row] {
+  min-height: 1em;
+}
+
+/* An empty output line still occupies one. */
+[data-term-row][data-term-blank] {
+  white-space: pre;
+}
+
+/*
+ * A block of tabular output. Columns take their content's width, so they line up
+ * under a proportional face without anything counting characters.
+ */
+[data-term-block][data-term-table] {
+  display: grid;
+  grid-template-columns: repeat(var(--term-columns, 1), max-content);
+  width: max-content;
+  /*
+   * Columns that touch are unreadable, not differently styled — `Bytes used0` was
+   * the first listing this rule was missing from. Two zero-widths rather than a
+   * pixel count, so the gap scales with whichever face the era is using, the same
+   * way the tree's indent does.
+   */
+  column-gap: 2ch;
+}
+
+[data-term-block][data-term-table] > [data-term-row] {
+  display: contents;
+}
+
+[data-term-cell] {
+  white-space: pre;
+}
+
+[data-term-cell][data-align='end'] {
+  text-align: end;
+}
+
+/*
+ * `tree`'s depth.
+ *
+ * Indentation is structural rather than leading spaces, for the same reason the
+ * columns are: spaces do not measure the same as the connector under a proportional
+ * face, so an indent built from them fans out down the page. `ch` is the width of
+ * `0` in whichever face is active, which keeps the step proportional to the era's own
+ * type instead of to a number picked once.
+ */
+[data-term-row][data-term-indent] {
+  padding-inline-start: calc(var(--term-indent, 0) * 2ch);
+}

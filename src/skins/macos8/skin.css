@@ -740,3 +740,63 @@
   background: var(--m8-accent-face);
   color: var(--m8-ink);
 }
+
+/* ------------------------------------------------------- the terminal (phase 5) */
+
+/*
+ * The Worksheet, under Platinum.
+ *
+ * §12: the classic Mac eras get an MPW-styled window, and MPW's Worksheet is the
+ * plainest surface the system had — the window body's white, the era's ink, and text
+ * selectable anywhere. Platinum's chrome does the rest, which is exactly how the
+ * real thing looked.
+ */
+.desktop[data-skin='macos8'] [data-app='terminal'] {
+  background: var(--m8-white);
+  color: var(--m8-ink);
+  font-size: var(--m8-font-size);
+}
+
+.desktop[data-skin='macos8'] [data-app='terminal'] > [data-ui-role='console'] {
+  padding: 2px 5px;
+}
+
+.desktop[data-skin='macos8'] [data-app='terminal'] > [data-ui-role='prompt'] {
+  padding: 0 5px 4px;
+}
+
+/*
+ * An error line is the same ink as every other line, and that is the era's answer
+ * rather than a gap.
+ *
+ * The first version tinted it with a step of the documented grey ramp, and rendering
+ * it settled the question: a *lighter* error reads as unavailable, which is the one
+ * thing this era says with grey — disabled text is `#888888`. There is no darker
+ * step than the ink, and inventing a colour for a window whose whole point is that
+ * it is the plainest surface in the system would be inventing a convention MPW never
+ * had. It prefixed its errors instead, and so does this.
+ */
+
+.desktop[data-skin='macos8'] [data-app='terminal'] [data-ui-role='command'] {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  caret-color: var(--m8-ink);
+  outline: none;
+}
+
+/*
+ * Disabled is a solid grey glyph, not a checkerboard.
+ *
+ * The stipple ends before this era: Platinum draws unavailable text as the same
+ * artwork in `#888888`, which `--m8-dim` already carries, and a window that
+ * inherited the earlier construction would read four years out of date.
+ */
+.desktop[data-skin='macos8'] [data-app='terminal'] [data-ui-role='command'][data-state='disabled'] {
+  color: var(--m8-dim);
+  caret-color: transparent;
+}

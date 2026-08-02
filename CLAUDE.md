@@ -725,3 +725,78 @@ Append every correction I make here as a permanent rule. Never delete entries.
 - A suspend test that only checks the flag flipped proves nothing. Write to the filesystem
   while suspended and assert the app did *not* follow it; that is the behaviour the era
   exists for.
+
+### `document.fonts.check()` cannot see a missing glyph — raster it twice instead
+- The entry above says `check()` over every string is the instrument for coverage. It is
+  not, and this is the correction: the method walks the **fallback chain** and answers
+  true for anything the *system* can draw, so it reported full coverage for all six era
+  faces including seven box-drawing characters and two arrows that **none** of them
+  carries. It also returned true for a family the page had never loaded. A guard that
+  cannot fail, found for the third time, and this one was already written into the rules.
+- What works is pixel-for-pixel: draw the character in the era face and again in a family
+  that does not exist, and compare the rasters. Advance widths are not enough — a bitmap
+  face shares an advance with the fallback by coincidence often enough to report a dozen
+  false absences. **Calibrate on a character the face certainly has** and refuse to run if
+  that reads as a fallback, which is what catches the case where nothing loaded at all.
+- The finding it produced governs any app that prints characters: no era face has
+  `─ │ └ ├ ┼ ┐ ┘ → ▸`, the 1-bit classic Mac face also lacks `… — •`, and Windows 3.1's
+  also lacks `•`. `tree` draws `+---` and `\---`, which is what `tree /a` printed anyway.
+
+### Six proportional faces mean a terminal lays its columns out, it does not pad them
+- Measured `i` against `W` in the face each skin actually renders with: 4.45/15.10,
+  6.00/9.00, 3.61/12.85, 4.00/12.00, 4.00/12.00, 5.13/18.19. Every one proportional, so
+  space-padding a listing aligns nothing in any era. A `max-content` grid aligns exactly
+  under all six and the browser does the measuring — and it keeps working when an era
+  hides an extension or coerces a name to 8.3, which a character count would not.
+- The monospaced alternative is **six unresolved fonts**, and the rule against building on
+  one is absolute. The era faces are resolved, gated and shipped; a terminal face is a
+  `docs/fonts/` task with its own comparison sheet, not something to slip in under an app.
+  Ship the stated loss and record what would resolve it.
+- Columns that touch are structural, not styling: `Bytes used0` was the first listing that
+  proved it. The gap is `2ch` in `base.css`, so it scales with whichever face is active.
+
+### A shell must accept the same paths for writing that it accepts for reading
+- Creating something split the operand on the separator and resolved only the head;
+  reading it asked the codec for the whole path. On the era whose rule is that a colon
+  which is not leading makes the first component a *volume*, that meant
+  `touch Work:notes.txt` created the file and `cat Work:notes.txt` could not read it back.
+  One grammar, applied to both, and it may be a superset of the codec's — shells have
+  always been more forgiving than the API beneath them — but it may not be two grammars.
+- `format` → `parse` is a round trip and four of the six codecs made it. The two that did
+  not read a *trailing* separator as an empty component meaning "up", so the path the
+  prompt printed resolved to the volume root when it was typed back. A trailing separator
+  marks a directory; the parent syntax is a separator *between* components. Test the round
+  trip on every codec, not on the one being written.
+
+### An era's "unavailable" mark is the one it already uses, not a new one
+- A tinted error line in a grey-ramp era reads as **disabled**, because lighter-than-ink is
+  what that era already says disabled with — and there is no darker step than the ink. The
+  era's own answer was in the shell it is imitating: MPW prefixed diagnostics with `###`,
+  which is the only way to mark an error in a window with one ink, and it serves both
+  classic Mac eras at once.
+- Ledger's bleach ramp is not a disabled treatment either. Its first two bands removed
+  4.5% and 8.4% of a row's ink — the ramp says *how long a window has been ignored*, which
+  is a different statement. The skin already prints an amber dither behind an unavailable
+  list row; a disabled command line takes that, same property and same level, rather than
+  a second construction.
+
+### Inject a failure where the guard can actually see it
+- Making the no-flat-grey probe fail on purpose failed to fail, twice, for two different
+  reasons: the console is scrolled to its end, so a fill injected into the *first* row of
+  a listing is off screen and never reaches the screenshot; and a row inside a tabular
+  block is `display: contents` so its cells can be the grid's own items, and an element
+  with no box paints no background at all. Both look like the guard working.
+- Same rule as the instrument itself, one level down: *test that the test can fail*, and
+  when it does not fail, ask whether the injection landed before concluding the code is
+  right.
+
+### A frozen app is disabled, not deleted
+- `suspend()` must stop the work — the filesystem watch, the walk in progress, the ability
+  to type — and the temptation is to tear the control down with it. A control that says
+  "not now" is one of the five states every interactive element ships; removing it says
+  something else, and the window is still on screen showing whatever it last rendered.
+- The state that dies in the round trip is the state the *resume re-render* destroys, and
+  the re-render is not optional: a suspended app dropped its watch, so it has been blind
+  and cannot trust any part of its projection. Prove the destruction happens — assert the
+  restored widget is **not the same node** — or the round-trip test passes against an app
+  that never captured anything.

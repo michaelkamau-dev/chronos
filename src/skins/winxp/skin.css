@@ -763,3 +763,64 @@
   background: var(--xp-menu-highlight);
   color: #FFFFFF;
 }
+
+/* ------------------------------------------------------- the terminal (phase 5) */
+
+/*
+ * The console.
+ *
+ * Structure is in `src/shell/base.css`; this is the era's face for it.
+ *
+ * **The two colours here are the console's, not Luna's.** A command prompt window
+ * did not use the window face: it opened with the console's default character
+ * attribute, `07` — light grey on black — which is a documented default of the
+ * console subsystem rather than anything in the visual guidelines. They are written
+ * as their own custom properties so nothing reads them as measured chrome values,
+ * and the rest of the window is the era's ordinary frame, which is exactly how the
+ * real window looked: Luna chrome around a black rectangle.
+ */
+.desktop[data-skin='winxp'] [data-app='terminal'] {
+  --xp-console-paper: #000000;
+  --xp-console-ink: #C0C0C0;
+  background: var(--xp-console-paper);
+  color: var(--xp-console-ink);
+  font-size: var(--xp-fs-8);
+}
+
+.desktop[data-skin='winxp'] [data-app='terminal'] > [data-ui-role='console'] {
+  padding: 2px 4px;
+}
+
+.desktop[data-skin='winxp'] [data-app='terminal'] > [data-ui-role='prompt'] {
+  padding: 0 4px 3px;
+}
+
+/* An error is the same character cell in the attribute the console used for one. */
+.desktop[data-skin='winxp'] [data-app='terminal'] [data-tone='error'] {
+  color: #FFFFFF;
+}
+
+/*
+ * The command line.
+ *
+ * No box, because a console has none: the field is the run of cells after the
+ * prompt. Its five states are the console's own — rest, hover and active are one
+ * face because a character cell had no rollover, focus is the caret, and disabled
+ * drops the ink to the era's disabled control grey, which is what a suspended
+ * window's prompt shows.
+ */
+.desktop[data-skin='winxp'] [data-app='terminal'] [data-ui-role='command'] {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  caret-color: var(--xp-console-ink);
+  outline: none;
+}
+
+.desktop[data-skin='winxp'] [data-app='terminal'] [data-ui-role='command'][data-state='disabled'] {
+  color: var(--xp-disabled-control);
+  caret-color: transparent;
+}

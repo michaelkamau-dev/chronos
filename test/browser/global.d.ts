@@ -13,6 +13,7 @@ declare global {
       openDirectoryWindow(startAt?: NodeId): WindowId
       /** The real Files app, as opposed to the phase-2 harness directory view. */
       openFilesWindow(startAt?: NodeId): WindowId
+      openTerminalWindow(startAt?: NodeId): WindowId
       openWindows(n: number): WindowId[]
       keymapUnknownKeys(): string[]
       reset(): Promise<void>

@@ -898,3 +898,72 @@
   color: var(--lg-carbon);
   cursor: default;
 }
+
+/* ------------------------------------------------------- the terminal (phase 5) */
+
+/*
+ * The console, on thermal paper.
+ *
+ * Two inks and a third for anything that costs the reader something. Nothing here
+ * animates and nothing fades: §8 states that transitions cost joules and that states
+ * cut, so a line either is on the paper or is not.
+ */
+.desktop[data-skin='ledger'] [data-app='terminal'] {
+  background: var(--lg-paper);
+  color: var(--lg-carbon);
+  font-size: var(--lg-fs);
+  line-height: var(--lg-line);
+}
+
+.desktop[data-skin='ledger'] [data-app='terminal'] > [data-ui-role='console'] {
+  padding: 4px 6px;
+}
+
+.desktop[data-skin='ledger'] [data-app='terminal'] > [data-ui-role='prompt'] {
+  padding: 0 6px 6px;
+  border-top: var(--lg-rule) solid var(--lg-carbon);
+  padding-top: 4px;
+}
+
+/* The era's one other ink, and the only thing it is for is something that went wrong. */
+.desktop[data-skin='ledger'] [data-app='terminal'] [data-tone='error'] {
+  color: var(--lg-amber);
+}
+
+.desktop[data-skin='ledger'] [data-app='terminal'] [data-ui-role='command'] {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+  min-height: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  caret-color: var(--lg-carbon);
+  outline: none;
+}
+
+/*
+ * Disabled is the era's own dither, not a grey and not alpha.
+ *
+ * The amber tile behind the row, which is exactly what this skin already prints
+ * behind an unavailable list row — same property, same level, no second construction
+ * to drift. Amber because this era's third ink means "this costs you something", and
+ * a command line that cannot be typed into is the cheapest thing in the window.
+ *
+ * **It is a background rather than a bleach overlay**, and rendering settled that:
+ * the bleach tile knocked 4.5% of the row's ink out at band 1 and 8.4% at band 2,
+ * which reads as nothing at all. The bleach is the frame's mechanism for *how long*
+ * a window has been ignored; "you cannot type here" is a different statement and the
+ * skin already had a mark for it.
+ */
+.desktop[data-skin='ledger'] [data-app='terminal'] [data-ui-role='command'][data-state='disabled'] {
+  caret-color: transparent;
+}
+
+.desktop[data-skin='ledger']
+  [data-app='terminal']
+  > [data-ui-role='prompt']:has([data-ui-role='command'][data-state='disabled']) {
+  background-image: var(--lg-tile-amber-8);
+}
