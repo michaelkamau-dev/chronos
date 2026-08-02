@@ -13,6 +13,8 @@ declare global {
       openDirectoryWindow(startAt?: NodeId): WindowId
       /** The real Files app, as opposed to the phase-2 harness directory view. */
       openFilesWindow(startAt?: NodeId): WindowId
+      /** The Editor, empty or opened onto a document. */
+      openEditorWindow(file?: NodeId): WindowId
       openWindows(n: number): WindowId[]
       keymapUnknownKeys(): string[]
       reset(): Promise<void>

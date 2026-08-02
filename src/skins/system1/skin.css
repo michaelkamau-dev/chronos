@@ -1113,3 +1113,74 @@
 .desktop[data-skin='system1'] [data-ui='button'][data-pressed='true']::before {
   background: var(--s1-ink);
 }
+
+/*
+ * The text surface and the find bar.
+ *
+ * **This era's document face is not a substitution problem.** MacWrite and the Note
+ * Desk Accessory set text in the same bitmap faces the system drew its chrome with,
+ * and ChiKareGo2 is already this skin's resolved Chicago stand-in — so the document
+ * uses it at the era's own size and line box rather than introducing a face the
+ * skin has never scrutinised.
+ *
+ * The frame is the era's edit-field construction: a 1px black rectangle on paper,
+ * with no bevel and no focus ring beyond the one the skin already gives every
+ * control. Selection is a straight inversion, which is the only selection a 1-bit
+ * display can draw and the reason nothing here needs a third colour.
+ */
+.desktop[data-skin='system1'] [data-ui='textarea'] {
+  padding: 2px 4px;
+  border: 1px solid var(--s1-ink);
+  background: var(--s1-paper);
+  font-family: 'S1 Chicago', monospace;
+  font-size: var(--s1-fs);
+  line-height: var(--s1-line);
+  color: var(--s1-ink);
+}
+
+/* No rollover on a 1984 text surface: there is no lighter black to draw one with.
+ * Declared rather than omitted so all five states are defined. */
+.desktop[data-skin='system1'] [data-ui='textarea'][data-state='hover'],
+.desktop[data-skin='system1'] [data-ui='textarea'][data-state='active'] {
+  border-color: var(--s1-ink);
+  background: var(--s1-paper);
+}
+
+.desktop[data-skin='system1'] [data-ui='textarea']:focus-visible,
+.desktop[data-skin='system1'] [data-ui='textarea'][data-state='focus'] {
+  outline: 2px solid var(--s1-ink);
+  outline-offset: 1px;
+}
+
+/*
+ * Disabled is `notPatBic`: the glyph drawn, then a 50% checkerboard knocked out of
+ * it. The same construction the era's buttons and menu items use, reached through
+ * the same generated stipple rather than a second copy of it — CLAUDE.md records
+ * that copying the mechanism into a second place is how the two drift.
+ */
+.desktop[data-skin='system1'] [data-ui='textarea'][data-state='disabled'] {
+  background: var(--s1-paper);
+  color: var(--s1-ink);
+  background-image: repeating-conic-gradient(
+    var(--s1-paper) 0% 25%,
+    transparent 0% 50%
+  );
+  background-size: var(--s1-stipple) var(--s1-stipple);
+}
+
+.desktop[data-skin='system1'] [data-ui='textarea']::selection {
+  background: var(--s1-ink);
+  color: var(--s1-paper);
+}
+
+/*
+ * The find bar is a stack of `[data-ui='toolbar']` rows, so each row already has
+ * the era's toolbar face, padding and `width: auto` button rule.
+ */
+.desktop[data-skin='system1'] [data-ui-role='findbar'] {
+  border-top: 1px solid var(--s1-ink);
+}
+
+.desktop[data-skin='system1'] [data-ui-role='findrow'] {
+  border-bottom: 0;
+}

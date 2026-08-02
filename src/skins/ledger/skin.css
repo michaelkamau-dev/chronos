@@ -898,3 +898,72 @@
   color: var(--lg-carbon);
   cursor: default;
 }
+
+/*
+ * The text surface and the find bar.
+ *
+ * There is no original to lose against: §8 states a category rather than a face, so
+ * the document is set in the era's own resolved face at the era's own size, and
+ * `font: inherit` is what the field rule beside it already does.
+ *
+ * **The caret is left native here, unlike the single-line field.** That field
+ * suppresses it and draws its own at the era's 0.5Hz, because a blink rate is a
+ * thing the platform will not give. A document's caret has to sit at the text
+ * insertion point wherever that lands after wrapping, which nothing outside the
+ * control can compute — so the choice is the platform's caret or none, and none
+ * makes the surface unusable.
+ */
+.desktop[data-skin='ledger'] [data-ui='textarea'] {
+  padding: var(--lg-cell);
+  border: var(--lg-rule) solid var(--lg-paper);
+  background: var(--lg-carbon);
+  color: var(--lg-paper);
+  font: inherit;
+  line-height: var(--lg-line);
+}
+
+.desktop[data-skin='ledger'] [data-ui='textarea'][data-state='hover'] {
+  border-color: var(--lg-amber);
+}
+
+.desktop[data-skin='ledger'] [data-ui='textarea'][data-state='focus'],
+.desktop[data-skin='ledger'] [data-ui='textarea'][data-state='active'] {
+  outline: var(--lg-rule) solid var(--lg-amber);
+  outline-offset: 0;
+}
+
+/* The era's disabled treatment is its own dither, the same tile the buttons use. */
+.desktop[data-skin='ledger'] [data-ui='textarea'][data-state='disabled'] {
+  background-color: var(--lg-paper);
+  background-image: var(--lg-tile-amber-8);
+  color: var(--lg-carbon);
+}
+
+.desktop[data-skin='ledger'] [data-ui='textarea']::selection {
+  background: var(--lg-amber);
+  color: var(--lg-carbon);
+}
+
+/*
+ * The find bar is a stack of `[data-ui='toolbar']` rows, so each row already has
+ * the era's toolbar face, padding and button sizing.
+ *
+ * The field needs its own height here. This skin's `[data-ui='field']` is
+ * `width: 100%; height: 100%`, written when the only field in the project was the
+ * sole child of a sized box; in a toolbar row that resolves against the row's own
+ * auto height and the field swallowed the window. `base.css` neutralises the
+ * percentage structurally; this gives it the era's control height.
+ */
+.desktop[data-skin='ledger'] [data-ui-role='findbar'] {
+  border-top: var(--lg-rule) solid var(--lg-paper);
+}
+
+.desktop[data-skin='ledger'] [data-ui-role='findrow'] {
+  border-bottom: 0;
+}
+
+.desktop[data-skin='ledger'] [data-ui-role='findrow'] [data-ui='field'] {
+  width: auto;
+  height: auto;
+  min-height: var(--lg-control-h);
+}

@@ -956,3 +956,58 @@
   background: var(--tg-menu-hl);
   color: var(--tg-menu-hl-ink);
 }
+
+/*
+ * The text surface and the find bar.
+ *
+ * Tiger is the one era whose type is *meant* to be anti-aliased — Apple documents
+ * that all interface text is — so unlike the bitmap eras there is nothing here
+ * fighting the renderer, and the document face is the same substitute the rest of
+ * the skin uses. TextEdit set documents in Helvetica 12; DejaVu Sans stands in for
+ * Lucida Grande throughout this skin and stands in here too, which is a smaller
+ * departure than introducing a seventh face for one surface.
+ *
+ * The frame, the radius, the focus ring and the disabled fill are the era's own
+ * measured text-field values, reused rather than restated.
+ */
+.desktop[data-skin='tiger'] [data-ui='textarea'] {
+  padding: 4px 6px;
+  border: var(--tg-hairline) solid #8E8E8E;
+  border-radius: 2px;
+  background: #FFFFFF;
+  font-family: var(--tg-font);
+  font-size: var(--tg-font-view);
+  color: #000000;
+}
+
+.desktop[data-skin='tiger'] [data-ui='textarea'][data-state='hover'] {
+  border-color: #7A7A7A;
+}
+
+.desktop[data-skin='tiger'] [data-ui='textarea'][data-state='focus'],
+.desktop[data-skin='tiger'] [data-ui='textarea'][data-state='active'] {
+  outline: 2px solid var(--tg-focus-1);
+  outline-offset: -1px;
+}
+
+.desktop[data-skin='tiger'] [data-ui='textarea'][data-state='disabled'] {
+  background: #F2F2F2;
+  color: #A6A6A6;
+}
+
+.desktop[data-skin='tiger'] [data-ui='textarea']::selection {
+  background: var(--tg-menu-hl);
+  color: var(--tg-menu-hl-ink);
+}
+
+/*
+ * The find bar is a stack of `[data-ui='toolbar']` rows, so each row already has
+ * the era's toolbar face, padding and button sizing.
+ */
+.desktop[data-skin='tiger'] [data-ui-role='findbar'] {
+  border-top: var(--tg-hairline) solid var(--tg-frame);
+}
+
+.desktop[data-skin='tiger'] [data-ui-role='findrow'] {
+  border-bottom: 0;
+}

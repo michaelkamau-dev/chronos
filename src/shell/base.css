@@ -319,6 +319,105 @@ body {
 }
 
 /*
+ * The multi-line text surface.
+ *
+ * `min-height: 0` for the same reason the list needs it: without it a flex child
+ * refuses to shrink below its content, so a long document pushes the status bar
+ * out of the window instead of the surface scrolling.
+ *
+ * `font: inherit` is a *floor*, not a substitute for a skin's own rule. A
+ * `<textarea>` does not inherit type from its ancestors — the browser gives it
+ * `monospace` at 13.333px — so a skin that wrote no rule at all would render its
+ * document in neither its era's face nor its era's size, which is wrong in all
+ * six. Inheriting makes the failure land on the era's *interface* face rather
+ * than on the browser's, and every one of the six skins then names its document
+ * face deliberately, because that choice genuinely is the era's.
+ *
+ * `resize: none` because no era's text surface had a grip in its corner, and the
+ * browser's is a 2010s control. The frame's own resize handle is how a window
+ * changes size in every one of the six.
+ */
+[data-ui='textarea'] {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: block;
+  width: 100%;
+  font: inherit;
+  resize: none;
+  overflow: auto;
+  /* Chrome is unselectable; a document is the one thing that is not. */
+  user-select: text;
+}
+
+/*
+ * Wrap is behaviour, not appearance: it decides whether a long line folds or the
+ * surface scrolls sideways. The `wrap` attribute alone does not settle the
+ * horizontal overflow, so the pair moves together and a skin cannot get one
+ * without the other.
+ */
+[data-ui='textarea'][data-wrap='on'] {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  overflow-x: hidden;
+}
+
+[data-ui='textarea'][data-wrap='off'] {
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+
+/*
+ * A find bar is a stack of control rows that must not steal height from the
+ * document and must not push the status bar off the window. Each row is a real
+ * `[data-ui='toolbar']`, so the era's own toolbar rules give it its look and its
+ * button sizing; what is here is only the part a skin that omitted it would get
+ * *wrong* rather than different.
+ */
+[data-ui-role='findbar'] {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+/*
+ * The search field takes the row's remaining width and no more.
+ *
+ * `min-width: 0` is the half that is invisible until it bites: a flex item will
+ * not shrink below its content, so a field with a long search term in it pushes
+ * the buttons beside it off the end of the row instead of scrolling its own text.
+ */
+[data-ui-role='findrow'] [data-ui='field'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  /*
+   * A skin may size a field to fill its host — Ledger's does, because the only
+   * field that existed when it was written was the sole child of a sized box. In
+   * a row that resolves against the row's own auto height and the field swallows
+   * the window. Stretching it to the row rather than to a percentage is what
+   * every era's find bar actually did, and it costs the skin nothing.
+   */
+  height: auto;
+  align-self: stretch;
+}
+
+/*
+ * `hidden` is a UA rule of the lowest possible specificity, so the `display: flex`
+ * above beats it and a closed find bar stays on screen as an empty strip — in all
+ * six eras at once, because the rule that broke it is the shared one. The list
+ * header three rules up needs the identical line for the identical reason.
+ */
+[data-ui-role='findbar'][hidden] {
+  display: none;
+}
+
+[data-ui-role='findrow'] [data-ui='button'],
+[data-ui-role='findrow'] [data-ui='label'] {
+  flex: 0 0 auto;
+}
+
+/*
  * A rename editor replaces a cell's text in place, so it has to take the cell's
  * width exactly. Left to a skin, an era that forgot it would show a default-width
  * input overhanging every column to its right.

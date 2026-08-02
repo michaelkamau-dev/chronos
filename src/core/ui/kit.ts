@@ -52,6 +52,7 @@ export type WidgetKind =
   | 'button'
   | 'label'
   | 'field'
+  | 'textarea'
   | 'checkbox'
   | 'radio'
   | 'group'
@@ -141,6 +142,52 @@ export interface TextFieldWidget extends ControlWidget {
   /** Selects a range, or the whole value when called with no arguments. */
   select(start?: number, end?: number): void
   selection(): { start: number; end: number }
+}
+
+/**
+ * A multi-line plain-text editing surface.
+ *
+ * **Tier 1, by §5's own test — "same DOM, skin CSS differs."** A `<textarea>` is
+ * what all six eras drew: MacWrite, Notepad, SimpleText and TextEdit are one
+ * structure with six faces, six inks, six borders and six selection colours. There
+ * is no era among them whose text surface is built out of different *elements*, so
+ * there is nothing for a tier-2 template to vary. What genuinely does differ per
+ * era is its scroll bar, and that was already a tier-2 candidate before this
+ * widget existed and still is.
+ *
+ * `wrap` is a property rather than a look for the same reason `pressed` is on
+ * `ButtonSpec`: word wrap changes what the control *does* — whether a long line
+ * scrolls the surface sideways or folds — and every era shipped it as a user
+ * setting rather than as a house style.
+ */
+export interface TextAreaSpec {
+  /** Accessible name. A *visible* caption is a separate `label` widget. */
+  label: string
+  value?: string
+  /** Soft-wrap long lines. Off scrolls horizontally instead. Defaults to on. */
+  wrap?: boolean
+  enabled?: boolean
+  readOnly?: boolean
+  onInput?(value: string): void
+}
+
+export interface TextAreaWidget extends ControlWidget {
+  value(): string
+  /**
+   * Replaces the whole text.
+   *
+   * **This resets the caret to 0 and both scroll offsets to 0**, which is the
+   * whole reason `AppInstance.suspend()` has to read them out first: an app that
+   * re-renders from a filesystem read on resume destroys the cursor with the very
+   * write that brings the document back.
+   */
+  setValue(v: string): void
+  selection(): { start: number; end: number }
+  setSelection(start: number, end: number): void
+  scrollOffset(): { top: number; left: number }
+  setScrollOffset(top: number, left: number): void
+  setWrap(on: boolean): void
+  setReadOnly(on: boolean): void
 }
 
 export interface CheckboxSpec {
@@ -260,6 +307,7 @@ export interface UiKit {
   button(spec: ButtonSpec): ButtonWidget
   label(spec: LabelSpec): LabelWidget
   textField(spec: TextFieldSpec): TextFieldWidget
+  textArea(spec: TextAreaSpec): TextAreaWidget
   checkbox(spec: CheckboxSpec): CheckboxWidget
   radio(spec: RadioSpec): RadioWidget
   group(spec: GroupSpec): GroupWidget
@@ -274,13 +322,20 @@ export interface UiKit {
 const INTERACTIVE: ReadonlySet<string> = new Set([
   'button',
   'field',
+  'textarea',
   'checkbox',
   'radio',
   'list',
 ])
 
 function isDisabled(el: HTMLElement): boolean {
-  if (el instanceof HTMLButtonElement || el instanceof HTMLInputElement) return el.disabled
+  if (
+    el instanceof HTMLButtonElement ||
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement
+  ) {
+    return el.disabled
+  }
   return el.getAttribute('aria-disabled') === 'true'
 }
 
@@ -536,6 +591,66 @@ class Kit implements UiKit {
         el.removeEventListener('input', onInput)
         el.removeEventListener('keydown', onKeyDown)
         el.removeEventListener('blur', onBlur)
+        el.remove()
+      },
+    }
+  }
+
+  textArea(spec: TextAreaSpec): TextAreaWidget {
+    const el = this.make('textarea', 'textarea') as HTMLTextAreaElement
+    el.setAttribute('aria-label', spec.label)
+    el.spellcheck = false
+    el.autocomplete = 'off'
+    el.value = spec.value ?? ''
+    el.disabled = spec.enabled === false
+    el.readOnly = spec.readOnly === true
+    const wrap = spec.wrap !== false
+    el.wrap = wrap ? 'soft' : 'off'
+    el.dataset['wrap'] = wrap ? 'on' : 'off'
+
+    const onInput = (): void => spec.onInput?.(el.value)
+    el.addEventListener('input', onInput)
+    this.paint(el)
+
+    return {
+      el,
+      value: () => el.value,
+      setValue: (v) => {
+        el.value = v
+      },
+      selection: () => ({ start: el.selectionStart, end: el.selectionEnd }),
+      setSelection: (start, end) => {
+        el.setSelectionRange(start, end)
+      },
+      scrollOffset: () => ({ top: el.scrollTop, left: el.scrollLeft }),
+      setScrollOffset: (top, left) => {
+        el.scrollTop = top
+        el.scrollLeft = left
+      },
+      setWrap: (on) => {
+        /*
+         * Both halves are needed and neither is redundant.
+         *
+         * The attribute is what decides whether the *submitted value* contains the
+         * soft breaks, and it is what a skin can key a rule off. The data attribute
+         * is what a skin actually styles, because there is no attribute selector for
+         * a textarea's wrapping that works in every engine, and because a stylesheet
+         * must be able to turn horizontal scrolling on and off with it.
+         */
+        el.wrap = on ? 'soft' : 'off'
+        el.dataset['wrap'] = on ? 'on' : 'off'
+      },
+      setReadOnly: (on) => {
+        el.readOnly = on
+      },
+      setEnabled: (on) => {
+        el.disabled = !on
+        this.repaint(el)
+      },
+      isEnabled: () => !el.disabled,
+      focus: () => el.focus(),
+      destroy: () => {
+        el.removeEventListener('input', onInput)
         el.remove()
       },
     }
